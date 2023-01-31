@@ -38,7 +38,7 @@ module.exports = (app) => {
   let log;
   let state = {};
 
-  plugin.start = (options) => {
+  plugin.start = () => {
     log = new Log(app.getDataDirPath());
     const subscription = {
       context: 'vessels.self',

@@ -1,4 +1,9 @@
-const { stat, readdir, readFile, writeFile } = require('node:fs/promises');
+const {
+  stat,
+  readdir,
+  readFile,
+  writeFile,
+} = require('node:fs/promises');
 const { join, basename } = require('path');
 const { parse, stringify } = require('yaml');
 
