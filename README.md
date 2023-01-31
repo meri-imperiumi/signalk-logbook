@@ -25,15 +25,15 @@ It is a good idea to set up automatic backups of these files off the vessel, for
 
 Other applications can also use the logbook API for retrieving and writing log entries.
 
-### `GET plugins/signalk-logbook`
+### `GET plugins/signalk-logbook/logs`
 
 Returns a list of dates we have logbook entries for.
 
-### `GET plugins/signalk-logbook/YYYY-MM-DD`
+### `GET plugins/signalk-logbook/logs/YYYY-MM-DD`
 
 Returns all logbook entries for the given date.
 
-### `POST plugins/signalk-logbook`
+### `POST plugins/signalk-logbook/logs`
 
 Add a log entry by sending a JSON object with the followin keys:
 

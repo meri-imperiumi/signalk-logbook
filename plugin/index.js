@@ -1,10 +1,5 @@
-const { join } = require('path');
 const CircularBuffer = require('circular-buffer');
-
-function getLogName() {
-  const dateString = new Date().toISOString();
-  return dateString.substr(0, 10);
-}
+const Log = require('./Log');
 
 module.exports = (app) => {
   const plugin = {};
@@ -40,12 +35,11 @@ module.exports = (app) => {
   // We keep 15min of past state to allow slight backdating of entries
   const buffer = new CircularBuffer(15);
 
+  let log;
   let state = {};
 
-  function getLogPath(logName) {
-    return join(app.getDataDirPath(), `${logName}.yml`);
-  }
   plugin.start = (options) => {
+    log = new Log(app.getDataDirPath());
     const subscription = {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
@@ -88,17 +82,44 @@ module.exports = (app) => {
   };
 
   plugin.registerWithRouter = (router) => {
-    router.get('/', (req, res) => {
+    router.get('/logs', (req, res) => {
       res.contentType('application/json');
-      res.send(JSON.stringify([]));
+      log.listEntries()
+        .then((entries) => {
+          res.send(JSON.stringify(entries));
+        }, () => {
+          res.sendStatus(500);
+        });
     });
-    router.post('/', (req, res) => {
+    router.post('/logs', (req, res) => {
       res.contentType('application/json');
-      res.send(201);
+      const dateString = new Date().toISOString().substr(0, 10);
+      let stats = buffer.get(req.body.ago);
+      if (!stats) {
+        stats = {
+          ...state,
+        };
+      }
+      const data = {
+        ...stats,
+        text: req.body.text,
+      };
+      log.appendEntry(dateString, data)
+        .then(() => {
+          res.sendStatus(201);
+        }, (e) => {
+          console.log(e);
+          res.sendStatus(500);
+        });
     });
-    router.get('/:date', (req, res) => {
+    router.get('/logs/:date', (req, res) => {
       res.contentType('application/json');
-      res.send(JSON.stringify([]));
+      log.getEntry(req.params.date)
+        .then((entry) => {
+          res.send(JSON.stringify(entry));
+        }, () => {
+          res.sendStatus(500);
+        });
     });
   };
 
