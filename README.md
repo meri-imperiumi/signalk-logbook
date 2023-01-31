@@ -43,3 +43,10 @@ Add a log entry by sending a JSON object with the followin keys:
 All other logbook data for that period is recorded automatically.
 
 TODO: How about recording other non-automated data like crew/skipper changes, sea state, ...?
+
+## Ideas
+
+Some additional ideas for the future:
+
+* We could ship easy systemd unit files for setting up backups to popular locations, like pushing to a git repo
+* One-time script for populating logbook from InfluxDB entries when starting to use the system

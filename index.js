@@ -19,7 +19,7 @@ module.exports = (app) => {
 
   // The paths we want to listen and collect data for
   const paths = [
-    'navigation.state',    // Under way/stopped
+    'navigation.state', // Under way/stopped
     'navigation.datetime', // Current time, for automated hourly entries
     'navigation.position',
     'navigation.gnss.type',
@@ -85,6 +85,21 @@ module.exports = (app) => {
     }, 60000);
 
     setStatus('Waiting for updates');
+  };
+
+  plugin.registerWithRouter = (router) => {
+    router.get('/', (req, res) => {
+      res.contentType('application/json');
+      res.send(JSON.stringify([]));
+    });
+    router.post('/', (req, res) => {
+      res.contentType('application/json');
+      res.send(201);
+    });
+    router.get('/:date', (req, res) => {
+      res.contentType('application/json');
+      res.send(JSON.stringify([]));
+    });
   };
 
   plugin.stop = () => {
