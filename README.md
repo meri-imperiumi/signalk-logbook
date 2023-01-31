@@ -16,8 +16,10 @@ You can also create some additional rules for automated entries when certain thi
 
 This logbook app writes the logs to disk using [YAML format](https://en.wikipedia.org/wiki/YAML) which combines machine readability with at least some degree of human readability.
 
-Logs are stored on a file per day basis at `~/.signalk/plugin-config-data/signalk-logbook/YYYY-MM-DD.yml`
+Logs are stored on a file per day basis at `~/.signalk/plugin-config-data/signalk-logbook/YYYY-MM-DD.yml` 
 If there are no entries for a given day, no file gets written.
+
+Note: unlike Signal K itself, the log entries are written using "human-friendly" units, so degrees, knots, etc.
 
 It is a good idea to set up automatic backups of these files off the vessel, for example to [GitHub](https://github.com) or some other cloud storage service. How to handle this backup is out of the scope of this plugin.
 

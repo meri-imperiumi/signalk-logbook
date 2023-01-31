@@ -1,6 +1,14 @@
 const CircularBuffer = require('circular-buffer');
 const Log = require('./Log');
 
+function rad2deg(rad) {
+  return Math.round((rad * 180) / Math.PI);
+}
+
+function ms2kt(ms) {
+  return parseFloat((ms * 1.94384).toFixed(1));
+}
+
 function stateToEntry(state, text) {
   const data = {
     datetime: new Date(state['navigation.datetime']) || new Date(),
@@ -8,17 +16,17 @@ function stateToEntry(state, text) {
       ...state['navigation.position'],
       source: state['navigation.gnss.type'] || 'GPS',
     },
-    heading: state['navigation.headingTrue'],
+    heading: rad2deg(state['navigation.headingTrue']),
     speed: {
-      stw: state['navigation.speedThroughWater'],
-      sog: state['navigation.speedOverGround'],
+      stw: ms2kt(state['navigation.speedThroughWater']),
+      sog: ms2kt(state['navigation.speedOverGround']),
     },
-    log: state['navigation.trip.log'],
+    log: Math.round(state['navigation.trip.log'] / 1852),
     waypoint: state['navigation.courseRhumbline.nextPoint.position'],
-    barometer: state['environment.outside.pressure'],
+    barometer: parseFloat((state['environment.outside.pressure'] / 100).toFixed(2)),
     wind: {
-      speed: state['environment.wind.speedOverGround'],
-      direction: state['environment.wind.directionTrue'],
+      speed: ms2kt(state['environment.wind.speedOverGround']),
+      direction: rad2deg(state['environment.wind.directionTrue']),
     },
     sea: state['environment.water.swell.state'],
     text,
