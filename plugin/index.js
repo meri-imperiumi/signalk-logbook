@@ -71,6 +71,10 @@ module.exports = (app) => {
   let log;
   let state = {};
 
+  function processTriggers(path, value, state) {
+    // TODO: Implement auto-loggers
+  }
+
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
     const subscription = {
@@ -95,6 +99,7 @@ module.exports = (app) => {
             return;
           }
           u.values.forEach((v) => {
+            processTriggers(v.path, v.value, state);
             state[v.path] = v.value;
           });
         });
