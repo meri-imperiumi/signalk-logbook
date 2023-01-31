@@ -19,7 +19,26 @@ This logbook app writes the logs to disk using [YAML format](https://en.wikipedi
 Logs are stored on a file per day basis at `~/.signalk/plugin-config-data/signalk-logbook/YYYY-MM-DD.yml` 
 If there are no entries for a given day, no file gets written.
 
-Note: unlike Signal K itself, the log entries are written using "human-friendly" units, so degrees, knots, etc.
+Note: unlike Signal K itself, the log entries are written using "human-friendly" units, so degrees, knots, etc. They look something like:
+
+```yaml
+- datetime: 2014-08-15T19:00:19.546Z
+  position:
+    longitude: 24.7363006
+    latitude: 59.7243978
+    source: GPS
+  heading: 202
+  speed:
+    stw: 12.5
+    sog: 11.8
+  log: 9.6
+  waypoint: null
+  barometer: 1008.71
+  wind:
+    speed: 13.7
+    direction: 283
+  text: Set 1st reef on mainsail
+```
 
 It is a good idea to set up automatic backups of these files off the vessel, for example to [GitHub](https://github.com) or some other cloud storage service. How to handle this backup is out of the scope of this plugin.
 
