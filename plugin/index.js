@@ -21,7 +21,7 @@ function stateToEntry(state, text) {
       stw: ms2kt(state['navigation.speedThroughWater']),
       sog: ms2kt(state['navigation.speedOverGround']),
     },
-    log: Math.round(state['navigation.trip.log'] / 1852),
+    log: parseFloat((state['navigation.trip.log'] / 1852).toFixed(1)),
     waypoint: state['navigation.courseRhumbline.nextPoint.position'],
     barometer: parseFloat((state['environment.outside.pressure'] / 100).toFixed(2)),
     wind: {
