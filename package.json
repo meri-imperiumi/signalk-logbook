@@ -1,0 +1,42 @@
+{
+  "name": "@meri-imperiumi/signalk-logbook",
+  "version": "0.1.0",
+  "description": "Semi-automatic logbook for Signal K",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/meri-imperiumi/signalk-logbook.git"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-embeddable-webapp",
+    "signalk-category-utility"
+  ],
+  "author": "Henri Bergius <henri.bergius@iki.fi>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/meri-imperiumi/signalk-logbook/issues"
+  },
+  "homepage": "https://github.com/meri-imperiumi/signalk-logbook#readme",
+  "devDependencies": {
+    "eslint": "^8.33.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.27.5"
+  },
+  "signalk": {
+    "appIcon": "./logbook.png",
+    "displayName": "Logbook"
+  },
+  "signalk-plugin-enabled-by-default": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "circular-buffer": "^1.0.3",
+    "yaml": "^2.2.1"
+  }
+}
