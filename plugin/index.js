@@ -1,6 +1,31 @@
 const CircularBuffer = require('circular-buffer');
 const Log = require('./Log');
 
+function stateToEntry(state, text) {
+  const data = {
+    datetime: new Date(state['navigation.datetime']) || new Date(),
+    position: {
+      ...state['navigation.position'],
+      source: state['navigation.gnss.type'] || 'GPS',
+    },
+    heading: state['navigation.headingTrue'],
+    speed: {
+      stw: state['navigation.speedThroughWater'],
+      sog: state['navigation.speedOverGround'],
+    },
+    log: state['navigation.trip.log'],
+    waypoint: state['navigation.courseRhumbline.nextPoint.position'],
+    barometer: state['environment.outside.pressure'],
+    wind: {
+      speed: state['environment.wind.speedOverGround'],
+      direction: state['environment.wind.directionTrue'],
+    },
+    sea: state['environment.water.swell.state'],
+    text,
+  };
+  return data;
+}
+
 module.exports = (app) => {
   const plugin = {};
   let unsubscribes = [];
@@ -100,10 +125,7 @@ module.exports = (app) => {
           ...state,
         };
       }
-      const data = {
-        ...stats,
-        text: req.body.text,
-      };
+      const data = stateToEntry(stats, req.body.text);
       log.appendEntry(dateString, data)
         .then(() => {
           res.sendStatus(201);
