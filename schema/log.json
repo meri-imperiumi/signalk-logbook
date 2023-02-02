@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lille-oe.de/#log-date",
+  "title": "Daily logbook",
+  "description": "Logbook for a given date",
+  "type": "array",
+  "items": {
+    "$ref": "https://lille-oe.de/#log-entry"
+  }
+}

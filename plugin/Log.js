@@ -4,12 +4,14 @@ const {
   readFile,
   writeFile,
 } = require('node:fs/promises');
-const { join, basename } = require('path');
+const { join, resolve, basename } = require('path');
 const { parse, stringify } = require('yaml');
+const { Validator } = require('jsonschema');
 
 class Log {
   constructor(dir) {
     this.dir = dir;
+    this.validator = null;
   }
 
   listDates() {
@@ -33,16 +35,16 @@ class Log {
         return readFile(path, 'utf-8');
       })
       .then((content) => parse(content))
-      .then((data) => {
-        const normalized = data.map((entry) => ({
-          ...entry,
-          datetime: new Date(entry.datetime),
+      .then((data) => this.validateDate(data)
+        .then((valid) => {
+          if (valid.errors.length > 0) {
+            return Promise.reject(valid.errors[0]);
+          }
+          return data.map((entry) => ({
+            ...entry,
+            datetime: new Date(entry.datetime),
+          }));
         }));
-        if (!Log.validate(normalized)) {
-          return Promise.reject(new Error('Invalid log structure'));
-        }
-        return normalized;
-      });
   }
 
   getEntry(datetime) {
@@ -67,29 +69,55 @@ class Log {
     const path = this.getPath(date);
     // TODO: Validate against schema
     Log.sortDate(data);
-    const yaml = stringify(data);
-    return writeFile(path, yaml, 'utf-8');
+    const normalized = data.map((e) => ({
+      ...e,
+      datetime: e.datetime.toISOString(),
+    }));
+    return this.validateDate(normalized)
+      .then((valid) => {
+        if (valid.errors.length > 0) {
+          return Promise.reject(valid.errors[0]);
+        }
+        const yaml = stringify(normalized);
+        return writeFile(path, yaml, 'utf-8');
+      });
   }
 
   writeEntry(entry) {
     const datetimeString = entry.datetime.toISOString();
     const dateString = datetimeString.substr(0, 10);
-    return this.getDate(dateString)
+    return this.validateEntry(entry)
+      .then((valid) => {
+        if (valid.errors.length > 0) {
+          return Promise.reject(valid.errors[0]);
+        }
+        return this.getDate().catch(() => []);
+      })
       .then((date) => {
+        const normalized = {
+          ...entry,
+          datetime: new Date(entry.datetime),
+        };
         const idx = date.findIndex((e) => e.datetime.toISOString() === datetimeString);
+        const updatedDate = [...date];
         if (idx === -1) {
           // TODO: Would it be better to fail here?
-          return this.appendEntry(dateString, entry);
+          updatedDate.push(normalized);
+        } else {
+          updatedDate[idx] = normalized;
         }
-        const updatedDate = [...date];
-        updatedDate[idx] = entry;
         return this.writeDate(dateString, updatedDate);
       });
   }
 
   appendEntry(date, data) {
-    return this.getDate(date)
-      .catch(() => [])
+    return this.validateEntry(data)
+      .then((valid) => {
+        if (valid.errors.length > 0) {
+          return Promise.reject(valid.errors[0]);
+        }
+        return this.getDate(date).catch(() => []);
+      })
       .then((d) => {
         d.push(data);
         return this.writeDate(date, d);
@@ -113,9 +141,36 @@ class Log {
     });
   }
 
-  static validate() {
-    // TODO: Validate against schema?
-    return true;
+  prepareValidator() {
+    if (this.validator) {
+      return Promise.resolve(this.validator);
+    }
+    const v = new Validator();
+    const schemaDir = resolve(__dirname, '../schema');
+    return readFile(`${schemaDir}/entry.json`)
+      .then((entrySchema) => {
+        v.addSchema(JSON.parse(entrySchema));
+        return readFile(`${schemaDir}/log.json`);
+      })
+      .then((logSchema) => {
+        v.addSchema(JSON.parse(logSchema));
+        this.validator = v;
+        return v;
+      });
+  }
+
+  validateEntry(entry) {
+    return this.prepareValidator()
+      .then((v) => v.validate(entry, {
+        $ref: 'https://lille-oe.de/#log-entry',
+      }));
+  }
+
+  validateDate(data) {
+    return this.prepareValidator()
+      .then((v) => v.validate(data, {
+        $ref: 'https://lille-oe.de/#log-date',
+      }));
   }
 }
 

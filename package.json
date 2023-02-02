@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "circular-buffer": "^1.0.3",
+    "jsonschema": "^1.4.1",
     "yaml": "^2.2.1"
   }
 }

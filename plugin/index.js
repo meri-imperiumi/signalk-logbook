@@ -11,7 +11,7 @@ function ms2kt(ms) {
 
 function stateToEntry(state, text) {
   const data = {
-    datetime: new Date(state['navigation.datetime']) || new Date(),
+    datetime: state['navigation.datetime'] || new Date().toISOString(),
     position: {
       ...state['navigation.position'],
       source: state['navigation.gnss.type'] || 'GPS',
@@ -123,14 +123,26 @@ module.exports = (app) => {
   };
 
   plugin.registerWithRouter = (router) => {
+    function handleError(error, res) {
+      if (error.code === 'ENOENT') {
+        res.sendStatus(404);
+        return;
+      }
+      if (error.stack && error.message) {
+        res.status(400);
+        res.send({
+          message: res.stack,
+        });
+        return;
+      }
+      res.sendStatus(500);
+    }
     router.get('/logs', (req, res) => {
       res.contentType('application/json');
       log.listDates()
         .then((dates) => {
           res.send(JSON.stringify(dates));
-        }, () => {
-          res.sendStatus(500);
-        });
+        }, (e) => handleError(e, res));
     });
     router.post('/logs', (req, res) => {
       res.contentType('application/json');
@@ -145,22 +157,14 @@ module.exports = (app) => {
       log.appendEntry(dateString, data)
         .then(() => {
           res.sendStatus(201);
-        }, () => {
-          res.sendStatus(500);
-        });
+        }, (e) => handleError(e, res));
     });
     router.get('/logs/:date', (req, res) => {
       res.contentType('application/json');
       log.getDate(req.params.date)
         .then((date) => {
           res.send(JSON.stringify(date));
-        }, (e) => {
-          if (e.code === 'ENOENT') {
-            res.sendStatus(404);
-            return;
-          }
-          res.sendStatus(500);
-        });
+        }, (e) => handleError(e, res));
     });
     router.get('/logs/:date/:entry', (req, res) => {
       res.contentType('application/json');
@@ -171,13 +175,7 @@ module.exports = (app) => {
       log.getEntry(req.params.entry)
         .then((entry) => {
           res.send(JSON.stringify(entry));
-        }, (e) => {
-          if (e.code === 'ENOENT') {
-            res.sendStatus(404);
-            return;
-          }
-          res.sendStatus(500);
-        });
+        }, (e) => handleError(e, res));
     });
     router.put('/logs/:date/:entry', (req, res) => {
       res.contentType('application/json');
@@ -188,13 +186,7 @@ module.exports = (app) => {
       log.writeEntry(req.body)
         .then(() => {
           res.sendStatus(200);
-        }, (e) => {
-          if (e.code === 'ENOENT') {
-            res.sendStatus(404);
-            return;
-          }
-          res.sendStatus(500);
-        });
+        }, (e) => handleError(e, res));
     });
   };
 
