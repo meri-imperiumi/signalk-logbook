@@ -12,25 +12,53 @@ function ms2kt(ms) {
 function stateToEntry(state, text) {
   const data = {
     datetime: state['navigation.datetime'] || new Date().toISOString(),
-    position: {
-      ...state['navigation.position'],
-      source: state['navigation.gnss.type'] || 'GPS',
-    },
-    heading: rad2deg(state['navigation.headingTrue']),
-    speed: {
-      stw: ms2kt(state['navigation.speedThroughWater']),
-      sog: ms2kt(state['navigation.speedOverGround']),
-    },
-    log: parseFloat((state['navigation.trip.log'] / 1852).toFixed(1)),
     waypoint: state['navigation.courseRhumbline.nextPoint.position'],
-    barometer: parseFloat((state['environment.outside.pressure'] / 100).toFixed(2)),
-    wind: {
-      speed: ms2kt(state['environment.wind.speedOverGround']),
-      direction: rad2deg(state['environment.wind.directionTrue']),
-    },
-    sea: state['environment.water.swell.state'],
     text,
   };
+  if (state['navigation.position']) {
+    data.position = {
+      ...state['navigation.position'],
+    };
+  }
+  if (state['navigation.gnss.type'] && data.position) {
+    data.position.source = state['navigation.gnss.type'];
+  }
+  if (!Number.isNaN(Number(state['navigation.headingTrue']))) {
+    data.heading = rad2deg(state['navigation.headingTrue']);
+  }
+  if (!Number.isNaN(Number(state['navigation.speedThroughWater']))) {
+    if (!data.speed) {
+      data.speed = {};
+    }
+    data.speed.stw = ms2kt(state['navigation.speedThroughWater']);
+  }
+  if (!Number.isNaN(Number(state['navigation.speedOverGround']))) {
+    if (!data.speed) {
+      data.speed = {};
+    }
+    data.speed.sog = ms2kt(state['navigation.speedOverGround']);
+  }
+  if (!Number.isNaN(Number(state['navigation.trip.log']))) {
+    data.log = parseFloat((state['navigation.trip.log'] / 1852).toFixed(1));
+  }
+  if (!Number.isNaN(Number(state['environment.outside.pressure']))) {
+    data.barometer = parseFloat((state['environment.outside.pressure'] / 100).toFixed(2));
+  }
+  if (!Number.isNaN(Number(state['environment.wind.speedOverGround']))) {
+    if (!data.wind) {
+      data.wind = {};
+    }
+    data.wind.speed = ms2kt(state['environment.wind.speedOverGround']);
+  }
+  if (!Number.isNaN(Number(state['environment.wind.directionTrue']))) {
+    if (!data.wind) {
+      data.wind = {};
+    }
+    data.wind.direction = rad2deg(state['environment.wind.directionTrue']);
+  }
+  if (!Number.isNaN(Number(state['environment.water.swell.state']))) {
+    data.sea = state['environment.water.swell.state'];
+  }
   return data;
 }
 
@@ -71,7 +99,7 @@ module.exports = (app) => {
   let log;
   let state = {};
 
-  function processTriggers(path, value, state) {
+  function processTriggers(path, value, oldState) {
     // TODO: Implement auto-loggers
   }
 
@@ -81,9 +109,10 @@ module.exports = (app) => {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
         path: p,
-        period: 30000, // For logbook purposes, date update per minute is enough
+        period: 1000,
       })),
     };
+
     app.subscriptionmanager.subscribe(
       subscription,
       unsubscribes,
@@ -146,8 +175,15 @@ module.exports = (app) => {
     });
     router.post('/logs', (req, res) => {
       res.contentType('application/json');
-      let stats = buffer.get(req.body.ago);
-      if (!stats) {
+      let stats;
+      if (req.body.ago > buffer.size()) {
+        // We don't have history that far, sadly
+        res.sendStatus(404);
+        return;
+      }
+      if (buffer.size() > 0) {
+        stats = buffer.get(req.body.ago);
+      } else {
         stats = {
           ...state,
         };

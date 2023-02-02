@@ -119,7 +119,11 @@ class Log {
         return this.getDate(date).catch(() => []);
       })
       .then((d) => {
-        d.push(data);
+        const normalized = {
+          ...data,
+          datetime: new Date(data.datetime),
+        };
+        d.push(normalized);
         return this.writeDate(date, d);
       });
   }
