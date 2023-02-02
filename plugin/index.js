@@ -122,9 +122,9 @@ module.exports = (app) => {
   plugin.registerWithRouter = (router) => {
     router.get('/logs', (req, res) => {
       res.contentType('application/json');
-      log.listEntries()
-        .then((entries) => {
-          res.send(JSON.stringify(entries));
+      log.listDates()
+        .then((dates) => {
+          res.send(JSON.stringify(dates));
         }, () => {
           res.sendStatus(500);
         });
@@ -142,16 +142,15 @@ module.exports = (app) => {
       log.appendEntry(dateString, data)
         .then(() => {
           res.sendStatus(201);
-        }, (e) => {
-          console.log(e);
+        }, () => {
           res.sendStatus(500);
         });
     });
     router.get('/logs/:date', (req, res) => {
       res.contentType('application/json');
-      log.getEntry(req.params.date)
-        .then((entry) => {
-          res.send(JSON.stringify(entry));
+      log.getDate(req.params.date)
+        .then((date) => {
+          res.send(JSON.stringify(date));
         }, () => {
           res.sendStatus(500);
         });

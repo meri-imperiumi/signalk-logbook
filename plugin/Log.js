@@ -12,15 +12,15 @@ class Log {
     this.dir = dir;
   }
 
-  listEntries() {
+  listDates() {
     return readdir(this.dir)
-      .then((entries) => {
-        const valid = entries.filter((e) => e.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])\.yml$/));
+      .then((dates) => {
+        const valid = dates.filter((e) => e.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])\.yml$/));
         return valid.map((v) => basename(v, '.yml'));
       });
   }
 
-  getEntry(date) {
+  getDate(date) {
     if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
       return Promise.reject(new Error('Invalid date format'));
     }
@@ -35,23 +35,22 @@ class Log {
       .then((content) => parse(content)); // TODO: Validate against schema?
   }
 
-  writeEntry(date, entry) {
+  writeDate(date, data) {
     if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
       return Promise.reject(new Error('Invalid date format'));
     }
     const path = this.getPath(date);
     // TODO: Validate against schema
-    const yaml = stringify(entry);
+    const yaml = stringify(data);
     return writeFile(path, yaml, 'utf-8');
   }
 
   appendEntry(date, data) {
-    return this.getEntry(date)
+    return this.getDate(date)
       .catch(() => [])
-      .then((entry) => {
-        entry.push(data);
-        // TODO: Sorting
-        return this.writeEntry(date, entry);
+      .then((d) => {
+        d.push(data);
+        return this.writeDate(date, d);
       });
   }
 
