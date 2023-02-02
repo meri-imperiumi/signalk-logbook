@@ -108,12 +108,15 @@ module.exports = (app) => {
 
     interval = setInterval(() => {
       // Save old state to buffer
+      if (!state.datetime) {
+        state.datetime = new Date().toISOString();
+      }
       buffer.enq(state);
       // We can keep a clone of the previous values
       state = {
         ...state,
+        datetime: null,
       };
-      console.log(buffer.toarray());
     }, 60000);
 
     setStatus('Waiting for updates');
