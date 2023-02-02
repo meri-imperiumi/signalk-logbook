@@ -12,7 +12,6 @@ function ms2kt(ms) {
 function stateToEntry(state, text) {
   const data = {
     datetime: state['navigation.datetime'] || new Date().toISOString(),
-    waypoint: state['navigation.courseRhumbline.nextPoint.position'],
     text,
   };
   if (state['navigation.position']) {
@@ -40,6 +39,9 @@ function stateToEntry(state, text) {
   }
   if (!Number.isNaN(Number(state['navigation.trip.log']))) {
     data.log = parseFloat((state['navigation.trip.log'] / 1852).toFixed(1));
+  }
+  if (state['navigation.courseRhumbline.nextPoint.position']) {
+    data.waypoint = state['navigation.courseRhumbline.nextPoint.position'];
   }
   if (!Number.isNaN(Number(state['environment.outside.pressure']))) {
     data.barometer = parseFloat((state['environment.outside.pressure'] / 100).toFixed(2));
