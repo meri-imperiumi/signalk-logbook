@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function AppPanel() {
+function AppPanel(props) {
   const [data, setData] = useState({
     entries: [],
   });
@@ -20,6 +20,11 @@ function AppPanel() {
           });
       });
   });
+
+  // eslint-disable-next-line react/prop-types
+  if (props.loginStatus.status === 'notLoggedIn' && props.loginStatus.authenticationRequired) {
+    return <props.adminUI.Login />;
+  }
 
   return (
     <div>
