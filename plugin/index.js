@@ -154,7 +154,45 @@ module.exports = (app) => {
       log.getDate(req.params.date)
         .then((date) => {
           res.send(JSON.stringify(date));
-        }, () => {
+        }, (e) => {
+          if (e.code === 'ENOENT') {
+            res.sendStatus(404);
+            return;
+          }
+          res.sendStatus(500);
+        });
+    });
+    router.get('/logs/:date/:entry', (req, res) => {
+      res.contentType('application/json');
+      if (req.params.entry.substr(0, 10) !== req.params.date) {
+        res.sendStatus(404);
+        return;
+      }
+      log.getEntry(req.params.entry)
+        .then((entry) => {
+          res.send(JSON.stringify(entry));
+        }, (e) => {
+          if (e.code === 'ENOENT') {
+            res.sendStatus(404);
+            return;
+          }
+          res.sendStatus(500);
+        });
+    });
+    router.put('/logs/:date/:entry', (req, res) => {
+      res.contentType('application/json');
+      if (req.params.entry.substr(0, 10) !== req.params.date) {
+        res.sendStatus(404);
+        return;
+      }
+      log.writeEntry(req.body)
+        .then(() => {
+          res.sendStatus(200);
+        }, (e) => {
+          if (e.code === 'ENOENT') {
+            res.sendStatus(404);
+            return;
+          }
           res.sendStatus(500);
         });
     });
