@@ -134,7 +134,6 @@ module.exports = (app) => {
     });
     router.post('/logs', (req, res) => {
       res.contentType('application/json');
-      const dateString = new Date().toISOString().substr(0, 10);
       let stats = buffer.get(req.body.ago);
       if (!stats) {
         stats = {
@@ -142,6 +141,7 @@ module.exports = (app) => {
         };
       }
       const data = stateToEntry(stats, req.body.text);
+      const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {
           res.sendStatus(201);
