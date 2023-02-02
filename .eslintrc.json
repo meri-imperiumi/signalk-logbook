@@ -1,3 +1,24 @@
 {
-  "extends": "airbnb-base"
+  "extends": "airbnb-base",
+  "plugins": [
+    "react"
+  ],
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "rules": {
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": [
+          "webpack.config.js",
+          "src/*.jsx",
+          "src/components/*.jsx"
+        ],
+        "optionalDependencies": false
+      }
+    ]
+  }
 }

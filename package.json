@@ -4,7 +4,10 @@
   "description": "Semi-automatic electronic logbook for Signal K",
   "main": "plugin/index.js",
   "scripts": {
-    "lint": "eslint .",
+    "prepublishOnly": "npm run build",
+    "dev": "webpack --watch --mode=development",
+    "build": "webpack --mode=production",
+    "lint": "eslint *.js src/ plugin/",
     "test": "npm run lint"
   },
   "repository": {
@@ -23,9 +26,21 @@
   },
   "homepage": "https://github.com/meri-imperiumi/signalk-logbook#readme",
   "devDependencies": {
+    "@babel/core": "^7.20.12",
+    "@babel/preset-react": "^7.18.6",
+    "babel-loader": "^9.1.2",
+    "css-loader": "^6.7.3",
     "eslint": "^8.33.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.27.5"
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-react": "^7.32.2",
+    "file-loader": "^6.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
   },
   "signalk": {
     "appIcon": "logbook.png",
