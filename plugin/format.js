@@ -59,4 +59,4 @@ module.exports = function stateToEntry(state, text) {
     data.sea = state['environment.water.swell.state'];
   }
   return data;
-}
+};
