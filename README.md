@@ -65,6 +65,14 @@ All other logbook data for that period is recorded automatically.
 
 TODO: How about recording other non-automated data like crew/skipper changes, sea state, ...?
 
+### `GET plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
+
+Return a single logbook entry, as identified by its datetime value.
+
+### `PUT plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
+
+Update a single logbook entry, as identified by its datetime value.
+
 ## Ideas
 
 Some additional ideas for the future:
