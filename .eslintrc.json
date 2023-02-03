@@ -22,6 +22,7 @@
         ],
         "optionalDependencies": false
       }
-    ]
+    ],
+    "react/prop-types": "warn"
   }
 }

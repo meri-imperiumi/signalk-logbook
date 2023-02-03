@@ -17,6 +17,9 @@ module.exports = {
       '.js',
       '.jsx',
     ],
+    fallback: {
+      querystring: require.resolve("querystring-es3"),
+    },
   },
   module: {
     rules: [
