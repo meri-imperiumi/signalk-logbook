@@ -12,6 +12,7 @@ import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
+import EntryViewer from './EntryViewer.jsx';
 import AddEntry from './AddEntry.jsx';
 
 function AppPanel(props) {
@@ -21,6 +22,7 @@ function AppPanel(props) {
   const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
   const [daysToShow] = useState(7);
   const [editEntry, setEditEntry] = useState(null);
+  const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
 
@@ -70,6 +72,10 @@ function AppPanel(props) {
           });
         }
         setEditEntry(null);
+        if (viewEntry) {
+          // Update viewEntry
+          setViewEntry(entry);
+        }
       });
   }
 
@@ -103,6 +109,11 @@ function AppPanel(props) {
         cancel={() => setEditEntry(null)}
         save={saveEntry}
         /> : null }
+      { viewEntry ? <EntryViewer
+        entry={viewEntry}
+        editEntry={setEditEntry}
+        cancel={() => setViewEntry(null)}
+        /> : null }
       { addEntry ? <AddEntry
         entry={addEntry}
         cancel={() => setAddEntry(null)}
@@ -134,7 +145,7 @@ function AppPanel(props) {
             { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
           </TabPane>
           <TabPane tabId="map">
-            { activeTab === 'map' ? <Map entries={data.entries} /> : null }
+            { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }
           </TabPane>
         </TabContent>
       </Col>

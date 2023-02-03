@@ -1,12 +1,18 @@
 import React from 'react';
 import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
+import { Point } from 'where';
 
 function Map(props) {
-  const position = [props.entries[0].position.latitude, props.entries[0].position.longitude];
+  const entries = props.entries.map((entry) => ({
+    ...entry,
+    point: new Point(entry.position.latitude, entry.position.longitude),
+    date: new Date(entry.datetime),
+  }));
+  const position = [entries[0].position.latitude, entries[0].position.longitude];
   const geoJson = {
     type: 'FeatureCollection',
-    features: props.entries.slice(1).map((e, idx) => {
-      const previous = props.entries[idx];
+    features: entries.slice(1).map((e, idx) => {
+      const previous = entries[idx];
       if (!previous) {
         return null;
       }
@@ -34,11 +40,11 @@ function Map(props) {
         stroke: 'red',
       })}
     />
-    {props.entries.map((entry) => (
+    {entries.map((entry) => (
     <Marker
       key={entry.datetime}
-      anchor={[entry.position.latitude, entry.position.longitude]}>
-    </Marker>
+      anchor={[entry.position.latitude, entry.position.longitude]}
+      onClick={() => props.viewEntry(entry)} />
     ))}
   </PigeonMap>
   );
