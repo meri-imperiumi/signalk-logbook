@@ -112,12 +112,14 @@ module.exports = (app) => {
         return;
       }
       if (error.stack && error.message) {
+        app.debug(error.stack);
         res.status(400);
         res.send({
-          message: res.stack,
+          message: error.stack,
         });
         return;
       }
+      app.debug(error.message);
       res.sendStatus(500);
     }
     router.get('/logs', (req, res) => {
