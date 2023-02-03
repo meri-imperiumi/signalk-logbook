@@ -46,6 +46,10 @@ function Timeline(props) {
                       <td>{entry.wind.speed}kt {entry.wind.direction}&deg;</td>
                     </tr>
                   }
+                  <tr>
+                    <th>By</th>
+                    <td>{entry.author || 'auto'}</td>
+                  </tr>
                 </tbody>
               </Table>
             </CardText>

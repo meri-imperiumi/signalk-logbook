@@ -22,6 +22,7 @@ function Logbook(props) {
           <th>Baro</th>
           <th>Coordinates</th>
           <th>Fix</th>
+          <th>By</th>
           <th>Remarks</th>
         </tr>
       </thead>
@@ -36,6 +37,7 @@ function Logbook(props) {
           <td>{entry.barometer}</td>
           <td>{entry.point.toString()}</td>
           <td>{entry.position.source || 'GPS'}</td>
+          <td>{entry.author || 'auto'}</td>
           <td>{entry.text}</td>
         </tr>
       ))}
