@@ -8,7 +8,10 @@ function Map(props) {
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
   }));
-  const position = [entries[0].position.latitude, entries[0].position.longitude];
+  let position = [0, 0];
+  if (entries.length) {
+    position = [entries[0].position.latitude, entries[0].position.longitude];
+  }
   const geoJson = {
     type: 'FeatureCollection',
     features: entries.slice(1).map((e, idx) => {
