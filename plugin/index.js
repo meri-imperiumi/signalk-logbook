@@ -42,7 +42,7 @@ module.exports = (app) => {
   ];
 
   // We keep 15min of past state to allow slight backdating of entries
-  const buffer = new CircularBuffer(15);
+  const buffer = new CircularBuffer(16);
 
   let log;
   let state = {};

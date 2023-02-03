@@ -12,7 +12,10 @@ import {
 } from 'reactstrap';
 
 function EntryEditor(props) {
-  const [entry, updateEntry] = useState(props.entry);
+  const [entry, updateEntry] = useState({
+    text: '',
+    ago: 0,
+  });
   function handleChange(e) {
     const { name, value } = e.target;
     const updated = {
@@ -24,10 +27,16 @@ function EntryEditor(props) {
   function save() {
     props.save(entry);
   }
+  const agoOptions = [
+    0,
+    5,
+    10,
+    15,
+  ];
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
-        Log entry {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}
+        New log entry
       </ModalHeader>
       <ModalBody>
         <Form>
@@ -43,6 +52,20 @@ function EntryEditor(props) {
               value={entry.text}
               onChange={handleChange}
             />
+            <Label for="ago">
+              This happened
+            </Label>
+            <Input
+              id="ago"
+              name="ago"
+              type="select"
+              value={entry.text}
+              onChange={handleChange}
+            >
+              {agoOptions.map((ago) => (
+              <option key={ago} value={ago}>{ago} minutes ago</option>
+              ))}
+            </Input>
           </FormGroup>
         </Form>
       </ModalBody>
@@ -59,3 +82,4 @@ function EntryEditor(props) {
 }
 
 export default EntryEditor;
+

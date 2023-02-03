@@ -12,6 +12,7 @@ import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
+import AddEntry from './AddEntry.jsx';
 
 function AppPanel(props) {
   const [data, setData] = useState({
@@ -20,8 +21,13 @@ function AppPanel(props) {
   const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
   const [daysToShow] = useState(7);
   const [editEntry, setEditEntry] = useState(null);
+  const [addEntry, setAddEntry] = useState(null);
+  const [needsUpdate, setNeedsUpdate] = useState(true);
 
   useEffect(() => {
+    if (!needsUpdate) {
+      return;
+    }
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
@@ -33,9 +39,10 @@ function AppPanel(props) {
             setData({
               entries,
             });
+            setNeedsUpdate(false);
           });
       });
-  }, [daysToShow]); // TODO: Depend on chosen time window to reload as needed
+  }, [daysToShow, needsUpdate]); // TODO: Depend on chosen time window to reload as needed
 
   function saveEntry(entry) {
     const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
@@ -66,6 +73,25 @@ function AppPanel(props) {
       });
   }
 
+  function saveAddEntry(entry) {
+    // Sanitize
+    const savingEntry = {
+      ...entry,
+      ago: parseInt(entry.ago, 10),
+    };
+    fetch('/plugins/signalk-logbook/logs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(savingEntry),
+    })
+      .then(() => {
+        setAddEntry(null);
+        setNeedsUpdate(true);
+      });
+  }
+
   if (props.loginStatus.status === 'notLoggedIn' && props.loginStatus.authenticationRequired) {
     return <props.adminUI.Login />;
   }
@@ -76,6 +102,11 @@ function AppPanel(props) {
         entry={editEntry}
         cancel={() => setEditEntry(null)}
         save={saveEntry}
+        /> : null }
+      { addEntry ? <AddEntry
+        entry={addEntry}
+        cancel={() => setAddEntry(null)}
+        save={saveAddEntry}
         /> : null }
       <Col className="bg-light border">
         <Nav tabs>
@@ -97,10 +128,10 @@ function AppPanel(props) {
         </Nav>
         <TabContent activeTab={activeTab}>
           <TabPane tabId="timeline">
-            { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} /> : null }
+            { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
           </TabPane>
           <TabPane tabId="book">
-            { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} /> : null }
+            { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
           </TabPane>
           <TabPane tabId="map">
             { activeTab === 'map' ? <Map entries={data.entries} /> : null }

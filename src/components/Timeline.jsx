@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Button,
   Card,
   CardHeader,
   Row,
@@ -19,6 +20,7 @@ function Timeline(props) {
   entries.reverse();
   return (
     <div>
+      <Button color="primary" onClick={props.addEntry}>Add entry</Button>
       {entries.map((entry) => (
         <Card key={entry.datetime} onClick={() => props.editEntry(entry)}>
           <CardHeader>
@@ -51,15 +53,15 @@ function Timeline(props) {
                   { !Number.isNaN(Number(entry.heading))
                     && <tr>
                       <th>Course</th>
-                      <td>{entry.heading}&deg;</td>
+                      <td>{entry.heading}°</td>
                     </tr>
                   }
                   { entry.wind
                     && <tr>
                       <th>Wind</th>
                       <td>
-                        {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt` : ''}
-                        {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}&deg;` : ''}
+                        {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
+                        {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
                       </td>
                     </tr>
                   }
