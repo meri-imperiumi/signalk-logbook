@@ -26,7 +26,7 @@ function Map(props) {
     }).filter((e) => e !== null),
   };
   return (
-  <PigeonMap center={position} zoom={8} height={300}>
+  <PigeonMap center={position} zoom={8} height='80vh'>
     <GeoJson
       data={geoJson}
       styleCallback={() => ({
