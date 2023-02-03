@@ -7,7 +7,6 @@ import {
   CardBody,
   CardText,
   Table,
-  Button,
 } from 'reactstrap';
 import { Point } from 'where';
 
@@ -21,7 +20,7 @@ function Timeline(props) {
   return (
     <div>
       {entries.map((entry) => (
-        <Card key={entry.datetime}>
+        <Card key={entry.datetime} onClick={() => props.editEntry(entry)}>
           <CardHeader>
             <Row>
               <Col xs="3">
@@ -29,9 +28,6 @@ function Timeline(props) {
               </Col>
               <Col className="text-end text-right">
                 {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}
-              </Col>
-              <Col xs="1" className="text-end text-right">
-                <Button>Edit</Button>
               </Col>
             </Row>
           </CardHeader>

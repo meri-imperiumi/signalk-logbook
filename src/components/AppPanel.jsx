@@ -11,6 +11,7 @@ import {
 import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
+import EntryEditor from './EntryEditor.jsx';
 
 function AppPanel(props) {
   const [data, setData] = useState({
@@ -18,6 +19,7 @@ function AppPanel(props) {
   });
   const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
   const [daysToShow] = useState(7);
+  const [editEntry, setEditEntry] = useState(null);
 
   useEffect(() => {
     fetch('/plugins/signalk-logbook/logs')
@@ -35,12 +37,40 @@ function AppPanel(props) {
       });
   }, [daysToShow]); // TODO: Depend on chosen time window to reload as needed
 
+  function saveEntry(entry) {
+    const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
+    fetch(`/plugins/signalk-logbook/logs/${dateString}/${entry.datetime}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(entry),
+    })
+      .then(() => {
+        const updatedEntries = [...data.entries];
+        const idx = data.entries.findIndex((e) => e.datetime === entry.datetime);
+        if (idx !== -1) {
+          updatedEntries[idx] = entry;
+          setData({
+            ...data,
+            entries: updatedEntries,
+          });
+        }
+        setEditEntry(null);
+      });
+  }
+
   if (props.loginStatus.status === 'notLoggedIn' && props.loginStatus.authenticationRequired) {
     return <props.adminUI.Login />;
   }
 
   return (
     <Row>
+      { editEntry ? <EntryEditor
+        entry={editEntry}
+        cancel={() => setEditEntry(null)}
+        save={saveEntry}
+        /> : null }
       <Col className="bg-light border">
         <Nav tabs>
           <NavItem>
@@ -61,10 +91,10 @@ function AppPanel(props) {
         </Nav>
         <TabContent activeTab={activeTab}>
           <TabPane tabId="timeline">
-            { activeTab === 'timeline' ? <Timeline entries={data.entries} /> : null }
+            { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} /> : null }
           </TabPane>
           <TabPane tabId="book">
-            { activeTab === 'book' ? <Logbook entries={data.entries} /> : null }
+            { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} /> : null }
           </TabPane>
           <TabPane tabId="map">
             { activeTab === 'map' ? <Map entries={data.entries} /> : null }
