@@ -13,7 +13,7 @@ function EntryViewer(props) {
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
-        Log entry {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}
+        Log entry {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })} by {entry.author || 'auto'}
       </ModalHeader>
       <ModalBody>
         <EntryDetails entry={entry} />
