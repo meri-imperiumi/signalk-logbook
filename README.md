@@ -38,6 +38,7 @@ Note: unlike Signal K itself, the log entries are written using "human-friendly"
     speed: 13.7
     direction: 283
   text: Set 1st reef on mainsail
+  author: bergie
 ```
 
 It is a good idea to set up automatic backups of these files off the vessel, for example to [GitHub](https://github.com) or some other cloud storage service. How to handle this backup is out of the scope of this plugin.
