@@ -39,12 +39,18 @@ function AppPanel(props) {
 
   function saveEntry(entry) {
     const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
+    // Sanitize
+    const savingEntry = {
+      ...entry,
+    };
+    delete savingEntry.point;
+    delete savingEntry.date;
     fetch(`/plugins/signalk-logbook/logs/${dateString}/${entry.datetime}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(entry),
+      body: JSON.stringify(savingEntry),
     })
       .then(() => {
         const updatedEntries = [...data.entries];

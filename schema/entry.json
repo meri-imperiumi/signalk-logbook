@@ -5,6 +5,7 @@
   "description": "Individual entry in a logbook",
   "type": "object",
   "required": ["datetime", "text"],
+  "additionalProperties": false,
   "properties": {
     "datetime": {
       "type": "string",
