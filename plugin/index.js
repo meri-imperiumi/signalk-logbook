@@ -175,7 +175,14 @@ module.exports = (app) => {
         res.sendStatus(404);
         return;
       }
-      log.writeEntry(req.body)
+      const entry = {
+        ...req.body,
+      };
+      const author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      if (author && !entry.author) {
+        entry.author = author;
+      }
+      log.writeEntry(entry)
         .then(() => {
           res.sendStatus(200);
         }, (e) => handleError(e, res));
