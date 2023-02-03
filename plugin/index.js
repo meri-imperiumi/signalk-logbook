@@ -3,6 +3,13 @@ const Log = require('./Log');
 const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
 
+function parseJwt(token) {
+  if (!token) {
+    return {};
+  }
+  return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+}
+
 module.exports = (app) => {
   const plugin = {};
   let unsubscribes = [];
@@ -135,7 +142,8 @@ module.exports = (app) => {
           ...state,
         };
       }
-      const data = stateToEntry(stats, req.body.text);
+      const author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      const data = stateToEntry(stats, req.body.text, author);
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {

@@ -87,6 +87,9 @@
     },
     "text": {
       "type": "string"
+    },
+    "author": {
+      "type": "string"
     }
   }
 }
