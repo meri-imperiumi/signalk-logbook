@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
 const { ModuleFederationPlugin } = require('webpack').container;
@@ -71,6 +72,16 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: './public_src/index.html',
+    }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: 'public_src/*.png',
+          to() {
+            return Promise.resolve('[name][ext]');
+          },
+        },
+      ],
     }),
   ],
 };
