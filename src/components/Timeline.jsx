@@ -1,11 +1,13 @@
 import React from 'react';
 import {
   Card,
+  CardHeader,
+  Row,
+  Col,
   CardBody,
-  CardTitle,
-  CardSubtitle,
   CardText,
   Table,
+  Button,
 } from 'reactstrap';
 import { Point } from 'where';
 
@@ -20,36 +22,51 @@ function Timeline(props) {
     <div>
       {entries.map((entry) => (
         <Card key={entry.datetime}>
+          <CardHeader>
+            <Row>
+              <Col xs="3">
+                @{entry.author || 'auto'}
+              </Col>
+              <Col className="text-end text-right">
+                {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}
+              </Col>
+              <Col xs="1" className="text-end text-right">
+                <Button>Edit</Button>
+              </Col>
+            </Row>
+          </CardHeader>
           <CardBody>
-            <CardTitle tag="h5">{entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}</CardTitle>
-            <CardSubtitle tag="h6">{entry.text}</CardSubtitle>
             <CardText>
-              <Table borderless>
+              <p>
+                {entry.text}
+              </p>
+              <Table borderless striped size="sm">
                 <tbody>
                   <tr>
                     <th>Position</th>
                     <td>{entry.point.toString()} {entry.position.source}</td>
                   </tr>
-                  <tr>
-                    <th>SOG</th>
-                    <td>{entry.speed.sog}kt</td>
-                  </tr>
-                  { entry.heading
+                  { !Number.isNaN(Number(entry.speed.sog))
                     && <tr>
-                      <th>HDG</th>
+                    <th>Speed</th>
+                    <td>{entry.speed.sog}kt</td>
+                    </tr>
+                  }
+                  { !Number.isNaN(Number(entry.heading))
+                    && <tr>
+                      <th>Course</th>
                       <td>{entry.heading}&deg;</td>
                     </tr>
                   }
                   { entry.wind
                     && <tr>
                       <th>Wind</th>
-                      <td>{entry.wind.speed}kt {entry.wind.direction}&deg;</td>
+                      <td>
+                        {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt` : ''}
+                        {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}&deg;` : ''}
+                      </td>
                     </tr>
                   }
-                  <tr>
-                    <th>By</th>
-                    <td>{entry.author || 'auto'}</td>
-                  </tr>
                 </tbody>
               </Table>
             </CardText>
