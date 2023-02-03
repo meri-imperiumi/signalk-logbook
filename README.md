@@ -13,14 +13,14 @@ This application provides both a server-side plugin and the user interface for m
 The logbook presents a web-based user interface as part of the [Signal K](https://signalk.org) administration interface. The features should work fine on both desktop and mobile browsers.
 
 Adding a log entry:
-![Add entry](https://imgur.com/0M7CdOY)
+![Add entry](https://i.imgur.com/0M7CdOY.png)
 
 Traditional logbook view:
-![Logbook as table](https://imgur.com/Xa6XNyh)
-![Editing an entry](https://imgur.com/CDD57LQ)
+![Logbook as table](https://i.imgur.com/Xa6XNyh.png)
+![Editing an entry](https://i.imgur.com/CDD57LQ.png)
 
 Log entries on a map:
-![Map view](https://imgur.com/G7eqa5Y)
+![Map view](https://i.imgur.com/G7eqa5Y.png)
 
 ## Data storage and format
 
