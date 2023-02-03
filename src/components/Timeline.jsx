@@ -15,7 +15,7 @@ function Timeline(props) {
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
   }));
-  console.log(props.entries);
+  entries.reverse();
   return (
     <div>
       {entries.map((entry) => (

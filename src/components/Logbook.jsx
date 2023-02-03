@@ -10,7 +10,6 @@ function Logbook(props) {
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
   }));
-  entries.reverse();
   return (
     <Table striped>
       <thead>
