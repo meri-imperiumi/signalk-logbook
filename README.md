@@ -1,16 +1,26 @@
 Semi-automatic logbook for Signal K
 ===================================
 
-Status: just a sketch for now
+Status: ready for the first test runs
 
 This application provides both a server-side plugin and the user interface for maintaining semi-automatic logbooks with [Signal K](https://signalk.org). Just like traditional logbooks, you can write an entry at any time. However, there are several things that are done automatically for you:
 
 * Entries written when starting/ending a trip (requires [signalk-autostate](https://github.com/meri-imperiumi/signalk-autostate) plugin)
-* Entries written when turning the engine on or off (requires engine _on state_ or RPMs to be available to Signal K)
-* Entries written when reefing or changing the sail plan (requires [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin)
 * When underway, an entry is created every hour recording the current conditions
 
-You can also create some additional rules for automated entries when certain things happen (for example, when turning on a watermaker).
+## User interface
+
+The logbook presents a web-based user interface as part of the [Signal K](https://signalk.org) administration interface. The features should work fine on both desktop and mobile browsers.
+
+Adding a log entry:
+![Add entry](https://imgur.com/0M7CdOY)
+
+Traditional logbook view:
+![Logbook as table](https://imgur.com/Xa6XNyh)
+![Editing an entry](https://imgur.com/CDD57LQ)
+
+Log entries on a map:
+![Map view](https://imgur.com/G7eqa5Y)
 
 ## Data storage and format
 
@@ -78,5 +88,8 @@ Update a single logbook entry, as identified by its datetime value.
 
 Some additional ideas for the future:
 
+* Entries written when turning the engine on or off (requires engine _on state_ or RPMs to be available to Signal K)
+* Entries written when reefing or changing the sail plan (requires [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin)
+* Enable creating additional rules for automated entries when certain things happen (for example, when turning on a watermaker).
 * We could ship easy systemd unit files for setting up backups to popular locations, like pushing to a git repo
 * One-time script for populating logbook from InfluxDB entries when starting to use the system
