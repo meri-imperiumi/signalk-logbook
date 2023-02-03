@@ -84,14 +84,14 @@ class Log {
   }
 
   writeEntry(entry) {
-    const datetimeString = entry.datetime.toISOString();
+    const datetimeString = new Date(entry.datetime).toISOString();
     const dateString = datetimeString.substr(0, 10);
     return this.validateEntry(entry)
       .then((valid) => {
         if (valid.errors.length > 0) {
           return Promise.reject(valid.errors[0]);
         }
-        return this.getDate().catch(() => []);
+        return this.getDate(dateString).catch(() => []);
       })
       .then((date) => {
         const normalized = {
