@@ -9,6 +9,8 @@ import {
   TabPane,
 } from 'reactstrap';
 import Timeline from './Timeline.jsx';
+import Logbook from './Logbook.jsx';
+import Map from './Map.jsx';
 
 function AppPanel(props) {
   const [data, setData] = useState({
@@ -62,10 +64,10 @@ function AppPanel(props) {
             { activeTab === 'timeline' ? <Timeline entries={data.entries} /> : null }
           </TabPane>
           <TabPane tabId="book">
-            Logbook table goes here
+            { activeTab === 'book' ? <Logbook entries={data.entries} /> : null }
           </TabPane>
           <TabPane tabId="map">
-            Map goes here
+            { activeTab === 'map' ? <Map entries={data.entries} /> : null }
           </TabPane>
         </TabContent>
       </Col>
