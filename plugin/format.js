@@ -38,7 +38,8 @@ module.exports = function stateToEntry(state, text, author = '') {
   if (!Number.isNaN(Number(state['navigation.trip.log']))) {
     data.log = parseFloat((state['navigation.trip.log'] / 1852).toFixed(1));
   }
-  if (state['navigation.courseRhumbline.nextPoint.position']) {
+  if (state['navigation.courseRhumbline.nextPoint.position']
+    && !Number.isNaN(Number(state['navigation.courseRhumbline.nextPoint.position'].latitude))) {
     data.waypoint = state['navigation.courseRhumbline.nextPoint.position'];
   }
   if (!Number.isNaN(Number(state['environment.outside.pressure']))) {
