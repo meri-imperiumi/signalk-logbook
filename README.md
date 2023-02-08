@@ -93,3 +93,11 @@ Some additional ideas for the future:
 * Enable creating additional rules for automated entries when certain things happen (for example, when turning on a watermaker).
 * We could ship easy systemd unit files for setting up backups to popular locations, like pushing to a git repo
 * One-time script for populating logbook from InfluxDB entries when starting to use the system
+
+## Changes
+
+* 0.1.2 (2023-02-08)
+  - Implemented entry deletion
+  - Fixed issue with initial load if logging in within this webapp (#5)
+* 0.1.0 (2023-02-03)
+  - Initial release
