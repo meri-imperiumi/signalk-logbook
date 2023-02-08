@@ -84,6 +84,10 @@ Return a single logbook entry, as identified by its datetime value.
 
 Update a single logbook entry, as identified by its datetime value.
 
+### `DELETE plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
+
+Remove a single logbook entry, as identified by its datetime value.
+
 ## Ideas
 
 Some additional ideas for the future:
