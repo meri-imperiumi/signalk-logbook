@@ -26,8 +26,14 @@ function AppPanel(props) {
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
 
+  const loginStatus = props.loginStatus.status;
+
   useEffect(() => {
     if (!needsUpdate) {
+      return;
+    }
+    if (loginStatus === 'notLoggedIn') {
+      // The API only works for authenticated users
       return;
     }
     fetch('/plugins/signalk-logbook/logs')
@@ -44,7 +50,8 @@ function AppPanel(props) {
             setNeedsUpdate(false);
           });
       });
-  }, [daysToShow, needsUpdate]); // TODO: Depend on chosen time window to reload as needed
+  }, [daysToShow, needsUpdate, loginStatus]);
+  // TODO: Depend on chosen time window to reload as needed
 
   function saveEntry(entry) {
     const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
