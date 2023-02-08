@@ -189,6 +189,16 @@ module.exports = (app) => {
           res.sendStatus(200);
         }, (e) => handleError(e, res));
     });
+    router.delete('/logs/:date/:entry', (req, res) => {
+      if (req.params.entry.substr(0, 10) !== req.params.date) {
+        res.sendStatus(404);
+        return;
+      }
+      log.deleteEntry(req.params.entry)
+        .then(() => {
+          res.sendStatus(204);
+        }, (e) => handleError(e, res));
+    });
   };
 
   plugin.stop = () => {

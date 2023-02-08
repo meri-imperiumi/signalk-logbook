@@ -128,6 +128,21 @@ class Log {
       });
   }
 
+  deleteEntry(datetimeString) {
+    const dateString = datetimeString.substr(0, 10);
+    return this.getDate(dateString)
+      .then((date) => {
+        const entryIdx = date.findIndex((e) => e.datetime.toISOString() === datetimeString);
+        if (entryIdx === -1) {
+          const err = new Error(`Entry ${datetimeString} not found`);
+          err.code = 'ENOENT';
+          return Promise.reject(err);
+        }
+        date.splice(entryIdx, 1);
+        return this.writeDate(dateString, date);
+      });
+  }
+
   getPath(date) {
     const dateString = new Date(date).toISOString().substr(0, 10);
     return join(this.dir, `${dateString}.yml`);

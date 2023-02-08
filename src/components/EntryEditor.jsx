@@ -9,6 +9,8 @@ import {
   FormGroup,
   Label,
   Input,
+  Row,
+  Col,
 } from 'reactstrap';
 
 function EntryEditor(props) {
@@ -24,12 +26,22 @@ function EntryEditor(props) {
   function save() {
     props.save(entry);
   }
+  function deleteEntry() {
+    props.delete(entry);
+  }
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
         Log entry {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })} by {entry.author || 'auto'}
       </ModalHeader>
       <ModalBody>
+        <Row>
+          <Col className="text-end text-right">
+            <Button color="danger" onClick={deleteEntry}>
+              Delete
+            </Button>
+          </Col>
+        </Row>
         <Form>
           <FormGroup>
             <Label for="text">

@@ -105,6 +105,17 @@ function AppPanel(props) {
       });
   }
 
+  function deleteEntry(entry) {
+    const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
+    fetch(`/plugins/signalk-logbook/logs/${dateString}/${entry.datetime}`, {
+      method: 'DELETE',
+    })
+      .then(() => {
+        setEditEntry(null);
+        setNeedsUpdate(true);
+      });
+  }
+
   if (props.loginStatus.status === 'notLoggedIn' && props.loginStatus.authenticationRequired) {
     return <props.adminUI.Login />;
   }
@@ -115,6 +126,7 @@ function AppPanel(props) {
         entry={editEntry}
         cancel={() => setEditEntry(null)}
         save={saveEntry}
+        delete={deleteEntry}
         /> : null }
       { viewEntry ? <EntryViewer
         entry={viewEntry}
