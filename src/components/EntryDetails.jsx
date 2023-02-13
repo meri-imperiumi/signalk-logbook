@@ -9,6 +9,7 @@ function EntryDetails(props) {
     <div>
       <p>
         {entry.text}
+        {entry.category ? ` #${entry.category}` : ''}
       </p>
       <Table borderless striped size="sm">
         <tbody>

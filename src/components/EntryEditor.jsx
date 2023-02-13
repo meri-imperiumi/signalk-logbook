@@ -56,6 +56,22 @@ function EntryEditor(props) {
               onChange={handleChange}
             />
           </FormGroup>
+          <FormGroup>
+            <Label for="category">
+              Category
+            </Label>
+            <Input
+              id="category"
+              name="category"
+              type="select"
+              value={entry.category}
+              onChange={handleChange}
+            >
+              {props.categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+              ))}
+            </Input>
+          </FormGroup>
         </Form>
       </ModalBody>
       <ModalFooter>

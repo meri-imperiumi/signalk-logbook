@@ -42,6 +42,7 @@ class Log {
           }
           return data.map((entry) => ({
             ...entry,
+            category: entry.category || 'navigation',
             datetime: new Date(entry.datetime),
           }));
         }));
@@ -58,7 +59,11 @@ class Log {
           err.code = 'ENOENT';
           return Promise.reject(err);
         }
-        return entry;
+        return {
+          ...entry,
+          category: entry.category || 'navigation',
+          datetime: new Date(entry.datetime),
+        };
       });
   }
 
