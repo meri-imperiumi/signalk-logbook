@@ -95,6 +95,15 @@
     },
     "author": {
       "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "navigation",
+        "engine",
+        "radio",
+        "maintenance"
+      ]
     }
   }
 }
