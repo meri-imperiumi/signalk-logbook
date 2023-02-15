@@ -95,7 +95,6 @@ Remove a single logbook entry, as identified by its datetime value.
 
 Some additional ideas for the future:
 
-* Entries written when turning the engine on or off (requires engine _on state_ or RPMs to be available to Signal K)
 * Entries written when reefing or changing the sail plan (requires [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin)
 * Enable creating additional rules for automated entries when certain things happen (for example, when turning on a watermaker).
 * We could ship easy systemd unit files for setting up backups to popular locations, like pushing to a git repo
@@ -103,10 +102,14 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.2.1 (2023-02-15)
+  - Added triggers for automatically logging when engine is started or stopped
+  - Added VHF channel to radio logs. Automatically populated when available (see for example [the Icom M510e plugin](https://www.npmjs.com/package/signalk-icom-m510e-plugin))
 * 0.2.0 (2023-02-15)
   - Added support for multiple entry categories (navigation, engine, etc)
   - Automatic entry creation when changing autopilot state
   - Added an `end` flag to entries marking end of a trip
+  - Added engine hours to logs
 * 0.1.2 (2023-02-08)
   - Implemented entry deletion
   - Fixed issue with initial load if logging in within this webapp (#5)
