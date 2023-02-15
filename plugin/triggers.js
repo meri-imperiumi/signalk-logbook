@@ -1,5 +1,15 @@
 const stateToEntry = require('./format');
 
+function isUnderWay(state) {
+  if (state['navigation.state'] === 'sailing') {
+    return true;
+  }
+  if (state['navigation.state'] === 'motoring') {
+    return true;
+  }
+  return false;
+}
+
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
   function appendLog(text, additionalData = {}) {
     const data = stateToEntry(oldState, text);
@@ -20,6 +30,10 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     case 'steering.autopilot.state': {
       if (oldState[path] === value || !oldState[path]) {
         // We can ignore state when it doesn't change
+        return Promise.resolve();
+      }
+      if (!isUnderWay(oldState)) {
+        // Autopilot state changes are likely not interesting when not under way
         return Promise.resolve();
       }
       if (value === 'auto') {
