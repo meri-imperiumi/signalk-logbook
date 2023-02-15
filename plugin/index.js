@@ -37,7 +37,6 @@ module.exports = (app) => {
     'environment.wind.speedOverGround',
     'environment.water.swell.state',
     'propulsion.*.state',
-    'propulsion.*.revolutions',
     'propulsion.*.runTime',
     'sails.inventory.*',
     'steering.autopilot.state',
