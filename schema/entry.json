@@ -90,6 +90,10 @@
         }
       }
     },
+    "end": {
+      "type": "boolean",
+      "default": false
+    },
     "text": {
       "type": "string"
     },
