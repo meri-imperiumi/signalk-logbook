@@ -38,7 +38,9 @@ module.exports = (app) => {
     'environment.water.swell.state',
     'propulsion.*.state',
     'propulsion.*.revolutions',
+    'propulsion.*.runTime',
     'sails.inventory.*',
+    'steering.autopilot.state',
   ];
 
   // We keep 15min of past state to allow slight backdating of entries

@@ -43,12 +43,22 @@ function Map(props) {
         stroke: 'red',
       })}
     />
-    {entries.map((entry) => (
-    <Marker
-      key={entry.datetime}
-      anchor={[entry.position.latitude, entry.position.longitude]}
-      onClick={() => props.viewEntry(entry)} />
-    ))}
+    {entries.map((entry) => {
+      let color = '#009bdb';
+      if (entry.category === 'engine') {
+        color = '#ed1b2f';
+      }
+      if (entry.category === 'radio') {
+        color = '#00ae9d';
+      }
+      return (
+      <Marker
+        key={entry.datetime}
+        color={color}
+        anchor={[entry.position.latitude, entry.position.longitude]}
+        onClick={() => props.viewEntry(entry)} />
+      );
+    })}
   </PigeonMap>
   );
 }

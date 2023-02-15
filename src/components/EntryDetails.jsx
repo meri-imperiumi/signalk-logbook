@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Table,
+  Badge,
 } from 'reactstrap';
 
 function EntryDetails(props) {
@@ -9,7 +10,10 @@ function EntryDetails(props) {
     <div>
       <p>
         {entry.text}
-        {entry.category ? ` #${entry.category}` : ''}
+        {' '}
+        { entry.category
+          && <Badge color='secondary' pill>#{entry.category}</Badge>
+        }
       </p>
       <Table borderless striped size="sm">
         <tbody>
@@ -35,6 +39,14 @@ function EntryDetails(props) {
               <td>
                 {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
                 {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
+              </td>
+            </tr>
+          }
+          { entry.category === 'engine' && entry.engine
+            && <tr>
+              <th>Engine</th>
+              <td>
+                {!Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h ` : ''}
               </td>
             </tr>
           }

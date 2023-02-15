@@ -1,9 +1,14 @@
 const stateToEntry = require('./format');
 
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
-  function appendLog(text, category = 'navigation') {
+  function appendLog(text, additionalData = {}) {
     const data = stateToEntry(oldState, text);
-    data.category = category;
+    Object.keys(additionalData).forEach((key) => {
+      data[key] = additionalData[key];
+    });
+    if (!data.category) {
+      data.category = 'navigation';
+    }
     const dateString = new Date(data.datetime).toISOString().substr(0, 10);
     return log.appendEntry(dateString, data)
       .then(() => {
@@ -12,13 +17,34 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
   }
 
   switch (path) {
+    case 'steering.autopilot.state': {
+      if (oldState[path] === value || !oldState[path]) {
+        // We can ignore state when it doesn't change
+        return Promise.resolve();
+      }
+      if (value === 'auto') {
+        return appendLog('Autopilot activated');
+      }
+      if (value === 'wind') {
+        return appendLog('Autopilot set to wind mode');
+      }
+      if (value === 'route') {
+        return appendLog('Autopilot set to route mode');
+      }
+      if (value === 'standby') {
+        return appendLog('Autopilot deactivated');
+      }
+      break;
+    }
     case 'navigation.state': {
       if (oldState[path] === value || !oldState[path]) {
         // We can ignore state when it doesn't change
         return Promise.resolve();
       }
       if (value === 'anchored') {
-        return appendLog('Anchored');
+        return appendLog('Anchored', {
+          end: true,
+        });
       }
       if (value === 'sailing') {
         if (oldState[path] === 'motoring') {
@@ -36,7 +62,9 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         return appendLog('Motor started');
       }
       if (value === 'moored') {
-        return appendLog('Stopped');
+        return appendLog('Stopped', {
+          end: true,
+        });
       }
       break;
     }

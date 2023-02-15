@@ -24,7 +24,7 @@ function Logbook(props) {
             <th>Coordinates</th>
             <th>Fix</th>
             <th>Log</th>
-            <th>Category</th>
+            <th>Engine</th>
             <th>By</th>
             <th>Remarks</th>
           </tr>
@@ -43,7 +43,7 @@ function Logbook(props) {
             <td>{entry.point.toString()}</td>
             <td>{entry.position.source || 'GPS'}</td>
             <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}NM` : ''}</td>
-            <td>{entry.category}</td>
+            <td>{entry.engine && !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''}</td>
             <td>{entry.author || 'auto'}</td>
             <td>{entry.text}</td>
           </tr>
