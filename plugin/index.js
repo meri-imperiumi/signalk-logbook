@@ -40,6 +40,7 @@ module.exports = (app) => {
     'propulsion.*.revolutions',
     'propulsion.*.runTime',
     'sails.inventory.*',
+    'steering.autopilot.state',
   ];
 
   // We keep 15min of past state to allow slight backdating of entries

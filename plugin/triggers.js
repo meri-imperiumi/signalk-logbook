@@ -17,6 +17,25 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
   }
 
   switch (path) {
+    case 'steering.autopilot.state': {
+      if (oldState[path] === value || !oldState[path]) {
+        // We can ignore state when it doesn't change
+        return Promise.resolve();
+      }
+      if (value === 'auto') {
+        return appendLog('Autopilot activated');
+      }
+      if (value === 'wind') {
+        return appendLog('Autopilot set to wind mode');
+      }
+      if (value === 'route') {
+        return appendLog('Autopilot set to route mode');
+      }
+      if (value === 'standby') {
+        return appendLog('Autopilot deactivated');
+      }
+      break;
+    }
     case 'navigation.state': {
       if (oldState[path] === value || !oldState[path]) {
         // We can ignore state when it doesn't change
