@@ -90,6 +90,16 @@
         }
       }
     },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hours": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
     "end": {
       "type": "boolean",
       "default": false

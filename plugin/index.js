@@ -38,6 +38,7 @@ module.exports = (app) => {
     'environment.water.swell.state',
     'propulsion.*.state',
     'propulsion.*.revolutions',
+    'propulsion.*.runTime',
     'sails.inventory.*',
   ];
 

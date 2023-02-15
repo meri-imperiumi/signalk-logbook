@@ -38,6 +38,14 @@ function EntryDetails(props) {
               </td>
             </tr>
           }
+          { entry.category === 'engine' && entry.engine
+            && <tr>
+              <th>Engine</th>
+              <td>
+                {!Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h ` : ''}
+              </td>
+            </tr>
+          }
         </tbody>
       </Table>
     </div>

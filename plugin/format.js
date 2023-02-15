@@ -60,5 +60,11 @@ module.exports = function stateToEntry(state, text, author = '') {
   if (!Number.isNaN(Number(state['environment.water.swell.state']))) {
     data.sea = state['environment.water.swell.state'];
   }
+  if (!Number.isNaN(Number(state['propulsion.main.runTime']))) {
+    if (!data.engine) {
+      data.engine = {};
+    }
+    data.engine.hours = parseFloat((state['propulsion.main.runTime'] / 60 / 60).toFixed(1));
+  }
   return data;
 };
