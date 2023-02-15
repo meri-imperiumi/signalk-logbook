@@ -60,12 +60,17 @@ module.exports = function stateToEntry(state, text, author = '') {
   if (!Number.isNaN(Number(state['environment.water.swell.state']))) {
     data.sea = state['environment.water.swell.state'];
   }
-  if (!Number.isNaN(Number(state['propulsion.main.runTime']))) {
-    if (!data.engine) {
-      data.engine = {};
+  Object.keys(state).forEach((key) => {
+    if (!key.match(/propulsion\.[A-Za-z0-9]+\.runTime/)) {
+      return;
     }
-    data.engine.hours = parseFloat((state['propulsion.main.runTime'] / 60 / 60).toFixed(1));
-  }
+    if (!Number.isNaN(Number(state[key]))) {
+      if (!data.engine) {
+        data.engine = {};
+      }
+      data.engine.hours = parseFloat((state[key] / 60 / 60).toFixed(1));
+    }
+  });
   if (state['communication.vhf.channel']) {
     data.vhf = state['communication.vhf.channel'];
   }
