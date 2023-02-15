@@ -47,6 +47,9 @@ Note: unlike Signal K itself, the log entries are written using "human-friendly"
   wind:
     speed: 13.7
     direction: 283
+  engine:
+    hours: 405
+  category: navigation
   text: Set 1st reef on mainsail
   author: bergie
 ```
@@ -100,6 +103,10 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.2.0 (2023-02-15)
+  - Added support for multiple entry categories (navigation, engine, etc)
+  - Automatic entry creation when changing autopilot state
+  - Added an `end` flag to entries marking end of a trip
 * 0.1.2 (2023-02-08)
   - Implemented entry deletion
   - Fixed issue with initial load if logging in within this webapp (#5)
