@@ -56,6 +56,20 @@ function EntryEditor(props) {
               onChange={handleChange}
             />
           </FormGroup>
+          { entry.category === 'radio'
+            && <FormGroup>
+                <Label for="vhf">
+                  VHF channel
+                </Label>
+                <Input
+                  id="vhf"
+                  name="vhf"
+                  placeholder="16"
+                  value={entry.vhf}
+                  onChange={handleChange}
+                />
+              </FormGroup>
+          }
           <FormGroup>
             <Label for="category">
               Category
