@@ -62,18 +62,18 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       }
       if (value === 'sailing') {
         if (oldState[path] === 'motoring') {
-          return appendLog('Motor stopped, sails up');
+          return appendLog('Motor stopped, sailing');
         }
-        return appendLog('Sails up');
+        return appendLog('Sailing');
       }
       if (value === 'motoring') {
         if (oldState[path] === 'anchored') {
-          return appendLog('Motor started, anchor up');
+          return appendLog('Anchor up, motoring');
         }
         if (oldState[path] === 'sailing') {
-          return appendLog('Motor started, sails down');
+          return appendLog('Sails down, motoring');
         }
-        return appendLog('Motor started');
+        return appendLog('Motoring');
       }
       if (value === 'moored') {
         return appendLog('Stopped', {
@@ -86,6 +86,22 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
   }
+
+  const propulsionState = path.match(/propulsion\.[A-Za-z0-9]+\.state/);
+  if (propulsionState) {
+    if (oldState[path] === value || !oldState[path]) {
+      // We can ignore state when it doesn't change
+      return Promise.resolve();
+    }
+    const engineName = propulsionState[1];
+    if (value === 'started') {
+      return appendLog(`Started ${engineName} engine`);
+    }
+    if (value === 'stopped') {
+      return appendLog(`Stopped ${engineName} engine`);
+    }
+  }
+
   return Promise.resolve();
 };
 
