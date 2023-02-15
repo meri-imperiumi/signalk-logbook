@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Table,
+  Badge,
 } from 'reactstrap';
 
 function EntryDetails(props) {
@@ -9,7 +10,10 @@ function EntryDetails(props) {
     <div>
       <p>
         {entry.text}
-        {entry.category ? ` #${entry.category}` : ''}
+        {' '}
+        { entry.category
+          && <Badge color='secondary' pill>#{entry.category}</Badge>
+        }
       </p>
       <Table borderless striped size="sm">
         <tbody>
