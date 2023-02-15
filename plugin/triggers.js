@@ -1,8 +1,9 @@
 const stateToEntry = require('./format');
 
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
-  function appendLog(text) {
+  function appendLog(text, category = 'navigation') {
     const data = stateToEntry(oldState, text);
+    data.category = category;
     const dateString = new Date(data.datetime).toISOString().substr(0, 10);
     return log.appendEntry(dateString, data)
       .then(() => {

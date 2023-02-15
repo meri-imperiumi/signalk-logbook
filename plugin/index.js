@@ -146,6 +146,11 @@ module.exports = (app) => {
       }
       const author = parseJwt(req.cookies.JAUTHENTICATION).id;
       const data = stateToEntry(stats, req.body.text, author);
+      if (req.body.category) {
+        data.category = req.body.category;
+      } else {
+        data.category = 'navigation';
+      }
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {

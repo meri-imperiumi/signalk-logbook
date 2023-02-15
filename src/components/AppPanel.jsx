@@ -15,6 +15,13 @@ import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import AddEntry from './AddEntry.jsx';
 
+const categories = [
+  'navigation',
+  'engine',
+  'radio',
+  'maintenance',
+];
+
 function AppPanel(props) {
   const [data, setData] = useState({
     entries: [],
@@ -127,16 +134,19 @@ function AppPanel(props) {
         cancel={() => setEditEntry(null)}
         save={saveEntry}
         delete={deleteEntry}
+        categories={categories}
         /> : null }
       { viewEntry ? <EntryViewer
         entry={viewEntry}
         editEntry={setEditEntry}
         cancel={() => setViewEntry(null)}
+        categories={categories}
         /> : null }
       { addEntry ? <AddEntry
         entry={addEntry}
         cancel={() => setAddEntry(null)}
         save={saveAddEntry}
+        categories={categories}
         /> : null }
       <Col className="bg-light border">
         <Nav tabs>
