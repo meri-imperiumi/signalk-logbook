@@ -100,6 +100,11 @@
         }
       }
     },
+    "vhf": {
+      "type": "string",
+      "maxLength": 2,
+      "minLength": 2
+    },
     "end": {
       "type": "boolean",
       "default": false

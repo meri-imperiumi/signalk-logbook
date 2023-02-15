@@ -66,5 +66,8 @@ module.exports = function stateToEntry(state, text, author = '') {
     }
     data.engine.hours = parseFloat((state['propulsion.main.runTime'] / 60 / 60).toFixed(1));
   }
+  if (state['communication.vhf.channel']) {
+    data.vhf = state['communication.vhf.channel'];
+  }
   return data;
 };

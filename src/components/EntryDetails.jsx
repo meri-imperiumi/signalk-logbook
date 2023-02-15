@@ -50,6 +50,14 @@ function EntryDetails(props) {
               </td>
             </tr>
           }
+          { entry.category === 'radio' && entry.vhf
+            && <tr>
+              <th>VHF channel</th>
+              <td>
+                {!Number.isNaN(Number(entry.vhf)) ? `${entry.vhf}` : ''}
+              </td>
+            </tr>
+          }
         </tbody>
       </Table>
     </div>

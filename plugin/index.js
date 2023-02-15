@@ -41,6 +41,7 @@ module.exports = (app) => {
     'propulsion.*.runTime',
     'sails.inventory.*',
     'steering.autopilot.state',
+    'communication.vhf.channel',
   ];
 
   // We keep 15min of past state to allow slight backdating of entries
