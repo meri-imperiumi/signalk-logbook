@@ -20,7 +20,7 @@ Traditional logbook view:
 ![Editing an entry](https://i.imgur.com/CDD57LQ.png)
 
 Log entries on a map:
-![Map view](https://i.imgur.com/G7eqa5Y.png)
+![Map view](https://user-images.githubusercontent.com/3346/219135937-0e1b75cf-13ed-4f79-9ba0-0d2b6fee7747.jpeg)
 
 ## Data storage and format
 
