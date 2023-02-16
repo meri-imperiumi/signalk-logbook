@@ -87,7 +87,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     }
   }
 
-  const propulsionState = path.match(/propulsion\.[A-Za-z0-9]+\.state/);
+  const propulsionState = path.match(/propulsion\.([A-Za-z0-9]+)\.state/);
   if (propulsionState) {
     if (oldState[path] === value || !oldState[path]) {
       // We can ignore state when it doesn't change
