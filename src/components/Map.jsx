@@ -29,7 +29,8 @@ function Map(props) {
     }, []);
     const from = entries[0].datetime;
     const to = entries[entries.length - 1].datetime;
-    fetch(`/signalk/v1/history/values?from=${from}&to=${to}&paths=navigation.position&resolution=15m`)
+    const resolution = 600; // Position every 10min
+    fetch(`/signalk/v1/history/values?from=${from}&to=${to}&paths=navigation.position&resolution=${resolution}`)
       .then((res) => res.json())
       .then((positions) => {
         if (!positions.data || !positions.data.length) {
