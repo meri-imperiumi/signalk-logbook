@@ -51,7 +51,7 @@ function Map(props) {
     }, []);
     const from = entries[0].datetime;
     const to = entries[entries.length - 1].datetime;
-    const resolution = 600; // Position every 10min
+    const resolution = 300; // Position every 5min
     fetch(`/signalk/v1/history/values?from=${from}&to=${to}&paths=navigation.position&resolution=${resolution}`)
       .then((res) => res.json())
       .then((positions) => {
