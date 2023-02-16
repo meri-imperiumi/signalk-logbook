@@ -1,6 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
 import { Point } from 'where';
+import { viewport } from '@mapbox/geo-viewport';
+
+function calculateBounds(points) {
+  if (!points.length) {
+    return [0, 0, 0, 0];
+  }
+  const x = points.map((xy) => xy.lon);
+  const y = points.map((xy) => xy.lat);
+  return [
+    Math.min(...y),
+    Math.min(...x),
+    Math.max(...y),
+    Math.max(...x),
+  ];
+}
 
 function Map(props) {
   const entries = props.entries.map((entry) => ({
@@ -8,14 +23,21 @@ function Map(props) {
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
   }));
-  let position = [0, 0];
-  if (entries.length) {
-    position = [entries[0].position.latitude, entries[0].position.longitude];
-  }
   const [points, setPoints] = useState(entries.map((e) => ({
     lat: e.position.latitude,
     lon: e.position.longitude,
   })));
+  const [bbox, setBbox] = useState([640, 480]);
+  const mapContainer = useRef(null);
+  useEffect(() => {
+    if (!mapContainer.current) {
+      return;
+    }
+    const rect = mapContainer.current.getBoundingClientRect();
+    setBbox([rect.width, rect.height]);
+  }, []);
+  const centerAndZoom = viewport(calculateBounds(points), bbox);
+  centerAndZoom.zoom -= 1.5;
   useEffect(() => {
     if (entries.length < 2) {
       return;
@@ -63,7 +85,7 @@ function Map(props) {
         });
         setPoints(pts);
       })
-      .catch((e) => {});
+      .catch(() => {});
   }, [props.entries]);
   const geoJson = {
     type: 'FeatureCollection',
@@ -92,31 +114,39 @@ function Map(props) {
     }).filter((e) => e !== null),
   };
   return (
-  <PigeonMap center={position} zoom={8} height='80vh'>
-    <GeoJson
-      data={geoJson}
-      styleCallback={() => ({
-        strokeWidth: '1',
-        stroke: 'red',
+  <div ref={mapContainer} style={{
+    width: '80vw',
+    height: '80vh',
+  }}>
+    <PigeonMap
+      center={centerAndZoom.center}
+      zoom={centerAndZoom.zoom}
+    >
+      <GeoJson
+        data={geoJson}
+        styleCallback={() => ({
+          strokeWidth: '1',
+          stroke: 'red',
+        })}
+      />
+      {entries.map((entry) => {
+        let color = '#009bdb';
+        if (entry.category === 'engine') {
+          color = '#ed1b2f';
+        }
+        if (entry.category === 'radio') {
+          color = '#00ae9d';
+        }
+        return (
+        <Marker
+          key={entry.datetime}
+          color={color}
+          anchor={[entry.position.latitude, entry.position.longitude]}
+          onClick={() => props.viewEntry(entry)} />
+        );
       })}
-    />
-    {entries.map((entry) => {
-      let color = '#009bdb';
-      if (entry.category === 'engine') {
-        color = '#ed1b2f';
-      }
-      if (entry.category === 'radio') {
-        color = '#00ae9d';
-      }
-      return (
-      <Marker
-        key={entry.datetime}
-        color={color}
-        anchor={[entry.position.latitude, entry.position.longitude]}
-        onClick={() => props.viewEntry(entry)} />
-      );
-    })}
-  </PigeonMap>
+    </PigeonMap>
+  </div>
   );
 }
 
