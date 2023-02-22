@@ -1,6 +1,6 @@
 {
   "name": "@meri-imperiumi/signalk-logbook",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Semi-automatic electronic logbook for Signal K",
   "main": "plugin/index.js",
   "scripts": {

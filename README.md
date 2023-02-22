@@ -102,6 +102,10 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.3.0 (2023-02-22)
+  - Map view now fetches vessel track using the Signal K History API, if available
+  - Fixed engine name capture for automatic logs
+  - Added OpenAPI for easier Logbook API discoverability and usage
 * 0.2.1 (2023-02-15)
   - Added triggers for automatically logging when engine is started or stopped
   - Added VHF channel to radio logs. Automatically populated when available (see for example [the Icom M510e plugin](https://www.npmjs.com/package/signalk-icom-m510e-plugin))
