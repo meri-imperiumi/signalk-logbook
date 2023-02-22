@@ -2,6 +2,7 @@ const CircularBuffer = require('circular-buffer');
 const Log = require('./Log');
 const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
+const openAPI = require('../schema/openapi.json');
 
 function parseJwt(token) {
   if (!token) {
@@ -215,6 +216,8 @@ module.exports = (app) => {
   };
 
   plugin.schema = {};
+
+  plugin.getOpenApi = () => openAPI;
 
   return plugin;
 };
