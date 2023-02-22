@@ -9,7 +9,7 @@ tags:
   - name: entries
     description: Log entry management
 paths:
-  /plugins/signalk-logbook/logs:
+  /logs:
     get:
       tags:
       - entries
@@ -35,7 +35,7 @@ paths:
       responses:
         '201':
           description: Succesful operation
-  /plugins/signalk-logbook/logs/{date}:
+  /logs/{date}:
     get:
       tags:
         - entries
@@ -55,7 +55,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Log'
-  /plugins/signalk-logbook/logs/{date}/{datetime}:
+  /logs/{date}/{datetime}:
     get:
       tags:
         - entries
