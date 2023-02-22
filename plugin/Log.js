@@ -7,6 +7,7 @@ const {
 const { join, resolve, basename } = require('path');
 const { parse, stringify } = require('yaml');
 const { Validator } = require('jsonschema');
+const openAPI = require('../schema/openapi.json');
 
 class Log {
   constructor(dir) {
@@ -170,30 +171,33 @@ class Log {
       return Promise.resolve(this.validator);
     }
     const v = new Validator();
-    const schemaDir = resolve(__dirname, '../schema');
-    return readFile(`${schemaDir}/entry.json`)
-      .then((entrySchema) => {
-        v.addSchema(JSON.parse(entrySchema));
-        return readFile(`${schemaDir}/log.json`);
-      })
-      .then((logSchema) => {
-        v.addSchema(JSON.parse(logSchema));
-        this.validator = v;
-        return v;
-      });
+    Object.keys(openAPI.components.schemas).forEach((name) => {
+      const schema = {
+        ...openAPI.components.schemas[name],
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: `https://lille-oe.de/#Logbook-${name}`,
+      };
+      if (schema.$id === 'https://lille-oe.de/#Logbook-Log') {
+        // TODO: Proper dereferencing
+        schema.items.$ref = 'https://lille-oe.de/#Logbook-Entry';
+      }
+      v.addSchema(schema);
+    });
+    this.validator = v;
+    return Promise.resolve(v);
   }
 
   validateEntry(entry) {
     return this.prepareValidator()
       .then((v) => v.validate(entry, {
-        $ref: 'https://lille-oe.de/#log-entry',
+        $ref: 'https://lille-oe.de/#Logbook-Entry',
       }));
   }
 
   validateDate(data) {
     return this.prepareValidator()
       .then((v) => v.validate(data, {
-        $ref: 'https://lille-oe.de/#log-date',
+        $ref: 'https://lille-oe.de/#Logbook-Log',
       }));
   }
 }
