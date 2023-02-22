@@ -4,7 +4,7 @@ const {
   readFile,
   writeFile,
 } = require('node:fs/promises');
-const { join, resolve, basename } = require('path');
+const { join, basename } = require('path');
 const { parse, stringify } = require('yaml');
 const { Validator } = require('jsonschema');
 const openAPI = require('../schema/openapi.json');
