@@ -1,0 +1,268 @@
+openapi: 3.0.3
+info:
+  title: Signal K Logbook
+  description: API for the semi-automatic vessel logbook
+  version: 0.2.0
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: entries
+    description: Log entry management
+paths:
+  /plugins/signalk-logbook/logs:
+    get:
+      tags:
+      - entries
+      summary: List logs
+      description: Receive a list of days containing logbook entries
+      responses:
+        '200':
+          description: List of days
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logs'
+    post:
+      tags:
+      - entries
+      summary: Create new log entry
+      description: Create a new log entry for either now or up to 15 minutes ago
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewEntry'
+      responses:
+        '201':
+          description: Succesful operation
+  /plugins/signalk-logbook/logs/{date}:
+    get:
+      tags:
+        - entries
+      summary: List entries for a day
+      description: Receive a list of log entries in a given day
+      parameters:
+      - name: date
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: List of entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+  /plugins/signalk-logbook/logs/{date}/{datetime}:
+    get:
+      tags:
+        - entries
+      summary: Read individual entry
+      description: Receive the contents of an individual entry
+      parameters:
+      - name: date
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: datetime
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date-time
+      responses:
+        '200':
+          description: List of entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+    put:
+      tags:
+      - entries
+      parameters:
+      - name: date
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: datetime
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date-time
+      summary: Update individual entry
+      description: Update the data in an entry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entry'
+      responses:
+        '200':
+          description: Succesful operation
+    delete:
+      tags:
+      - entries
+      parameters:
+      - name: date
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: datetime
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date-time
+      summary: Delete individual entry
+      description: Delete an entry
+      responses:
+        '204':
+          description: Succesful operation
+components:
+  schemas:
+    Logs:
+      type: array
+      items:
+        type: string
+        format: date
+        example: '2023-02-22'
+    NewEntry:
+      type: object
+      additionalProperties: false
+      required:
+      - text
+      properties:
+        text:
+          type: string
+          example: Autopilot activated
+        ago:
+          type: integer
+          minimum: 0
+          maximum: 15
+    Entry:
+      type: object
+      additionalProperties: false
+      required:
+      - datetime
+      - text
+      properties:
+        datetime:
+          type: string
+          format: date-time
+        position:
+          type: object
+          required:
+          - latitude
+          - longitude
+          additionalProperties: false
+          properties:
+            latitude:
+              type: number
+              minimum: -90
+              maximum: 90
+              example: 52.5109996
+            longitude:
+              type: number
+              minimum: -180
+              maximum: 180
+              example: 13.1936481
+            source:
+              type: string
+              example: GPS
+              default: GPS
+        log:
+          type: number
+          minimum: 0
+          example: 0.5
+        waypoint:
+          type: object
+          required:
+          - latitude
+          - longitude
+          additionalProperties: false
+          properties:
+            latitude:
+              type: number
+              minimum: -90
+              maximum: 90
+              example: 52.5109996
+            longitude:
+              type: number
+              minimum: -180
+              maximum: 180
+              example: 13.1936481
+        heading:
+          type: number
+          minimum: 0
+          maximum: 360
+          example: 190
+        speed:
+          type: object
+          additionalProperties: false
+          properties:
+            sog:
+              type: number
+              minimum: 0
+              example: 5.2
+            stw:
+              type: number
+              minimum: 0
+              example: 5.1
+        barometer:
+          type: number
+          example: 1013.25
+        wind:
+          type: object
+          additionalProperties: false
+          properties:
+            speed:
+              type: number
+              minimum: 0
+              example: 12.7
+            direction:
+              type: number
+              minimum: 0
+              maximum: 360
+              example: 89.5
+        engine:
+          type: object
+          additionalProperties: false
+          properties:
+            hours:
+              type: number
+              minimum: 0
+        vhf:
+          type: string
+          maxLength: 2
+          minLength: 2
+          example: 10
+        end:
+          type: boolean
+          default: false
+        text:
+          type: string
+          example: Autopilot activated
+        author:
+          type: string
+          example: auto
+        category:
+          type: string
+          enum:
+          - navigation
+          - engine
+          - radio
+          - maintenance
+    Log:
+      type: array
+      items:
+        $ref: '#/components/schemas/Entry'
