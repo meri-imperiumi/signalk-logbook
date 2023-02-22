@@ -6,8 +6,10 @@
   "scripts": {
     "prepublishOnly": "npm run build",
     "dev": "webpack --watch --mode=development",
+    "prebuild": "js-yaml schema/openapi.yaml > schema/openapi.json",
     "build": "webpack --mode=production",
     "lint": "eslint *.js src/ plugin/",
+    "pretest": "npm run build",
     "test": "npm run lint"
   },
   "repository": {
