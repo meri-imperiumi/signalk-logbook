@@ -180,6 +180,10 @@ components:
               type: string
               example: GPS
               default: GPS
+        log:
+          type: number
+          minimum: 0
+          example: 0.5
         waypoint:
           type: object
           required:
