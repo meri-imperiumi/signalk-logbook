@@ -38,12 +38,18 @@ function AppPanel(props) {
 
   useEffect(() => {
     if (!needsUpdate) {
-      return;
+      return undefined;
     }
     if (loginStatus === 'notLoggedIn') {
       // The API only works for authenticated users
-      return;
+      return undefined;
     }
+
+    // We'll want to re-fetch logs periodically
+    const interval = setInterval(() => {
+      setNeedsUpdate(true);
+    }, 5 * 60000);
+
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
@@ -58,6 +64,9 @@ function AppPanel(props) {
             setNeedsUpdate(false);
           });
       });
+    return () => {
+      clearInterval(interval);
+    };
   }, [daysToShow, needsUpdate, loginStatus]);
   // TODO: Depend on chosen time window to reload as needed
 
