@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React, { useState } from 'react';
 import {
   Modal,
@@ -228,6 +229,15 @@ function SailEditor(props) {
       </ModalHeader>
       <ModalBody>
         <Form>{rows}</Form>
+        {!sails.length
+          && <div>
+          <p>Configure your sail inventory in the sailsconfiguration plugin</p>
+          <Button color="primary" onClick={() => {
+            window.location.hash = '#/serverConfiguration/plugins/sailsconfiguration';
+          }}>
+            Configure
+          </Button>
+        </div>}
       </ModalBody>
       <ModalFooter>
         <Button color="primary" onClick={() => props.save(sails)}>
