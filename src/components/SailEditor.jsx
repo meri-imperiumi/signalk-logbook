@@ -29,7 +29,11 @@ function sailText(sail) {
   if (sail.material) {
     string += `${sail.material} `;
   }
-  string += `${sail.type.charAt(0).toUpperCase()}${sail.type.slice(1)}`;
+  if (string === '') {
+    string += `${sail.type.charAt(0).toUpperCase()}${sail.type.slice(1)}`;
+  } else {
+    string += sail.type;
+  }
   if (string.indexOf('sail') === -1) {
     string += ' sail';
   }
