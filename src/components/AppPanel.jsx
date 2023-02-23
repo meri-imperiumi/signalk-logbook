@@ -130,7 +130,11 @@ function AppPanel(props) {
 
   return (
     <div>
-      <Metadata adminUI={props.adminUI} loginStatus={props.loginStatus} />
+      <Metadata
+        adminUI={props.adminUI}
+        loginStatus={props.loginStatus}
+        setNeedsUpdate={setNeedsUpdate}
+      />
       <Row>
         { editEntry ? <EntryEditor
           entry={editEntry}

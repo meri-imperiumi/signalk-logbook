@@ -85,6 +85,10 @@ function Metadata(props) {
       .then(() => {
         setEditSails(false);
         setSails(updatedSails);
+        setTimeout(() => {
+          // We want to reload with a slight delay
+          props.setNeedsUpdate(true);
+        }, 1000);
       });
   }
 
