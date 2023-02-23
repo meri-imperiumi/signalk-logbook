@@ -171,7 +171,18 @@ function SailEditor(props) {
                       checked={!sail.reducedState || sail.reducedState.reefs === 0}
                       onChange={(e) => handleChange(sail.id, e)}
                     />
-                    <Label for={`${sail.id}-furledRatio`} check>
+                    <Label
+                      for={`${sail.id}-furledRatio`}
+                      check
+                      onClick={() => {
+                        handleChange(sail.id, {
+                          target: {
+                            name: 'reefs',
+                            value: 0,
+                          },
+                        });
+                      }}
+                    >
                       Unreefed
                     </Label>
                   </FormGroup>
@@ -186,7 +197,18 @@ function SailEditor(props) {
                         checked={sail.reducedState && sail.reducedState.reefs === reef}
                         onChange={(e) => handleChange(sail.id, e)}
                       />
-                      <Label for={`${sail.id}-reefs-${reef}`} check>
+                      <Label
+                        for={`${sail.id}-reefs-${reef}`}
+                        check
+                        onClick={() => {
+                          handleChange(sail.id, {
+                            target: {
+                              name: 'reefs',
+                              value: reef,
+                            },
+                          });
+                        }}
+                      >
                         {`${ordinal(reef)} reef`}
                       </Label>
                     </FormGroup>
