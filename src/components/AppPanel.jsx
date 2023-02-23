@@ -8,6 +8,7 @@ import {
   TabContent,
   TabPane,
 } from 'reactstrap';
+import Metadata from './Metadata.jsx';
 import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
@@ -37,12 +38,18 @@ function AppPanel(props) {
 
   useEffect(() => {
     if (!needsUpdate) {
-      return;
+      return undefined;
     }
     if (loginStatus === 'notLoggedIn') {
       // The API only works for authenticated users
-      return;
+      return undefined;
     }
+
+    // We'll want to re-fetch logs periodically
+    const interval = setInterval(() => {
+      setNeedsUpdate(true);
+    }, 5 * 60000);
+
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
@@ -57,6 +64,9 @@ function AppPanel(props) {
             setNeedsUpdate(false);
           });
       });
+    return () => {
+      clearInterval(interval);
+    };
   }, [daysToShow, needsUpdate, loginStatus]);
   // TODO: Depend on chosen time window to reload as needed
 
@@ -128,57 +138,64 @@ function AppPanel(props) {
   }
 
   return (
-    <Row>
-      { editEntry ? <EntryEditor
-        entry={editEntry}
-        cancel={() => setEditEntry(null)}
-        save={saveEntry}
-        delete={deleteEntry}
-        categories={categories}
-        /> : null }
-      { viewEntry ? <EntryViewer
-        entry={viewEntry}
-        editEntry={setEditEntry}
-        cancel={() => setViewEntry(null)}
-        categories={categories}
-        /> : null }
-      { addEntry ? <AddEntry
-        entry={addEntry}
-        cancel={() => setAddEntry(null)}
-        save={saveAddEntry}
-        categories={categories}
-        /> : null }
-      <Col className="bg-light border">
-        <Nav tabs>
-          <NavItem>
-            <NavLink className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>
-              Timeline
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink className={activeTab === 'book' ? 'active' : ''} onClick={() => setActiveTab('book')}>
-              Logbook
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink className={activeTab === 'map' ? 'active' : ''} onClick={() => setActiveTab('map')}>
-              Map
-            </NavLink>
-          </NavItem>
-        </Nav>
-        <TabContent activeTab={activeTab}>
-          <TabPane tabId="timeline">
-            { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
-          </TabPane>
-          <TabPane tabId="book">
-            { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
-          </TabPane>
-          <TabPane tabId="map">
-            { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }
-          </TabPane>
-        </TabContent>
-      </Col>
-    </Row>
+    <div>
+      <Metadata
+        adminUI={props.adminUI}
+        loginStatus={props.loginStatus}
+        setNeedsUpdate={setNeedsUpdate}
+      />
+      <Row>
+        { editEntry ? <EntryEditor
+          entry={editEntry}
+          cancel={() => setEditEntry(null)}
+          save={saveEntry}
+          delete={deleteEntry}
+          categories={categories}
+          /> : null }
+        { viewEntry ? <EntryViewer
+          entry={viewEntry}
+          editEntry={setEditEntry}
+          cancel={() => setViewEntry(null)}
+          categories={categories}
+          /> : null }
+        { addEntry ? <AddEntry
+          entry={addEntry}
+          cancel={() => setAddEntry(null)}
+          save={saveAddEntry}
+          categories={categories}
+          /> : null }
+        <Col className="bg-light border">
+          <Nav tabs>
+            <NavItem>
+              <NavLink className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>
+                Timeline
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink className={activeTab === 'book' ? 'active' : ''} onClick={() => setActiveTab('book')}>
+                Logbook
+              </NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink className={activeTab === 'map' ? 'active' : ''} onClick={() => setActiveTab('map')}>
+                Map
+              </NavLink>
+            </NavItem>
+          </Nav>
+          <TabContent activeTab={activeTab}>
+            <TabPane tabId="timeline">
+              { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
+            </TabPane>
+            <TabPane tabId="book">
+              { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
+            </TabPane>
+            <TabPane tabId="map">
+              { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }
+            </TabPane>
+          </TabContent>
+        </Col>
+      </Row>
+    </div>
   );
 }
 

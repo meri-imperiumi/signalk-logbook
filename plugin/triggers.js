@@ -1,3 +1,4 @@
+const ordinal = require('ordinal');
 const stateToEntry = require('./format');
 
 function isUnderWay(state) {
@@ -8,6 +9,36 @@ function isUnderWay(state) {
     return true;
   }
   return false;
+}
+
+function sailsString(state, app) {
+  const string = [];
+  Object.keys(state).forEach((path) => {
+    const matched = path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
+    if (!matched) {
+      return;
+    }
+    // Since the sail updates arrive asynchronously, read from app directly
+    // to ensure canonical state
+    const sailState = app.getSelfPath(path).value;
+    const sail = {
+      ...sailState,
+      id: matched[1],
+    };
+    if (!sail.active) {
+      return;
+    }
+    if (sail.reducedState && sail.reducedState.reefs) {
+      string.push(`${sail.name} (${ordinal(sail.reducedState.reefs)} reef)`);
+      return;
+    }
+    if (sail.reducedState && sail.reducedState.furledRatio) {
+      string.push(`${sail.name} (${sail.reducedState.furledRatio * 100}% furled)`);
+      return;
+    }
+    string.push(sail.name);
+  });
+  return string.join(', ');
 }
 
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
@@ -23,6 +54,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     return log.appendEntry(dateString, data)
       .then(() => {
         app.setPluginStatus(`Automatic log entry: ${text}`);
+        return null;
       });
   }
 
@@ -61,10 +93,19 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         });
       }
       if (value === 'sailing') {
+        let text = '';
         if (oldState[path] === 'motoring') {
-          return appendLog('Motor stopped, sailing');
+          text = 'Motor stopped, sailing';
+          if (oldState['custom.logbook.sails']) {
+            text = `${text} with ${oldState['custom.logbook.sails']}`;
+          }
+          return appendLog(text);
         }
-        return appendLog('Sailing');
+        text = 'Sailing';
+        if (oldState['custom.logbook.sails']) {
+          text = `${text} with ${oldState['custom.logbook.sails']}`;
+        }
+        return appendLog(text);
       }
       if (value === 'motoring') {
         if (oldState[path] === 'anchored') {
@@ -100,6 +141,29 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     if (value === 'stopped') {
       return appendLog(`Stopped ${engineName} engine`);
     }
+  }
+
+  const sailState = path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
+  if (sailState) {
+    const sails = {
+      ...oldState,
+    };
+    sails[path] = value;
+    const sailsCombined = sailsString(sails, app);
+    const stateUpdates = {
+      'custom.logbook.sails': sailsCombined,
+    };
+    if (!oldState['custom.logbook.sails']) {
+      return Promise.resolve(stateUpdates);
+    }
+    if (oldState['custom.logbook.sails'] === sailsCombined) {
+      return Promise.resolve(null);
+    }
+    if (oldState['navigation.state'] === 'sailing') {
+      return appendLog(`Sails set: ${sailsCombined}`)
+        .then(() => stateUpdates);
+    }
+    return Promise.resolve(stateUpdates);
   }
 
   return Promise.resolve();

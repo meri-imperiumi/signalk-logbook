@@ -11,7 +11,7 @@ import {
   Input,
 } from 'reactstrap';
 
-function EntryEditor(props) {
+function AddEntry(props) {
   const [entry, updateEntry] = useState({
     text: '',
     ago: 0,
@@ -99,5 +99,4 @@ function EntryEditor(props) {
   );
 }
 
-export default EntryEditor;
-
+export default AddEntry;
