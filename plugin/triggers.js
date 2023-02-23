@@ -1,3 +1,4 @@
+const ordinal = require('ordinal');
 const stateToEntry = require('./format');
 
 function isUnderWay(state) {
@@ -22,6 +23,14 @@ function sailsString(state) {
       id: matched[1],
     };
     if (!sail.active) {
+      return;
+    }
+    if (sail.reducedState && sail.reducedState.reefs) {
+      string.push(`${sail.name} (${ordinal(sail.reducedState.reefs)} reef)`);
+      return;
+    }
+    if (sail.reducedState && sail.reducedState.furledRatio) {
+      string.push(`${sail.name} (${sail.reducedState.furledRatio * 100}% furled)`);
       return;
     }
     string.push(sail.name);
