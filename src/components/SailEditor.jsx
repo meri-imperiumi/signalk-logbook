@@ -191,11 +191,16 @@ function SailEditor(props) {
                   <Input
                     id={`${sail.id}-reefs-${idx + 1}`}
                     disabled={!sail.active}
-                    name="reefs"
+                    name={`${sail.id}-reefs`}
                     value={idx + 1}
                     type="radio"
                     checked={sail.reducedState && sail.reducedState.reefs === (idx + 1)}
-                    onChange={(e) => handleChange(sail.id, e)}
+                    onChange={() => handleChange(sail.id, {
+                      target: {
+                        name: 'reefs',
+                        value: idx + 1,
+                      },
+                    })}
                   />
                   <Label
                     for={`${sail.id}-reefs-${idx + 1}`}
