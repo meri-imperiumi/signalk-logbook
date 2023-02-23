@@ -102,9 +102,7 @@ function Metadata(props) {
             <ListInlineItem key={crewName}>{crewName}</ListInlineItem>
           ))}
           {!crewNames.length
-            && <Button>
-              Edit
-              </Button>
+            && <ListInlineItem>No crew set</ListInlineItem>
           }
         </List>
       </Col>
