@@ -11,15 +11,18 @@ function isUnderWay(state) {
   return false;
 }
 
-function sailsString(state) {
+function sailsString(state, app) {
   const string = [];
   Object.keys(state).forEach((path) => {
     const matched = path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
     if (!matched) {
       return;
     }
+    // Since the sail updates arrive asynchronously, read from app directly
+    // to ensure canonical state
+    const sailState = app.getSelfPath(path).value;
     const sail = {
-      ...state[path],
+      ...sailState,
       id: matched[1],
     };
     if (!sail.active) {
@@ -90,10 +93,19 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         });
       }
       if (value === 'sailing') {
+        let text = '';
         if (oldState[path] === 'motoring') {
-          return appendLog('Motor stopped, sailing');
+          text = 'Motor stopped, sailing';
+          if (oldState['custom.logbook.sails']) {
+            text = `${text} with ${oldState['custom.logbook.sails']}`;
+          }
+          return appendLog(text);
         }
-        return appendLog('Sailing');
+        text = 'Sailing';
+        if (oldState['custom.logbook.sails']) {
+          text = `${text} with ${oldState['custom.logbook.sails']}`;
+        }
+        return appendLog(text);
       }
       if (value === 'motoring') {
         if (oldState[path] === 'anchored') {
@@ -137,12 +149,15 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       ...oldState,
     };
     sails[path] = value;
-    const sailsCombined = sailsString(sails);
+    const sailsCombined = sailsString(sails, app);
     const stateUpdates = {
       'custom.logbook.sails': sailsCombined,
     };
-    if (oldState['custom.logbook.sails'] === sailsCombined || !oldState['custom.logbook.sails']) {
+    if (!oldState['custom.logbook.sails']) {
       return Promise.resolve(stateUpdates);
+    }
+    if (oldState['custom.logbook.sails'] === sailsCombined) {
+      return Promise.resolve(null);
     }
     if (oldState['navigation.state'] === 'sailing') {
       return appendLog(`Sails set: ${sailsCombined}`)

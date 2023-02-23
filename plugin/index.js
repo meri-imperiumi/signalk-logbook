@@ -70,27 +70,30 @@ module.exports = (app) => {
         if (!delta.updates) {
           return;
         }
-        delta.updates.forEach((u) => {
+        delta.updates.reduce((prev, u) => prev.then(() => {
           if (!u.values) {
-            return;
+            return Promise.resolve();
           }
-          u.values.forEach((v) => {
-            processTriggers(v.path, v.value, state, log, app)
-              .then((stateUpdates) => {
-                if (!stateUpdates) {
-                  return;
-                }
-                // Trigger wants to write state
-                Object.keys(stateUpdates).forEach((key) => {
-                  state[key] = stateUpdates[key];
-                });
-              }, (err) => {
-                app.setPluginError(`Failed to store entry: ${err.message}`);
+          return u.values.reduce((
+            previousPromise,
+            v,
+          ) => previousPromise.then(() => processTriggers(v.path, v.value, state, log, app)
+            .then((stateUpdates) => {
+              if (!stateUpdates) {
+                return;
+              }
+              // Trigger wants to write state
+              Object.keys(stateUpdates).forEach((key) => {
+                state[key] = stateUpdates[key];
               });
-            // Copy new value into state
-            state[v.path] = v.value;
-          });
-        });
+            }, (err) => {
+              app.setPluginError(`Failed to store entry: ${err.message}`);
+            })
+            .then(() => {
+              // Copy new value into state
+              state[v.path] = v.value;
+            })), Promise.resolve());
+        }), Promise.resolve());
       },
     );
 
