@@ -106,6 +106,14 @@ function SailEditor(props) {
             >
               <CardHeader
                 className={sail.active ? 'bg-primary' : ''}
+                onClick={() => {
+                  handleChange(sail.id, {
+                    target: {
+                      name: 'active',
+                      checked: !sail.active,
+                    },
+                  });
+                }}
               >
                 <FormGroup switch>
                   <Input
@@ -114,7 +122,6 @@ function SailEditor(props) {
                     id={`${sail.id}-active`}
                     name="active"
                     checked={sail.active}
-                    onChange={(e) => handleChange(sail.id, e)}
                   />
                   <Label
                     for={`${sail.id}-active`}
