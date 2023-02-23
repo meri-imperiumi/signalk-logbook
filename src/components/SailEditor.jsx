@@ -165,11 +165,18 @@ function SailEditor(props) {
                 <Input
                   id={`${sail.id}-reefs-0`}
                   disabled={!sail.active}
-                  name="reefs"
+                  name={`${sail.id}-reefs`}
                   value="0"
                   type="radio"
                   checked={!sail.reducedState || sail.reducedState.reefs === 0}
-                  onChange={(e) => handleChange(sail.id, e)}
+                  onChange={() => {
+                    handleChange(sail.id, {
+                      target: {
+                        name: 'reefs',
+                        value: 0,
+                      },
+                    });
+                  }}
                 />
                 <Label
                   for={`${sail.id}-furledRatio`}
