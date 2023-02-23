@@ -182,30 +182,30 @@ function SailEditor(props) {
                   Unreefed
                 </Label>
               </FormGroup>
-              {sail.reefs.map((reef) => (
-                <FormGroup key={`${sail.id}-${reef}`} check disabled={!sail.active}>
+              {sail.reefs.map((reef, idx) => (
+                <FormGroup key={`${sail.id}-${idx + 1}`} check disabled={!sail.active}>
                   <Input
-                    id={`${sail.id}-reefs-${reef}`}
+                    id={`${sail.id}-reefs-${idx + 1}`}
                     disabled={!sail.active}
                     name="reefs"
-                    value={reef}
+                    value={idx + 1}
                     type="radio"
-                    checked={sail.reducedState && sail.reducedState.reefs === reef}
+                    checked={sail.reducedState && sail.reducedState.reefs === (idx + 1)}
                     onChange={(e) => handleChange(sail.id, e)}
                   />
                   <Label
-                    for={`${sail.id}-reefs-${reef}`}
+                    for={`${sail.id}-reefs-${idx + 1}`}
                     check
                     onClick={() => {
                       handleChange(sail.id, {
                         target: {
                           name: 'reefs',
-                          value: reef,
+                          value: idx + 1,
                         },
                       });
                     }}
                   >
-                    {`${ordinal(reef)} reef`}
+                    {`${ordinal(idx + 1)} reef (${reef}m\u00B2)`}
                   </Label>
                 </FormGroup>
               ))}
