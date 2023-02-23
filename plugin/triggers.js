@@ -10,6 +10,25 @@ function isUnderWay(state) {
   return false;
 }
 
+function sailsString(state) {
+  const string = [];
+  Object.keys(state).forEach((path) => {
+    const matched = path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
+    if (!matched) {
+      return;
+    }
+    const sail = {
+      ...state[path],
+      id: matched[1],
+    };
+    if (!sail.active) {
+      return;
+    }
+    string.push(sail.name);
+  });
+  return string.join(', ');
+}
+
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
   function appendLog(text, additionalData = {}) {
     const data = stateToEntry(oldState, text);
@@ -23,6 +42,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     return log.appendEntry(dateString, data)
       .then(() => {
         app.setPluginStatus(`Automatic log entry: ${text}`);
+        return null;
       });
   }
 
@@ -100,6 +120,26 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
     if (value === 'stopped') {
       return appendLog(`Stopped ${engineName} engine`);
     }
+  }
+
+  const sailState = path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
+  if (sailState) {
+    const sails = {
+      ...oldState,
+    };
+    sails[path] = value;
+    const sailsCombined = sailsString(sails);
+    const stateUpdates = {
+      'custom.logbook.sails': sailsCombined,
+    };
+    if (oldState['custom.logbook.sails'] === sailsCombined || !oldState['custom.logbook.sails']) {
+      return Promise.resolve(stateUpdates);
+    }
+    if (oldState['navigation.state'] === 'sailing') {
+      return appendLog(`Sails set: ${sailsCombined}`)
+        .then(() => stateUpdates);
+    }
+    return Promise.resolve(stateUpdates);
   }
 
   return Promise.resolve();

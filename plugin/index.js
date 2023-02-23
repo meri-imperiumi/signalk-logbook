@@ -76,9 +76,18 @@ module.exports = (app) => {
           }
           u.values.forEach((v) => {
             processTriggers(v.path, v.value, state, log, app)
-              .catch((err) => {
+              .then((stateUpdates) => {
+                if (!stateUpdates) {
+                  return;
+                }
+                // Trigger wants to write state
+                Object.keys(stateUpdates).forEach((key) => {
+                  state[key] = stateUpdates[key];
+                });
+              }, (err) => {
                 app.setPluginError(`Failed to store entry: ${err.message}`);
               });
+            // Copy new value into state
             state[v.path] = v.value;
           });
         });
