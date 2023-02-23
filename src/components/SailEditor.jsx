@@ -151,6 +151,10 @@ function SailEditor(props) {
                 Furled
                 {' '}
                 {sail.reducedState ? sail.reducedState.furledRatio * 100 : 0}%
+                {sail.area
+                  && sail.reducedState
+                  && ` (${(sail.area - (sail.area * sail.reducedState.furledRatio)).toFixed(1)}m\u00B2)`
+                  }
               </Label>
             </FormGroup>
           }
