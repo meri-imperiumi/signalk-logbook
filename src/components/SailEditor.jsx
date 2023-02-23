@@ -123,12 +123,7 @@ function SailEditor(props) {
                 name="active"
                 checked={sail.active}
               />
-              <Label
-                for={`${sail.id}-active`}
-                check
-              >
-                {sail.name}
-              </Label>
+              { sail.name }
             </FormGroup>
           </CardHeader>
           <CardBody>
