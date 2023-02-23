@@ -4,14 +4,51 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  CardGroup,
+  Card,
+  CardHeader,
+  CardBody,
+  CardText,
   Button,
   Form,
   FormGroup,
-  FormText,
   Label,
   Input,
 } from 'reactstrap';
 import ordinal from 'ordinal';
+
+function ms2kt(ms) {
+  return parseFloat((ms * 1.94384).toFixed(1));
+}
+
+function sailText(sail) {
+  let string = '';
+  if (sail.area) {
+    string += `${sail.area}m\u00B2 `;
+  }
+  if (sail.material) {
+    string += `${sail.material} `;
+  }
+  string += `${sail.type.charAt(0).toUpperCase()}${sail.type.slice(1)}`;
+  if (string.indexOf('sail') === -1) {
+    string += ' sail';
+  }
+  if (sail.brand) {
+    string += ` made by ${sail.brand}`;
+  }
+  string += '.';
+  if (sail.minimumWind || sail.maximumWind) {
+    string += ' For wind conditions';
+    if (sail.minimumWind) {
+      string += ` from ${ms2kt(sail.minimumWind)}kt`;
+    }
+    if (sail.maximumWind) {
+      string += ` to ${ms2kt(sail.maximumWind)}kt`;
+    }
+    string += '.';
+  }
+  return string;
+}
 
 function SailEditor(props) {
   const [sails, updateSails] = useState(props.sails);
@@ -58,32 +95,40 @@ function SailEditor(props) {
       </ModalHeader>
       <ModalBody>
         <Form>
+          <CardGroup>
           {sails.map((sail) => (
-            <FormGroup tag="fieldset" key={sail.id}>
-              <legend>
-                {sail.name}
-              </legend>
-              <FormText>
-                {sail.type} sail made by {sail.brand}
-              </FormText>
-              <FormGroup switch>
-                <Input
-                  type="switch"
-                  role="switch"
-                  id={`${sail.id}-active`}
-                  name="active"
-                  checked={sail.active}
-                  onChange={(e) => handleChange(sail.id, e)}
-                />
-                <Label
-                  for={`${sail.id}-active`}
-                  check
-                >Active</Label>
-              </FormGroup>
+            <Card
+              key={sail.id}
+            >
+              <CardHeader
+                className={sail.active ? 'bg-primary' : ''}
+              >
+                <FormGroup switch>
+                  <Input
+                    type="switch"
+                    role="switch"
+                    id={`${sail.id}-active`}
+                    name="active"
+                    checked={sail.active}
+                    onChange={(e) => handleChange(sail.id, e)}
+                  />
+                  <Label
+                    for={`${sail.id}-active`}
+                    check
+                  >
+                    {sail.name}
+                  </Label>
+                </FormGroup>
+              </CardHeader>
+              <CardBody>
+              <CardText
+                className={sail.active ? '' : 'text-muted'}
+              >{sailText(sail)}</CardText>
               {sail.continuousReefing
-                && <FormGroup>
+                && <FormGroup disabled={!sail.active}>
                   <Input
                     id={`${sail.id}-furledRatio`}
+                    disabled={!sail.active}
                     name="furledRatio"
                     type="range"
                     max="1.0"
@@ -92,7 +137,10 @@ function SailEditor(props) {
                     value={sail.reducedState ? sail.reducedState.furledRatio : 0}
                     onChange={(e) => handleChange(sail.id, e)}
                   />
-                  <Label for={`${sail.id}-furledRatio`}>
+                  <Label
+                   for={`${sail.id}-furledRatio`}
+                   className={sail.active ? '' : 'text-muted'}
+                  >
                     Furled
                     {' '}
                     {sail.reducedState ? sail.reducedState.furledRatio * 100 : 0}%
@@ -102,9 +150,10 @@ function SailEditor(props) {
               {sail.reefs
                 && sail.reefs.length
                 && <FormGroup tag="fieldset">
-                  <FormGroup check>
+                  <FormGroup check disabled={!sail.active}>
                     <Input
                       id={`${sail.id}-reefs-0`}
+                      disabled={!sail.active}
                       name="reefs"
                       value="0"
                       type="radio"
@@ -116,24 +165,27 @@ function SailEditor(props) {
                     </Label>
                   </FormGroup>
                   {sail.reefs.map((reef) => (
-                    <FormGroup key={`${sail.id}-${reef}`} check>
+                    <FormGroup key={`${sail.id}-${reef}`} check disabled={!sail.active}>
                       <Input
                         id={`${sail.id}-reefs-${reef}`}
+                        disabled={!sail.active}
                         name="reefs"
                         value={reef}
                         type="radio"
                         checked={sail.reducedState && sail.reducedState.reefs === reef}
                         onChange={(e) => handleChange(sail.id, e)}
                       />
-                      <Label for={`${sail.id}-furledRatio`} check>
+                      <Label for={`${sail.id}-reefs-${reef}`} check>
                         {`${ordinal(reef)} reef`}
                       </Label>
                     </FormGroup>
                   ))}
                 </FormGroup>
               }
-            </FormGroup>
+              </CardBody>
+            </Card>
           ))}
+         </CardGroup>
         </Form>
       </ModalBody>
       <ModalFooter>
