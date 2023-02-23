@@ -92,134 +92,147 @@ function SailEditor(props) {
     updatedSails[idx] = updated;
     updateSails(updatedSails);
   }
+  const renderSails = [...sails];
+  const rows = [];
+  const perRow = 3;
+  while (renderSails.length) {
+    const row = renderSails.splice(0, perRow);
+    const filler = [...Array(perRow - row.length).keys()];
+    rows.push(
+      <CardGroup>
+      {row.map((sail) => (
+        <Card
+          key={sail.id}
+        >
+          <CardHeader
+            className={sail.active ? 'bg-primary' : ''}
+            onClick={() => {
+              handleChange(sail.id, {
+                target: {
+                  name: 'active',
+                  checked: !sail.active,
+                },
+              });
+            }}
+          >
+            <FormGroup switch>
+              <Input
+                type="switch"
+                role="switch"
+                id={`${sail.id}-active`}
+                name="active"
+                checked={sail.active}
+              />
+              <Label
+                for={`${sail.id}-active`}
+                check
+              >
+                {sail.name}
+              </Label>
+            </FormGroup>
+          </CardHeader>
+          <CardBody>
+          <CardText
+            className={sail.active ? '' : 'text-muted'}
+          >{sailText(sail)}</CardText>
+          {sail.continuousReefing
+            && <FormGroup disabled={!sail.active}>
+              <Input
+                id={`${sail.id}-furledRatio`}
+                disabled={!sail.active}
+                name="furledRatio"
+                type="range"
+                max="1.0"
+                min="0.0"
+                step="0.1"
+                value={sail.reducedState ? sail.reducedState.furledRatio : 0}
+                onChange={(e) => handleChange(sail.id, e)}
+              />
+              <Label
+               for={`${sail.id}-furledRatio`}
+               className={sail.active ? '' : 'text-muted'}
+              >
+                Furled
+                {' '}
+                {sail.reducedState ? sail.reducedState.furledRatio * 100 : 0}%
+              </Label>
+            </FormGroup>
+          }
+          {sail.reefs
+            && sail.reefs.length
+            && <FormGroup tag="fieldset">
+              <FormGroup check disabled={!sail.active}>
+                <Input
+                  id={`${sail.id}-reefs-0`}
+                  disabled={!sail.active}
+                  name="reefs"
+                  value="0"
+                  type="radio"
+                  checked={!sail.reducedState || sail.reducedState.reefs === 0}
+                  onChange={(e) => handleChange(sail.id, e)}
+                />
+                <Label
+                  for={`${sail.id}-furledRatio`}
+                  check
+                  onClick={() => {
+                    handleChange(sail.id, {
+                      target: {
+                        name: 'reefs',
+                        value: 0,
+                      },
+                    });
+                  }}
+                >
+                  Unreefed
+                </Label>
+              </FormGroup>
+              {sail.reefs.map((reef) => (
+                <FormGroup key={`${sail.id}-${reef}`} check disabled={!sail.active}>
+                  <Input
+                    id={`${sail.id}-reefs-${reef}`}
+                    disabled={!sail.active}
+                    name="reefs"
+                    value={reef}
+                    type="radio"
+                    checked={sail.reducedState && sail.reducedState.reefs === reef}
+                    onChange={(e) => handleChange(sail.id, e)}
+                  />
+                  <Label
+                    for={`${sail.id}-reefs-${reef}`}
+                    check
+                    onClick={() => {
+                      handleChange(sail.id, {
+                        target: {
+                          name: 'reefs',
+                          value: reef,
+                        },
+                      });
+                    }}
+                  >
+                    {`${ordinal(reef)} reef`}
+                  </Label>
+                </FormGroup>
+              ))}
+            </FormGroup>
+          }
+          </CardBody>
+        </Card>
+      ))}
+      {filler.map((id) => (
+        <Card
+          key={id}
+        />
+      ))}
+     </CardGroup>,
+    );
+  }
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
         Sails
       </ModalHeader>
       <ModalBody>
-        <Form>
-          <CardGroup>
-          {sails.map((sail) => (
-            <Card
-              key={sail.id}
-            >
-              <CardHeader
-                className={sail.active ? 'bg-primary' : ''}
-                onClick={() => {
-                  handleChange(sail.id, {
-                    target: {
-                      name: 'active',
-                      checked: !sail.active,
-                    },
-                  });
-                }}
-              >
-                <FormGroup switch>
-                  <Input
-                    type="switch"
-                    role="switch"
-                    id={`${sail.id}-active`}
-                    name="active"
-                    checked={sail.active}
-                  />
-                  <Label
-                    for={`${sail.id}-active`}
-                    check
-                  >
-                    {sail.name}
-                  </Label>
-                </FormGroup>
-              </CardHeader>
-              <CardBody>
-              <CardText
-                className={sail.active ? '' : 'text-muted'}
-              >{sailText(sail)}</CardText>
-              {sail.continuousReefing
-                && <FormGroup disabled={!sail.active}>
-                  <Input
-                    id={`${sail.id}-furledRatio`}
-                    disabled={!sail.active}
-                    name="furledRatio"
-                    type="range"
-                    max="1.0"
-                    min="0.0"
-                    step="0.1"
-                    value={sail.reducedState ? sail.reducedState.furledRatio : 0}
-                    onChange={(e) => handleChange(sail.id, e)}
-                  />
-                  <Label
-                   for={`${sail.id}-furledRatio`}
-                   className={sail.active ? '' : 'text-muted'}
-                  >
-                    Furled
-                    {' '}
-                    {sail.reducedState ? sail.reducedState.furledRatio * 100 : 0}%
-                  </Label>
-                </FormGroup>
-              }
-              {sail.reefs
-                && sail.reefs.length
-                && <FormGroup tag="fieldset">
-                  <FormGroup check disabled={!sail.active}>
-                    <Input
-                      id={`${sail.id}-reefs-0`}
-                      disabled={!sail.active}
-                      name="reefs"
-                      value="0"
-                      type="radio"
-                      checked={!sail.reducedState || sail.reducedState.reefs === 0}
-                      onChange={(e) => handleChange(sail.id, e)}
-                    />
-                    <Label
-                      for={`${sail.id}-furledRatio`}
-                      check
-                      onClick={() => {
-                        handleChange(sail.id, {
-                          target: {
-                            name: 'reefs',
-                            value: 0,
-                          },
-                        });
-                      }}
-                    >
-                      Unreefed
-                    </Label>
-                  </FormGroup>
-                  {sail.reefs.map((reef) => (
-                    <FormGroup key={`${sail.id}-${reef}`} check disabled={!sail.active}>
-                      <Input
-                        id={`${sail.id}-reefs-${reef}`}
-                        disabled={!sail.active}
-                        name="reefs"
-                        value={reef}
-                        type="radio"
-                        checked={sail.reducedState && sail.reducedState.reefs === reef}
-                        onChange={(e) => handleChange(sail.id, e)}
-                      />
-                      <Label
-                        for={`${sail.id}-reefs-${reef}`}
-                        check
-                        onClick={() => {
-                          handleChange(sail.id, {
-                            target: {
-                              name: 'reefs',
-                              value: reef,
-                            },
-                          });
-                        }}
-                      >
-                        {`${ordinal(reef)} reef`}
-                      </Label>
-                    </FormGroup>
-                  ))}
-                </FormGroup>
-              }
-              </CardBody>
-            </Card>
-          ))}
-         </CardGroup>
-        </Form>
+        <Form>{rows}</Form>
       </ModalBody>
       <ModalFooter>
         <Button color="primary" onClick={props.save}>
