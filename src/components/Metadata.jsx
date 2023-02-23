@@ -68,12 +68,32 @@ function Metadata(props) {
       ws.close();
     };
   }, [sails, crewNames]);
+
+  function saveSails(updatedSails) {
+    const payload = updatedSails.map((s) => ({
+      id: s.id,
+      active: s.active,
+      reducedState: s.reducedState,
+    }));
+    fetch('/plugins/sailsconfiguration/sails', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(() => {
+        setEditSails(false);
+        setSails(updatedSails);
+      });
+  }
+
   return (
     <Row xs>
       { editSails ? <SailEditor
         sails={sails}
         cancel={() => setEditSails(false)}
-        save={() => setEditSails(false)}
+        save={saveSails}
         /> : null }
       <Col>
         <List type="unstyled">

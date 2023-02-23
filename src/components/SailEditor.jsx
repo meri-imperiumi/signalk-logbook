@@ -235,7 +235,7 @@ function SailEditor(props) {
         <Form>{rows}</Form>
       </ModalBody>
       <ModalFooter>
-        <Button color="primary" onClick={props.save}>
+        <Button color="primary" onClick={() => props.save(sails)}>
           Save
         </Button>{' '}
         <Button color="secondary" onClick={props.cancel}>
