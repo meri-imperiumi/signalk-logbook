@@ -7,10 +7,12 @@ import {
   Button,
 } from 'reactstrap';
 import ordinal from 'ordinal';
+import CrewEditor from './CrewEditor.jsx';
 import SailEditor from './SailEditor.jsx';
 
 function Metadata(props) {
   const [editSails, setEditSails] = useState(false);
+  const [editCrew, setEditCrew] = useState(false);
   const [crewNames, setCrew] = useState([]);
   const [sails, setSails] = useState([]);
   const paths = [
@@ -94,6 +96,10 @@ function Metadata(props) {
 
   return (
     <Row xs>
+      { editCrew ? <CrewEditor
+        crewNames={crewNames}
+        cancel={() => setEditCrew(false)}
+        /> : null }
       { editSails ? <SailEditor
         sails={sails}
         cancel={() => setEditSails(false)}
@@ -106,7 +112,7 @@ function Metadata(props) {
             <ListInlineItem key={crewName}>{crewName}</ListInlineItem>
           ))}
           {!crewNames.length
-            && <ListInlineItem>No crew set</ListInlineItem>
+            && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
           }
         </List>
       </Col>
