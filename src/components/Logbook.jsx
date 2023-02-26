@@ -36,8 +36,8 @@ function Logbook(props) {
             <td>{!Number.isNaN(Number(entry.heading)) ? `${entry.heading}°` : ''}</td>
             <td>{entry.speed.sog}kt</td>
             <td>
-              {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
-              {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
+              {entry.wind && !Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
+              {entry.wind && !Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
             </td>
             <td>{entry.barometer}</td>
             <td>{entry.point.toString()}</td>
