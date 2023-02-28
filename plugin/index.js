@@ -11,8 +11,29 @@ function parseJwt(token) {
   return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 }
 
+function sendCrewNames(app, plugin, crewNames) {
+  app.handleMessage(plugin.id, {
+    context: `vessels.${app.selfId}`,
+    updates: [
+      {
+        source: {
+          label: plugin.id,
+        },
+        timestamp: (new Date().toISOString()),
+        values: [
+          {
+            path: 'communication.crewNames',
+            value: crewNames,
+          },
+        ],
+      },
+    ],
+  });
+}
+
 module.exports = (app) => {
   const plugin = {};
+  let crewNames = [];
   let unsubscribes = [];
   let interval;
 
@@ -108,6 +129,7 @@ module.exports = (app) => {
           .catch((err) => {
             app.setPluginError(`Failed to store entry: ${err.message}`);
           });
+        sendCrewNames(app, plugin, crewNames);
       }
       buffer.enq(state);
       // We can keep a clone of the previous values
@@ -116,6 +138,30 @@ module.exports = (app) => {
         datetime: null,
       };
     }, 60000);
+
+    app.registerPutHandler('vessels.self', 'communication.crewNames', (ctx, path, value) => {
+      if (!Array.isArray(value)) {
+        return {
+          state: 'COMPLETED',
+          statusCode: 400,
+          message: 'crewNames must be an array',
+        };
+      }
+      const faulty = value.findIndex((v) => typeof v !== 'string');
+      if (faulty !== -1) {
+        return {
+          state: 'COMPLETED',
+          statusCode: 400,
+          message: 'Each crewName must be a string',
+        };
+      }
+      crewNames = value;
+      sendCrewNames(app, plugin, crewNames);
+      return {
+        state: 'COMPLETED',
+        statusCode: 200,
+      };
+    });
 
     setStatus('Waiting for updates');
   };
