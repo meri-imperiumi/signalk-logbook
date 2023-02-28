@@ -19,54 +19,83 @@ function Metadata(props) {
     'communication.crewNames',
     'sails.inventory.*',
   ];
-  useEffect(() => {
-    const ws = props.adminUI.openWebsocket({ subscribe: 'none' });
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        context: 'vessels.self',
-        subscribe: paths.map((path) => ({
-          path,
-          period: 10000,
-        })),
-      }));
-    };
-    ws.onmessage = (m) => {
-      const delta = JSON.parse(m.data);
-      if (!delta.updates) {
+
+  function onMessage(m) {
+    const delta = JSON.parse(m.data);
+    if (!delta.updates) {
+      return;
+    }
+    delta.updates.forEach((u) => {
+      if (!u.values) {
         return;
       }
-      delta.updates.forEach((u) => {
-        if (!u.values) {
+      u.values.forEach((v) => {
+        if (v.path === 'communication.crewNames') {
+          if (JSON.stringify(crewNames) !== JSON.stringify(v.value)) {
+            setCrew(v.value);
+          }
           return;
         }
-        u.values.forEach((v) => {
-          if (v.path === 'communication.crewNames') {
-            setCrew(v.value);
+        const updatedSails = [...sails];
+        const matched = v.path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
+        if (matched) {
+          const newSail = {
+            ...v.value,
+            id: matched[1],
+          };
+          const idx = updatedSails.findIndex((s) => s.id === matched[1]);
+          if (idx === -1) {
+            updatedSails.push(newSail);
+            setSails(updatedSails);
             return;
           }
-          const updatedSails = [...sails];
-          const matched = v.path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
-          if (matched) {
-            const newSail = {
-              ...v.value,
-              id: matched[1],
-            };
-            const idx = updatedSails.findIndex((s) => s.id === matched[1]);
-            if (idx === -1) {
-              updatedSails.push(newSail);
-              setSails(updatedSails);
-              return;
-            }
-            if (JSON.stringify(newSail) === JSON.stringify(updatedSails[idx])) {
-              return;
-            }
-            updatedSails[idx] = newSail;
-            setSails(updatedSails);
+          if (JSON.stringify(newSail) === JSON.stringify(updatedSails[idx])) {
+            return;
           }
-        });
+          updatedSails[idx] = newSail;
+          setSails(updatedSails);
+        }
       });
-    };
+    });
+  }
+
+  useEffect(() => {
+    let ws;
+    fetch('/signalk/v1/api/vessels/self/communication/crewNames')
+      .then((r) => r.json(), () => [])
+      .then((crew) => {
+        if (JSON.stringify(crewNames) !== JSON.stringify(crew.value)) {
+          setCrew(crew.value);
+          return Promise.reject(new Error('Skip'));
+        }
+        return fetch('/plugins/sailsconfiguration/sails');
+      })
+      .then((r) => r.json(), () => [])
+      .then((sailSettings) => {
+        if (sails.length === 0 && sailSettings.length > 0) {
+          setSails(sailSettings);
+          return Promise.reject(new Error('Skip'));
+        }
+        return Promise.resolve();
+      })
+      .then(() => {
+        ws = props.adminUI.openWebsocket({ subscribe: 'none' });
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            context: 'vessels.self',
+            subscribe: paths.map((path) => ({
+              path,
+              period: 10000,
+            })),
+          }));
+        };
+        ws.onmessage = onMessage;
+      })
+      .catch(() => {});
     return () => {
+      if (!ws) {
+        return;
+      }
       ws.close();
     };
   }, [sails, crewNames]);
@@ -115,63 +144,63 @@ function Metadata(props) {
 
   return (
     <Row xs>
-      { editCrew ? <CrewEditor
-        crewNames={crewNames}
-        cancel={() => setEditCrew(false)}
-        save={saveCrew}
-        username={props.loginStatus.username}
+    { editCrew ? <CrewEditor
+      crewNames={crewNames}
+      cancel={() => setEditCrew(false)}
+      save={saveCrew}
+      username={props.loginStatus.username}
+      /> : null }
+    { editSails ? <SailEditor
+      sails={sails}
+      cancel={() => setEditSails(false)}
+      save={saveSails}
         /> : null }
-      { editSails ? <SailEditor
-        sails={sails}
-        cancel={() => setEditSails(false)}
-        save={saveSails}
-        /> : null }
-      <Col>
-        <List type="unstyled">
-          <ListInlineItem><b>Crew</b></ListInlineItem>
-          {crewNames.map((crewName) => (
-            <ListInlineItem
-              key={crewName}
-              onClick={() => setEditCrew(true)}
-            >{crewName}</ListInlineItem>
-          ))}
-          {!crewNames.length
-            && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
-          }
-        </List>
-      </Col>
-      <Col className="text-end text-right">
-        <List type="unstyled">
-          <ListInlineItem><b>Sails</b></ListInlineItem>
-          {sails.map((sail) => {
-            if (!sail.active) {
-              return '';
-            }
-            let reduced = '';
-            if (sail.reducedState && sail.reducedState.reefs) {
-              reduced = ` (${ordinal(sail.reducedState.reefs)} reef)`;
-            }
-            if (sail.reducedState && sail.reducedState.furledRatio) {
-              reduced = ` (${sail.reducedState.furledRatio * 100}% furled)`;
-            }
-            return (
-              <ListInlineItem
-                key={sail.id}
-                onClick={() => setEditSails(true)}
-              >
-                {sail.name}{reduced}
-              </ListInlineItem>
-            );
-          })}
-          {!sails.length
-            && <Button
-                onClick={() => setEditSails(true)}
-               >
-              Edit
-              </Button>
-          }
-        </List>
-      </Col>
+    <Col>
+    <List type="unstyled">
+    <ListInlineItem><b>Crew</b></ListInlineItem>
+    {crewNames.map((crewName) => (
+      <ListInlineItem
+      key={crewName}
+      onClick={() => setEditCrew(true)}
+      >{crewName}</ListInlineItem>
+    ))}
+    {!crewNames.length
+        && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
+    }
+    </List>
+    </Col>
+    <Col className="text-end text-right">
+    <List type="unstyled">
+    <ListInlineItem><b>Sails</b></ListInlineItem>
+    {sails.map((sail) => {
+      if (!sail.active) {
+        return '';
+      }
+      let reduced = '';
+      if (sail.reducedState && sail.reducedState.reefs) {
+        reduced = ` (${ordinal(sail.reducedState.reefs)} reef)`;
+      }
+      if (sail.reducedState && sail.reducedState.furledRatio) {
+        reduced = ` (${sail.reducedState.furledRatio * 100}% furled)`;
+      }
+      return (
+        <ListInlineItem
+        key={sail.id}
+        onClick={() => setEditSails(true)}
+        >
+        {sail.name}{reduced}
+        </ListInlineItem>
+      );
+    })}
+    {!sails.length
+        && <Button
+      onClick={() => setEditSails(true)}
+        >
+        Edit
+        </Button>
+    }
+    </List>
+    </Col>
     </Row>
   );
 }
