@@ -102,6 +102,10 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.4.0 (git main)
+  - User interface and logging for sail changes, powered by the [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin
+  - User interface and logging for crew changes
+  - Fix for logbook view when there is no wind data available
 * 0.3.0 (2023-02-22)
   - Map view now fetches vessel track using the Signal K History API, if available
   - Fixed engine name capture for automatic logs
