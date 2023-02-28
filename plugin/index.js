@@ -11,8 +11,7 @@ function parseJwt(token) {
   return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 }
 
-function sendCrewNames(app, plugin) {
-  const { configuration } = app.readPluginOptions();
+function sendDelta(app, plugin, time, path, value) {
   app.handleMessage(plugin.id, {
     context: `vessels.${app.selfId}`,
     updates: [
@@ -20,16 +19,20 @@ function sendCrewNames(app, plugin) {
         source: {
           label: plugin.id,
         },
-        timestamp: (new Date().toISOString()),
+        timestamp: time.toISOString(),
         values: [
           {
-            path: 'communication.crewNames',
-            value: configuration.crewNames,
+            path,
+            value,
           },
         ],
       },
     ],
   });
+}
+function sendCrewNames(app, plugin) {
+  const { configuration } = app.readPluginOptions();
+  sendDelta(app, plugin, new Date(), 'communication.crewNames', configuration.crewNames);
 }
 
 module.exports = (app) => {
@@ -57,7 +60,6 @@ module.exports = (app) => {
     'environment.outside.pressure',
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
-    'environment.water.swell.state',
     'propulsion.*.state',
     'propulsion.*.runTime',
     'sails.inventory.*',
@@ -232,6 +234,15 @@ module.exports = (app) => {
         data.observations = {
           ...req.body.observations,
         };
+        if (!Number.isNaN(Number(data.observations.seaState))) {
+          sendDelta(
+            app,
+            plugin,
+            new Date(data.datetime),
+            'environment.water.swell.state',
+            data.observations.seaState,
+          );
+        }
       }
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
