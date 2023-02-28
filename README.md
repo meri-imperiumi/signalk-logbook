@@ -95,7 +95,6 @@ Remove a single logbook entry, as identified by its datetime value.
 
 Some additional ideas for the future:
 
-* Entries written when reefing or changing the sail plan (requires [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin)
 * Enable creating additional rules for automated entries when certain things happen (for example, when turning on a watermaker).
 * We could ship easy systemd unit files for setting up backups to popular locations, like pushing to a git repo
 * One-time script for populating logbook from InfluxDB entries when starting to use the system
