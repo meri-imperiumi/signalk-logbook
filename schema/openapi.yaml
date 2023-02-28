@@ -246,6 +246,10 @@ components:
           maxLength: 2
           minLength: 2
           example: 10
+        crewNames:
+          type: array
+          items:
+            type: string
         end:
           type: boolean
           default: false

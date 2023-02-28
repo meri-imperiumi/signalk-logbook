@@ -74,5 +74,8 @@ module.exports = function stateToEntry(state, text, author = '') {
   if (state['communication.vhf.channel']) {
     data.vhf = state['communication.vhf.channel'];
   }
+  if (state['communication.crewNames']) {
+    data.crewNames = state['communication.crewNames'];
+  }
   return data;
 };
