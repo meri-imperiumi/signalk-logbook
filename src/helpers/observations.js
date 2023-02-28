@@ -22,7 +22,7 @@ export function getOktas() {
     '\u25D4', // No unicode for 3/8
     '\u25D1',
     '\u25D5',
+    '\u25D5', // No unicode for 7/8
     '\u2B24',
-    '\u2297',
   ];
 }
