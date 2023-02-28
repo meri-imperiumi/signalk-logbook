@@ -62,6 +62,7 @@ module.exports = (app) => {
     'propulsion.*.runTime',
     'sails.inventory.*',
     'steering.autopilot.state',
+    'communication.crewNames',
     'communication.vhf.channel',
   ];
 

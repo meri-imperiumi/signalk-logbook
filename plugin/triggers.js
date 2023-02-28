@@ -123,6 +123,29 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       }
       break;
     }
+    case 'communication.crewNames': {
+      if (!oldState[path] || !oldState[path].length) {
+        return Promise.resolve();
+      }
+      if (!value || !value.length) {
+        return Promise.resolve();
+      }
+      if (JSON.stringify(oldState[path]) === JSON.stringify(path)) {
+        return Promise.resolve();
+      }
+      const added = value.filter((v) => oldState[path].indexOf(v) === -1);
+      const removed = oldState[path].filter((v) => value.indexOf(v) === -1);
+      if (added.length && removed.length) {
+        return appendLog(`Crew changed to ${value.join(', ')}`);
+      }
+      if (added.length) {
+        return appendLog(`${added.join(', ')} joined the crew`);
+      }
+      if (removed.length) {
+        return appendLog(`${removed.join(', ')} left the crew`);
+      }
+      break;
+    }
     default: {
       break;
     }

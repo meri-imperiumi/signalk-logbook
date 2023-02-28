@@ -14,6 +14,10 @@ function EntryDetails(props) {
         { entry.category
           && <Badge color='secondary' pill>#{entry.category}</Badge>
         }
+        {' '}
+        { entry.end
+          && <Badge color='secondary' pill>#trip-end</Badge>
+        }
       </p>
       <Table borderless striped size="sm">
         <tbody>
