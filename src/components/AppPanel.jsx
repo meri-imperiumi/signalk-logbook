@@ -172,7 +172,10 @@ function AppPanel(props) {
               </NavLink>
             </NavItem>
             <NavItem>
-              <NavLink className={activeTab === 'book' ? 'active' : ''} onClick={() => setActiveTab('book')}>
+              <NavLink className={activeTab === 'book' ? 'active' : ''} onClick={() => {
+                setActiveTab('book');
+                props.adminUI.hideSideBar();
+              }}>
                 Logbook
               </NavLink>
             </NavItem>
