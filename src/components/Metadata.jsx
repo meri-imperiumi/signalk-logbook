@@ -7,10 +7,12 @@ import {
   Button,
 } from 'reactstrap';
 import ordinal from 'ordinal';
+import CrewEditor from './CrewEditor.jsx';
 import SailEditor from './SailEditor.jsx';
 
 function Metadata(props) {
   const [editSails, setEditSails] = useState(false);
+  const [editCrew, setEditCrew] = useState(false);
   const [crewNames, setCrew] = useState([]);
   const [sails, setSails] = useState([]);
   const paths = [
@@ -91,9 +93,30 @@ function Metadata(props) {
         }, 1000);
       });
   }
+  function saveCrew(updatedCrew) {
+    fetch('/signalk/v1/api/vessels/self/communication/crewNames', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        value: updatedCrew,
+      }),
+    })
+      .then(() => {
+        setEditCrew(false);
+        setCrew(updatedCrew);
+      });
+  }
 
   return (
     <Row xs>
+      { editCrew ? <CrewEditor
+        crewNames={crewNames}
+        cancel={() => setEditCrew(false)}
+        save={saveCrew}
+        username={props.loginStatus.username}
+        /> : null }
       { editSails ? <SailEditor
         sails={sails}
         cancel={() => setEditSails(false)}
@@ -103,10 +126,13 @@ function Metadata(props) {
         <List type="unstyled">
           <ListInlineItem><b>Crew</b></ListInlineItem>
           {crewNames.map((crewName) => (
-            <ListInlineItem key={crewName}>{crewName}</ListInlineItem>
+            <ListInlineItem
+              key={crewName}
+              onClick={() => setEditCrew(true)}
+            >{crewName}</ListInlineItem>
           ))}
           {!crewNames.length
-            && <ListInlineItem>No crew set</ListInlineItem>
+            && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
           }
         </List>
       </Col>
