@@ -99,6 +99,7 @@ function Metadata(props) {
       { editCrew ? <CrewEditor
         crewNames={crewNames}
         cancel={() => setEditCrew(false)}
+        username={props.loginStatus.username}
         /> : null }
       { editSails ? <SailEditor
         sails={sails}

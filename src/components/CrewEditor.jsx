@@ -15,7 +15,7 @@ import {
 
 function CrewEditor(props) {
   const [crewNames, updateCrew] = useState(props.crewNames);
-  const [addCrew, updateAddCrew] = useState('');
+  const [addCrew, updateAddCrew] = useState(crewNames.includes(props.username) ? '' : props.username);
   function handleAddChange(e) {
     const { value } = e.target;
     updateAddCrew(value);
