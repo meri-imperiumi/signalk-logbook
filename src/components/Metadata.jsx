@@ -106,6 +106,10 @@ function Metadata(props) {
       .then(() => {
         setEditCrew(false);
         setCrew(updatedCrew);
+        setTimeout(() => {
+          // We want to reload with a slight delay
+          props.setNeedsUpdate(true);
+        }, 1000);
       });
   }
 
