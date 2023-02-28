@@ -126,7 +126,10 @@ function Metadata(props) {
         <List type="unstyled">
           <ListInlineItem><b>Crew</b></ListInlineItem>
           {crewNames.map((crewName) => (
-            <ListInlineItem key={crewName}>{crewName}</ListInlineItem>
+            <ListInlineItem
+              key={crewName}
+              onClick={() => setEditCrew(true)}
+            >{crewName}</ListInlineItem>
           ))}
           {!crewNames.length
             && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
