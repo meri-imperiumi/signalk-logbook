@@ -52,8 +52,10 @@ function EntryDetails(props) {
           { entry.observations
             && !Number.isNaN(Number(entry.observations.seaState))
             && <tr>
-              <th>Sea state</th>
+              <th>Sea</th>
               <td>
+                {entry.observations.seaState + 1}
+                {': '}
                 {seaStates[entry.observations.seaState + 1]}
               </td>
             </tr>
@@ -61,7 +63,7 @@ function EntryDetails(props) {
           { entry.observations
             && !Number.isNaN(Number(entry.observations.cloudCoverage))
             && <tr>
-              <th>Cloud coverage</th>
+              <th>Clouds</th>
               <td>
                 {oktas[entry.observations.cloudCoverage]}
                 {' '}
