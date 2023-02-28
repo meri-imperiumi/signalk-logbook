@@ -136,6 +136,24 @@ components:
         type: string
         format: date
         example: '2023-02-22'
+    Observations:
+      type: object
+      additionalProperties: false
+      properties:
+        seaState:
+          description: Sea state in WMO sea state code
+          type: integer
+          min: 0
+          max: 9
+        cloudCoverage:
+          description: Cloud coverage in oktas
+          type: integer
+          min: 0
+          max: 8
+        visibility:
+          description: Visibility in meters
+          type: integer
+          min: 0
     NewEntry:
       type: object
       additionalProperties: false
@@ -149,6 +167,8 @@ components:
           type: integer
           minimum: 0
           maximum: 15
+        observations:
+          $ref: '#/components/schemas/Observations'
     Entry:
       type: object
       additionalProperties: false
@@ -234,6 +254,8 @@ components:
               minimum: 0
               maximum: 360
               example: 89.5
+        observations:
+          $ref: '#/components/schemas/Observations'
         engine:
           type: object
           additionalProperties: false

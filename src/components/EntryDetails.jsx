@@ -3,9 +3,12 @@ import {
   Table,
   Badge,
 } from 'reactstrap';
+import { getSeaStates, getOktas } from '../helpers/observations';
 
 function EntryDetails(props) {
   const { entry } = props;
+  const seaStates = getSeaStates();
+  const oktas = getOktas();
   return (
     <div>
       <p>
@@ -43,6 +46,28 @@ function EntryDetails(props) {
               <td>
                 {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
                 {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
+              </td>
+            </tr>
+          }
+          { entry.observations
+            && !Number.isNaN(Number(entry.observations.seaState))
+            && <tr>
+              <th>Sea</th>
+              <td>
+                {entry.observations.seaState + 1}
+                {': '}
+                {seaStates[entry.observations.seaState + 1]}
+              </td>
+            </tr>
+          }
+          { entry.observations
+            && !Number.isNaN(Number(entry.observations.cloudCoverage))
+            && <tr>
+              <th>Clouds</th>
+              <td>
+                {oktas[entry.observations.cloudCoverage]}
+                {' '}
+                {entry.observations.cloudCoverage}/8
               </td>
             </tr>
           }

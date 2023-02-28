@@ -58,7 +58,22 @@ module.exports = function stateToEntry(state, text, author = '') {
     data.wind.direction = rad2deg(state['environment.wind.directionTrue']);
   }
   if (!Number.isNaN(Number(state['environment.water.swell.state']))) {
-    data.sea = state['environment.water.swell.state'];
+    if (!data.observations) {
+      data.observations = {};
+    }
+    data.observations.seaState = state['environment.water.swell.state'];
+  }
+  if (!Number.isNaN(Number(state['environment.outside.cloudCoverage']))) {
+    if (!data.observations) {
+      data.observations = {};
+    }
+    data.observations.cloudCoverage = state['environment.outside.cloudCoverage'];
+  }
+  if (!Number.isNaN(Number(state['environment.outside.visibility']))) {
+    if (!data.observations) {
+      data.observations = {};
+    }
+    data.observations.visibility = state['environment.outside.visibility'];
   }
   Object.keys(state).forEach((key) => {
     if (!key.match(/propulsion\.[A-Za-z0-9]+\.runTime/)) {
