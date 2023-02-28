@@ -60,6 +60,7 @@ module.exports = (app) => {
     'environment.outside.pressure',
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
+    'environment.water.swell.state',
     'propulsion.*.state',
     'propulsion.*.runTime',
     'sails.inventory.*',
@@ -114,6 +115,10 @@ module.exports = (app) => {
               app.setPluginError(`Failed to store entry: ${err.message}`);
             })
             .then(() => {
+              if (u.$source === 'signalk-logbook.XX' && v.path !== 'communication.crewNames') {
+                // Don't store our reports into state
+                return;
+              }
               // Copy new value into state
               state[v.path] = v.value;
             })), Promise.resolve());
