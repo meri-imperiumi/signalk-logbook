@@ -40,13 +40,13 @@ function CrewEditor(props) {
         <ListGroup flush>
           {crewNames.map((name, idx) => (
             <ListGroupItem key={name}>
-              {name}
-              {' '}
               <Button onClick={() => {
                 const crew = [...crewNames];
                 crew.splice(idx, 1);
                 updateCrew(crew);
               }}>X</Button>
+              {' '}
+              {name}
             </ListGroupItem>
           ))}
         </ListGroup>
