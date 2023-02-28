@@ -11,7 +11,8 @@ function parseJwt(token) {
   return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 }
 
-function sendCrewNames(app, plugin, crewNames) {
+function sendCrewNames(app, plugin) {
+  const { configuration } = app.readPluginOptions();
   app.handleMessage(plugin.id, {
     context: `vessels.${app.selfId}`,
     updates: [
@@ -23,7 +24,7 @@ function sendCrewNames(app, plugin, crewNames) {
         values: [
           {
             path: 'communication.crewNames',
-            value: crewNames,
+            value: configuration.crewNames,
           },
         ],
       },
@@ -33,7 +34,6 @@ function sendCrewNames(app, plugin, crewNames) {
 
 module.exports = (app) => {
   const plugin = {};
-  let crewNames = [];
   let unsubscribes = [];
   let interval;
 
@@ -129,7 +129,7 @@ module.exports = (app) => {
           .catch((err) => {
             app.setPluginError(`Failed to store entry: ${err.message}`);
           });
-        sendCrewNames(app, plugin, crewNames);
+        sendCrewNames(app, plugin);
       }
       buffer.enq(state);
       // We can keep a clone of the previous values
@@ -139,7 +139,7 @@ module.exports = (app) => {
       };
     }, 60000);
 
-    app.registerPutHandler('vessels.self', 'communication.crewNames', (ctx, path, value) => {
+    app.registerPutHandler('vessels.self', 'communication.crewNames', (ctx, path, value, cb) => {
       if (!Array.isArray(value)) {
         return {
           state: 'COMPLETED',
@@ -155,13 +155,28 @@ module.exports = (app) => {
           message: 'Each crewName must be a string',
         };
       }
-      crewNames = value;
-      sendCrewNames(app, plugin, crewNames);
+      const { configuration } = app.readPluginOptions();
+      configuration.crewNames = value;
+      app.savePluginOptions(configuration, (err) => {
+        if (err) {
+          cb({
+            state: 'COMPLETED',
+            statusCode: 500,
+            message: err.message,
+          });
+          return;
+        }
+        sendCrewNames(app, plugin);
+        cb({
+          state: 'COMPLETED',
+          statusCode: 200,
+        });
+      });
       return {
-        state: 'COMPLETED',
-        statusCode: 200,
+        state: 'PENDING',
       };
     });
+    sendCrewNames(app, plugin);
 
     setStatus('Waiting for updates');
   };
@@ -273,7 +288,19 @@ module.exports = (app) => {
     clearInterval(interval);
   };
 
-  plugin.schema = {};
+  plugin.schema = {
+    type: 'object',
+    properties: {
+      crewNames: {
+        type: 'array',
+        default: [],
+        title: 'Crew list',
+        items: {
+          type: 'string',
+        },
+      },
+    },
+  };
 
   plugin.getOpenApi = () => openAPI;
 
