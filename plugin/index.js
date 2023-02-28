@@ -228,6 +228,11 @@ module.exports = (app) => {
       } else {
         data.category = 'navigation';
       }
+      if (req.body.observations) {
+        data.observations = {
+          ...req.body.observations,
+        };
+      }
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {
