@@ -75,7 +75,7 @@ function CrewEditor(props) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button color="primary" onClick={props.cancel}>
+        <Button color="primary" onClick={() => props.save(crewNames)}>
           Save
         </Button>{' '}
         <Button color="secondary" onClick={props.cancel}>

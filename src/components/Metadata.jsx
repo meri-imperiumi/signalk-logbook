@@ -93,12 +93,28 @@ function Metadata(props) {
         }, 1000);
       });
   }
+  function saveCrew(updatedCrew) {
+    fetch('/signalk/v1/api/vessels/self/communication/crewNames', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        value: updatedCrew,
+      }),
+    })
+      .then(() => {
+        setEditCrew(false);
+        setCrew(updatedCrew);
+      });
+  }
 
   return (
     <Row xs>
       { editCrew ? <CrewEditor
         crewNames={crewNames}
         cancel={() => setEditCrew(false)}
+        save={saveCrew}
         username={props.loginStatus.username}
         /> : null }
       { editSails ? <SailEditor
