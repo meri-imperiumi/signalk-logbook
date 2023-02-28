@@ -57,19 +57,30 @@ function EntryEditor(props) {
     props.delete(entry);
   }
   const seaStates = getSeaStates();
+  const agoOptions = [
+    0,
+    5,
+    10,
+    15,
+  ];
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
-        Log entry {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })} by {entry.author || 'auto'}
+        { Number.isNaN(Number(entry.ago))
+          && `Log entry ${entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })} by ${entry.author || 'auto'}`}
+        { !Number.isNaN(Number(entry.ago))
+          && 'New entry'}
       </ModalHeader>
       <ModalBody>
-        <Row>
+        { Number.isNaN(Number(entry.ago))
+          && <Row>
           <Col className="text-end text-right">
             <Button color="danger" onClick={deleteEntry}>
               Delete
             </Button>
           </Col>
         </Row>
+        }
         <Form>
           <FormGroup>
             <Label for="text">
@@ -84,6 +95,24 @@ function EntryEditor(props) {
               onChange={handleChange}
             />
           </FormGroup>
+          { !Number.isNaN(Number(entry.ago))
+            && <FormGroup>
+            <Label for="ago">
+              This happened
+            </Label>
+            <Input
+              id="ago"
+              name="ago"
+              type="select"
+              value={entry.text}
+              onChange={handleChange}
+            >
+              {agoOptions.map((ago) => (
+              <option key={ago} value={ago}>{ago} minutes ago</option>
+              ))}
+            </Input>
+          </FormGroup>
+          }
           { entry.category === 'radio'
             && <FormGroup>
                 <Label for="vhf">

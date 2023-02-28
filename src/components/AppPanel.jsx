@@ -14,7 +14,6 @@ import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
-import AddEntry from './AddEntry.jsx';
 
 const categories = [
   'navigation',
@@ -158,7 +157,7 @@ function AppPanel(props) {
           cancel={() => setViewEntry(null)}
           categories={categories}
           /> : null }
-        { addEntry ? <AddEntry
+        { addEntry ? <EntryEditor
           entry={addEntry}
           cancel={() => setAddEntry(null)}
           save={saveAddEntry}
@@ -187,10 +186,10 @@ function AppPanel(props) {
           </Nav>
           <TabContent activeTab={activeTab}>
             <TabPane tabId="timeline">
-              { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
+              { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0 })} /> : null }
             </TabPane>
             <TabPane tabId="book">
-              { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({})} /> : null }
+              { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0 })} /> : null }
             </TabPane>
             <TabPane tabId="map">
               { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }
