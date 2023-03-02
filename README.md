@@ -22,6 +22,9 @@ Traditional logbook view:
 Log entries on a map:
 ![Map view](https://user-images.githubusercontent.com/3346/219135937-0e1b75cf-13ed-4f79-9ba0-0d2b6fee7747.jpeg)
 
+Registering sail changes:
+![Sails editor](https://user-images.githubusercontent.com/3346/222392061-6760eb71-93a8-4c99-b47b-a9f2fd7b1c54.png)
+
 ## Data storage and format
 
 This logbook app writes the logs to disk using [YAML format](https://en.wikipedia.org/wiki/YAML) which combines machine readability with at least some degree of human readability.
@@ -58,38 +61,7 @@ It is a good idea to set up automatic backups of these files off the vessel, for
 
 ## API
 
-Other applications can also use the logbook API for retrieving and writing log entries.
-
-### `GET plugins/signalk-logbook/logs`
-
-Returns a list of dates we have logbook entries for.
-
-### `GET plugins/signalk-logbook/logs/YYYY-MM-DD`
-
-Returns all logbook entries for the given date.
-
-### `POST plugins/signalk-logbook/logs`
-
-Add a log entry by sending a JSON object with the followin keys:
-
-* `text`: Log entry text
-* `ago`: How many minutes ago the log entry is for, 0-15
-
-All other logbook data for that period is recorded automatically.
-
-TODO: How about recording other non-automated data like crew/skipper changes, sea state, ...?
-
-### `GET plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
-
-Return a single logbook entry, as identified by its datetime value.
-
-### `PUT plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
-
-Update a single logbook entry, as identified by its datetime value.
-
-### `DELETE plugins/signalk-logbook/logs/YYYY-MM-DD/YYYY-MM-DDThh:mm:ssZ`
-
-Remove a single logbook entry, as identified by its datetime value.
+Other applications can also use the [logbook API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/meri-imperiumi/signalk-logbook/main/schema/openapi.yaml) for retrieving and writing log entries. This can be useful for automations with [Node-Red](https://nodered.org) or [NoFlo](https://noflojs.org) etc.
 
 ## Ideas
 
