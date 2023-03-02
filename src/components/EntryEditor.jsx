@@ -21,7 +21,19 @@ import {
 import { getSeaStates } from '../helpers/observations';
 
 function EntryEditor(props) {
-  const [entry, updateEntry] = useState(props.entry);
+  const [entry, updateEntry] = useState({
+    ...props.entry,
+    position: props.entry.position || {},
+  });
+
+  const fixTypes = [
+    'GPS',
+    'GNSS',
+    'Visual',
+    'Radar',
+    'Celestial',
+    'DR',
+  ];
 
   // Default: should observations be open?
   const [open, setOpen] = useState(entry.observations || !Number.isNaN(Number(entry.ago)) ? 'observations' : '');
@@ -38,30 +50,42 @@ function EntryEditor(props) {
     const updated = {
       ...entry,
     };
-    if (name === 'seaState') {
-      if (!updated.observations) {
-        updated.observations = {};
+    switch (name) {
+      case 'seaState':
+      case 'cloudCoverage': {
+        if (!updated.observations) {
+          updated.observations = {};
+        } else {
+          updated.observations = {
+            ...updated.observations,
+          };
+        }
+        const val = parseInt(value, 10);
+        if (val === -1) {
+          // No observation
+          delete updated.observations[name];
+        } else {
+          updated.observations[name] = val;
+        }
+        break;
       }
-      const val = parseInt(value, 10);
-      if (val === -1) {
-        // No observation
-        delete updated.observations[name];
-      } else {
-        updated.observations[name] = val;
+      case 'latitude':
+      case 'longitude':
+      case 'source': {
+        if (!updated.position) {
+          updated.position = {};
+        } else {
+          updated.position = {
+            ...updated.position,
+          };
+        }
+        const val = name === 'source' ? value : Number(value);
+        updated.position[name] = val;
+        break;
       }
-    } else if (name === 'cloudCoverage') {
-      if (!updated.observations) {
-        updated.observations = {};
+      default: {
+        updated[name] = value;
       }
-      const val = parseInt(value, 10);
-      if (val === -1) {
-        // No observation
-        delete updated.observations[name];
-      } else {
-        updated.observations[name] = val;
-      }
-    } else {
-      updated[name] = value;
     }
     updateEntry(updated);
   }
@@ -198,6 +222,59 @@ function EntryEditor(props) {
                         && entry.observations.cloudCoverage > -1 ? `${entry.observations.cloudCoverage}/8` : 'n/a'}
                     </InputGroupText>
                   </InputGroup>
+                </FormGroup>
+              </AccordionBody>
+            </AccordionItem>
+            <AccordionItem>
+              <AccordionHeader targetId="position">Position</AccordionHeader>
+              <AccordionBody accordionId="position">
+                <FormGroup>
+                  <Label for="latitude">
+                    Latitude
+                  </Label>
+                  <Input
+                    id="latitude"
+                    name="latitude"
+                    type="number"
+                    placeholder="52.51117"
+                    max="90"
+                    min="-90"
+                    step="0.00001"
+                    value={entry.position.latitude}
+                    onChange={handleChange}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="longitude">
+                    Longitude
+                  </Label>
+                  <Input
+                    id="longitude"
+                    name="longitude"
+                    type="number"
+                    placeholder="13.19329"
+                    max="180"
+                    min="-180"
+                    step="0.00001"
+                    value={entry.position.longitude}
+                    onChange={handleChange}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="source">
+                    Fix type
+                  </Label>
+                  <Input
+                    id="source"
+                    name="source"
+                    type="select"
+                    value={entry.position.source}
+                    onChange={handleChange}
+                  >
+                    {fixTypes.map((fix) => (
+                    <option key={fix} value={fix}>{fix}</option>
+                    ))}
+                  </Input>
                 </FormGroup>
               </AccordionBody>
             </AccordionItem>
