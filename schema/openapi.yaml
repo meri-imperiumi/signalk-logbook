@@ -143,17 +143,17 @@ components:
         seaState:
           description: Sea state in WMO sea state code
           type: integer
-          min: 0
-          max: 9
+          minimum: 0
+          maximum: 9
         cloudCoverage:
           description: Cloud coverage in oktas
           type: integer
-          min: 0
-          max: 8
+          minimum: 0
+          maximum: 8
         visibility:
           description: Visibility in meters
           type: integer
-          min: 0
+          minimum: 0
     NewEntry:
       type: object
       additionalProperties: false
