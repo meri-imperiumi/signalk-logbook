@@ -23,7 +23,6 @@ import { getSeaStates } from '../helpers/observations';
 function EntryEditor(props) {
   const [entry, updateEntry] = useState({
     ...props.entry,
-    position: props.entry.position || {},
   });
 
   const fixTypes = [
@@ -240,7 +239,7 @@ function EntryEditor(props) {
                     max="90"
                     min="-90"
                     step="0.00001"
-                    value={entry.position.latitude}
+                    value={entry.position ? entry.position.latitude : ''}
                     onChange={handleChange}
                   />
                 </FormGroup>
@@ -256,7 +255,7 @@ function EntryEditor(props) {
                     max="180"
                     min="-180"
                     step="0.00001"
-                    value={entry.position.longitude}
+                    value={entry.position ? entry.position.longitude : ''}
                     onChange={handleChange}
                   />
                 </FormGroup>
@@ -268,7 +267,7 @@ function EntryEditor(props) {
                     id="source"
                     name="source"
                     type="select"
-                    value={entry.position.source}
+                    value={entry.position ? entry.position.source : ''}
                     onChange={handleChange}
                   >
                     {fixTypes.map((fix) => (
