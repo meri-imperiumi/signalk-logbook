@@ -9,7 +9,7 @@ import { getOktas } from '../helpers/observations';
 function Logbook(props) {
   const entries = props.entries.map((entry) => ({
     ...entry,
-    point: new Point(entry.position.latitude, entry.position.longitude),
+    point: entry.position ? new Point(entry.position.latitude, entry.position.longitude) : null,
     date: new Date(entry.datetime),
   }));
   const oktas = getOktas();
@@ -46,8 +46,8 @@ function Logbook(props) {
             <td>{entry.barometer}</td>
             <td>{entry.observations && !Number.isNaN(Number(entry.observations.seaState)) ? entry.observations.seaState : ''}</td>
             <td>{entry.observations && !Number.isNaN(Number(entry.observations.cloudCoverage)) ? oktas[entry.observations.cloudCoverage] : ''}</td>
-            <td>{entry.point.toString()}</td>
-            <td>{entry.position.source || 'GPS'}</td>
+            <td>{entry.point ? entry.point.toString() : 'n/a'}</td>
+            <td>{entry.position ? entry.position.source || 'GPS' : ''}</td>
             <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}NM` : ''}</td>
             <td>{entry.engine && !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''}</td>
             <td>{entry.author || 'auto'}</td>

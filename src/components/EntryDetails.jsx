@@ -24,10 +24,12 @@ function EntryDetails(props) {
       </p>
       <Table borderless striped size="sm">
         <tbody>
-          <tr>
-            <th>Position</th>
-            <td>{entry.point.toString()} {entry.position.source}</td>
-          </tr>
+          { entry.point
+            && <tr>
+              <th>Position</th>
+              <td>{entry.point.toString()} {entry.position.source || 'GPS'}</td>
+            </tr>
+          }
           { !Number.isNaN(Number(entry.speed.sog))
             && <tr>
             <th>Speed</th>

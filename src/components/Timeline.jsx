@@ -14,7 +14,7 @@ import EntryDetails from './EntryDetails.jsx';
 function Timeline(props) {
   const entries = props.entries.map((entry) => ({
     ...entry,
-    point: new Point(entry.position.latitude, entry.position.longitude),
+    point: entry.position ? new Point(entry.position.latitude, entry.position.longitude) : null,
     date: new Date(entry.datetime),
   }));
   entries.reverse();
