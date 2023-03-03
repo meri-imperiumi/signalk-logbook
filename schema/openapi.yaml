@@ -151,9 +151,10 @@ components:
           minimum: 0
           maximum: 8
         visibility:
-          description: Visibility in meters
+          description: Visibility in fog scale
           type: integer
           minimum: 0
+          maximum: 9
     NewEntry:
       type: object
       additionalProperties: false

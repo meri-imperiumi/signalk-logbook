@@ -3,11 +3,16 @@ import {
   Table,
   Badge,
 } from 'reactstrap';
-import { getSeaStates, getOktas } from '../helpers/observations';
+import {
+  getSeaStates,
+  getOktas,
+  getVisibility,
+} from '../helpers/observations';
 
 function EntryDetails(props) {
   const { entry } = props;
   const seaStates = getSeaStates();
+  const visibility = getVisibility();
   const oktas = getOktas();
   return (
     <div>
@@ -70,6 +75,17 @@ function EntryDetails(props) {
                 {oktas[entry.observations.cloudCoverage]}
                 {' '}
                 {entry.observations.cloudCoverage}/8
+              </td>
+            </tr>
+          }
+          { entry.observations
+            && !Number.isNaN(Number(entry.observations.visibility))
+            && <tr>
+              <th>Visibility</th>
+              <td>
+                {entry.observations.visibility + 1}
+                {': '}
+                {visibility[entry.observations.visibility + 1]}
               </td>
             </tr>
           }
