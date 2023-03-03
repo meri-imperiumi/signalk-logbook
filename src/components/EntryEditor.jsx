@@ -18,7 +18,7 @@ import {
   AccordionHeader,
   AccordionItem,
 } from 'reactstrap';
-import { getSeaStates } from '../helpers/observations';
+import { getSeaStates, getVisibility } from '../helpers/observations';
 
 function EntryEditor(props) {
   const [entry, updateEntry] = useState({
@@ -51,7 +51,8 @@ function EntryEditor(props) {
     };
     switch (name) {
       case 'seaState':
-      case 'cloudCoverage': {
+      case 'cloudCoverage':
+      case 'visibility': {
         if (!updated.observations) {
           updated.observations = {};
         } else {
@@ -95,6 +96,7 @@ function EntryEditor(props) {
     props.delete(entry);
   }
   const seaStates = getSeaStates();
+  const visibility = getVisibility();
   const agoOptions = [
     0,
     5,
@@ -221,6 +223,22 @@ function EntryEditor(props) {
                         && entry.observations.cloudCoverage > -1 ? `${entry.observations.cloudCoverage}/8` : 'n/a'}
                     </InputGroupText>
                   </InputGroup>
+                </FormGroup>
+                <FormGroup>
+                  <Label for="visibility">
+                    Visibility
+                  </Label>
+                  <Input
+                    id="visibility"
+                    name="visibility"
+                    type="select"
+                    value={entry.observations ? entry.observations.visibility : -1}
+                    onChange={handleChange}
+                  >
+                    {visibility.map((description, idx) => (
+                    <option key={idx} value={idx - 1}>{description}</option>
+                    ))}
+                  </Input>
                 </FormGroup>
               </AccordionBody>
             </AccordionItem>

@@ -26,3 +26,19 @@ export function getOktas() {
     '\u2B24',
   ];
 }
+
+export function getVisibility() {
+  return [
+    '',
+    'Dense fog (<45m)',
+    'Thick fog (<180m)',
+    'Fog (<360m)',
+    'Moderate fog (<0.5NM)',
+    'Thin fog (<1NM)',
+    'Poor visibility (<2NM)',
+    'Moderate visibility (<5NM)',
+    'Good visibility (<10NM)',
+    'Very good visibility (<30NM)',
+    'Excellent visibility (>30NM)',
+  ];
+}
