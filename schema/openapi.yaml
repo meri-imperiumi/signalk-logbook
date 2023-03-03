@@ -154,7 +154,7 @@ components:
           description: Visibility in fog scale
           type: integer
           minimum: 0
-          minimum: 9
+          maximum: 9
     NewEntry:
       type: object
       additionalProperties: false
