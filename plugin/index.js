@@ -249,6 +249,12 @@ module.exports = (app) => {
           );
         }
       }
+      if (req.body.position) {
+        data.position = {
+          ...req.body.position,
+        };
+        // TODO: Send delta on manually entered position?
+      }
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {

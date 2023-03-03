@@ -18,7 +18,8 @@ function calculateBounds(points) {
 }
 
 function Map(props) {
-  const entries = props.entries.map((entry) => ({
+  // For map we only care about entries with a position
+  const entries = props.entries.filter((e) => e.position).map((entry) => ({
     ...entry,
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
