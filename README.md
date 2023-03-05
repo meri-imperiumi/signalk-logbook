@@ -73,10 +73,11 @@ Some additional ideas for the future:
 
 ## Changes
 
-* 0.4.0 (git main)
+* 0.4.0 (2023-03-05)
   - User interface and logging for sail changes, powered by the [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin
   - User interface and logging for crew changes
-  - User interface for recording weather observations (sea state & cloud coverage)
+  - User interface for recording weather observations (sea state, cloud coverage, visibility)
+  - User interface for recording manual fixes when using celestial navigation etc
   - Fix for logbook view when there is no wind data available
 * 0.3.0 (2023-02-22)
   - Map view now fetches vessel track using the Signal K History API, if available
