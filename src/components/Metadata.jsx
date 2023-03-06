@@ -19,6 +19,7 @@ function Metadata(props) {
     'communication.crewNames',
     'sails.inventory.*',
   ];
+  const activeSails = sails.filter((s) => s.active);
 
   function onMessage(m) {
     const delta = JSON.parse(m.data);
@@ -172,10 +173,7 @@ function Metadata(props) {
     <Col className="text-end text-right">
     <List type="unstyled">
     <ListInlineItem><b>Sails</b></ListInlineItem>
-    {sails.map((sail) => {
-      if (!sail.active) {
-        return '';
-      }
+    {activeSails.map((sail) => {
       let reduced = '';
       if (sail.reducedState && sail.reducedState.reefs) {
         reduced = ` (${ordinal(sail.reducedState.reefs)} reef)`;
@@ -192,7 +190,7 @@ function Metadata(props) {
         </ListInlineItem>
       );
     })}
-    {!sails.length
+    {!activeSails.length
         && <Button
       onClick={() => setEditSails(true)}
         >
