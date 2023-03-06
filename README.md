@@ -73,6 +73,9 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.4.1 (2023-03-06)
+  - Fixed issue when plugin has no configuration
+  - Enabled _Edit_ button for sails editor when no sails are set as active
 * 0.4.0 (2023-03-05)
   - User interface and logging for sail changes, powered by the [sailsconfiguration](https://github.com/SignalK/sailsconfiguration) plugin
   - User interface and logging for crew changes
