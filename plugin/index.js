@@ -32,7 +32,10 @@ function sendDelta(app, plugin, time, path, value) {
 }
 function sendCrewNames(app, plugin) {
   const { configuration } = app.readPluginOptions();
-  sendDelta(app, plugin, new Date(), 'communication.crewNames', configuration.crewNames);
+  if (!configuration) {
+    return;
+  }
+  sendDelta(app, plugin, new Date(), 'communication.crewNames', configuration.crewNames || []);
 }
 
 module.exports = (app) => {
@@ -163,7 +166,10 @@ module.exports = (app) => {
           message: 'Each crewName must be a string',
         };
       }
-      const { configuration } = app.readPluginOptions();
+      let { configuration } = app.readPluginOptions();
+      if (!configuration) {
+        configuration = {};
+      }
       configuration.crewNames = value;
       app.savePluginOptions(configuration, (err) => {
         if (err) {
