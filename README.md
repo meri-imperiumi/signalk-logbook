@@ -73,6 +73,8 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.4.2 (2023-03-08)
+  - Fixed issue when there is no recorded speed in a log entry
 * 0.4.1 (2023-03-06)
   - Fixed issue when plugin has no configuration
   - Enabled _Edit_ button for sails editor when no sails are set as active
