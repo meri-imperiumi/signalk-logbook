@@ -35,7 +35,8 @@ function EntryDetails(props) {
               <td>{entry.point.toString()} {entry.position.source || 'GPS'}</td>
             </tr>
           }
-          { !Number.isNaN(Number(entry.speed.sog))
+          { entry.speed
+            && !Number.isNaN(Number(entry.speed.sog))
             && <tr>
             <th>Speed</th>
             <td>{entry.speed.sog}kt</td>

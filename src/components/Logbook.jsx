@@ -38,7 +38,7 @@ function Logbook(props) {
           <tr key={entry.datetime} onClick={() => props.editEntry(entry)}>
             <td>{entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}</td>
             <td>{!Number.isNaN(Number(entry.heading)) ? `${entry.heading}°` : ''}</td>
-            <td>{entry.speed.sog}kt</td>
+            <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
             <td>
               {entry.wind && !Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
               {entry.wind && !Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
