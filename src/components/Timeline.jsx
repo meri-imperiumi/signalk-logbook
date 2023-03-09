@@ -29,7 +29,7 @@ function Timeline(props) {
                 {entry.author || 'auto'}
               </Col>
               <Col className="text-end text-right">
-                {entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })}
+                {entry.date.toLocaleString('en-GB',{timeZone: props.displayTimeZone})}
               </Col>
             </Row>
           </CardHeader>

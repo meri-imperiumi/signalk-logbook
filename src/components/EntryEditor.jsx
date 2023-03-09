@@ -83,10 +83,6 @@ function EntryEditor(props) {
         updated.position[name] = val;
         break;
       }
-      case 'ago': {
-        updated[name] = parseInt(value, 10);
-        break;
-      }
       default: {
         updated[name] = value;
       }
@@ -111,7 +107,7 @@ function EntryEditor(props) {
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
         { Number.isNaN(Number(entry.ago))
-          && `Log entry ${entry.date.toLocaleString('en-GB', { timeZone: 'UTC' })} by ${entry.author || 'auto'}`}
+          && `Log entry ${entry.date.toLocaleString('en-GB', {timeZone: props.displayTimeZone})} by ${entry.author || 'auto'}`}
         { !Number.isNaN(Number(entry.ago))
           && 'New entry'}
       </ModalHeader>
@@ -187,121 +183,119 @@ function EntryEditor(props) {
                 />
               </FormGroup>
           }
-          { entry.category === 'navigation'
-            && <Accordion open={open} toggle={toggle}>
-              <AccordionItem>
-                <AccordionHeader targetId="observations">Observations</AccordionHeader>
-                <AccordionBody accordionId="observations">
-                  <FormGroup>
-                    <Label for="seaState">
-                      Sea state
-                    </Label>
+          <Accordion open={open} toggle={toggle}>
+            <AccordionItem>
+              <AccordionHeader targetId="observations">Observations</AccordionHeader>
+              <AccordionBody accordionId="observations">
+                <FormGroup>
+                  <Label for="seaState">
+                    Sea state
+                  </Label>
+                  <Input
+                    id="seaState"
+                    name="seaState"
+                    type="select"
+                    value={entry.observations ? entry.observations.seaState : -1}
+                    onChange={handleChange}
+                  >
+                    {seaStates.map((description, idx) => (
+                    <option key={idx} value={idx - 1}>{description}</option>
+                    ))}
+                  </Input>
+                </FormGroup>
+                <FormGroup>
+                  <Label for="cloudCoverage">
+                    Cloud coverage
+                  </Label>
+                  <InputGroup>
                     <Input
-                      id="seaState"
-                      name="seaState"
-                      type="select"
-                      value={entry.observations ? entry.observations.seaState : -1}
-                      onChange={handleChange}
-                    >
-                      {seaStates.map((description, idx) => (
-                      <option key={idx} value={idx - 1}>{description}</option>
-                      ))}
-                    </Input>
-                  </FormGroup>
-                  <FormGroup>
-                    <Label for="cloudCoverage">
-                      Cloud coverage
-                    </Label>
-                    <InputGroup>
-                      <Input
-                        id="cloudCoverage"
-                        name="cloudCoverage"
-                        type="range"
-                        min="-1"
-                        max="8"
-                        step="1"
-                        value={entry.observations ? entry.observations.cloudCoverage : -1}
-                        onChange={handleChange}
-                      />
-                      <InputGroupText>
-                        {entry.observations
-                          && entry.observations.cloudCoverage > -1 ? `${entry.observations.cloudCoverage}/8` : 'n/a'}
-                      </InputGroupText>
-                    </InputGroup>
-                  </FormGroup>
-                  <FormGroup>
-                    <Label for="visibility">
-                      Visibility
-                    </Label>
-                    <Input
-                      id="visibility"
-                      name="visibility"
-                      type="select"
-                      value={entry.observations ? entry.observations.visibility : -1}
-                      onChange={handleChange}
-                    >
-                      {visibility.map((description, idx) => (
-                      <option key={idx} value={idx - 1}>{description}</option>
-                      ))}
-                    </Input>
-                  </FormGroup>
-                </AccordionBody>
-              </AccordionItem>
-              <AccordionItem>
-                <AccordionHeader targetId="position">Position</AccordionHeader>
-                <AccordionBody accordionId="position">
-                  <FormGroup>
-                    <Label for="latitude">
-                      Latitude
-                    </Label>
-                    <Input
-                      id="latitude"
-                      name="latitude"
-                      type="number"
-                      placeholder="52.51117"
-                      max="90"
-                      min="-90"
-                      step="0.00001"
-                      value={entry.position ? entry.position.latitude : ''}
+                      id="cloudCoverage"
+                      name="cloudCoverage"
+                      type="range"
+                      min="-1"
+                      max="8"
+                      step="1"
+                      value={entry.observations ? entry.observations.cloudCoverage : -1}
                       onChange={handleChange}
                     />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label for="longitude">
-                      Longitude
-                    </Label>
-                    <Input
-                      id="longitude"
-                      name="longitude"
-                      type="number"
-                      placeholder="13.19329"
-                      max="180"
-                      min="-180"
-                      step="0.00001"
-                      value={entry.position ? entry.position.longitude : ''}
-                      onChange={handleChange}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label for="source">
-                      Fix type
-                    </Label>
-                    <Input
-                      id="source"
-                      name="source"
-                      type="select"
-                      value={entry.position ? entry.position.source : ''}
-                      onChange={handleChange}
-                    >
-                      {fixTypes.map((fix) => (
-                      <option key={fix} value={fix}>{fix}</option>
-                      ))}
-                    </Input>
-                  </FormGroup>
-                </AccordionBody>
-              </AccordionItem>
-            </Accordion>
-          }
+                    <InputGroupText>
+                      {entry.observations
+                        && entry.observations.cloudCoverage > -1 ? `${entry.observations.cloudCoverage}/8` : 'n/a'}
+                    </InputGroupText>
+                  </InputGroup>
+                </FormGroup>
+                <FormGroup>
+                  <Label for="visibility">
+                    Visibility
+                  </Label>
+                  <Input
+                    id="visibility"
+                    name="visibility"
+                    type="select"
+                    value={entry.observations ? entry.observations.visibility : -1}
+                    onChange={handleChange}
+                  >
+                    {visibility.map((description, idx) => (
+                    <option key={idx} value={idx - 1}>{description}</option>
+                    ))}
+                  </Input>
+                </FormGroup>
+              </AccordionBody>
+            </AccordionItem>
+            <AccordionItem>
+              <AccordionHeader targetId="position">Position</AccordionHeader>
+              <AccordionBody accordionId="position">
+                <FormGroup>
+                  <Label for="latitude">
+                    Latitude
+                  </Label>
+                  <Input
+                    id="latitude"
+                    name="latitude"
+                    type="number"
+                    placeholder="52.51117"
+                    max="90"
+                    min="-90"
+                    step="0.00001"
+                    value={entry.position ? entry.position.latitude : ''}
+                    onChange={handleChange}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="longitude">
+                    Longitude
+                  </Label>
+                  <Input
+                    id="longitude"
+                    name="longitude"
+                    type="number"
+                    placeholder="13.19329"
+                    max="180"
+                    min="-180"
+                    step="0.00001"
+                    value={entry.position ? entry.position.longitude : ''}
+                    onChange={handleChange}
+                  />
+                </FormGroup>
+                <FormGroup>
+                  <Label for="source">
+                    Fix type
+                  </Label>
+                  <Input
+                    id="source"
+                    name="source"
+                    type="select"
+                    value={entry.position ? entry.position.source : ''}
+                    onChange={handleChange}
+                  >
+                    {fixTypes.map((fix) => (
+                    <option key={fix} value={fix}>{fix}</option>
+                    ))}
+                  </Input>
+                </FormGroup>
+              </AccordionBody>
+            </AccordionItem>
+          </Accordion>
         </Form>
       </ModalBody>
       <ModalFooter>
