@@ -73,6 +73,8 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.5.0 (git main)
+  - Observations form is shown only for navigation entries to reduce clutter
 * 0.4.2 (2023-03-08)
   - Fixed issue when there is no recorded speed in a log entry
 * 0.4.1 (2023-03-06)
