@@ -75,6 +75,7 @@ Some additional ideas for the future:
 
 * 0.5.0 (git main)
   - Observations form is shown only for navigation entries to reduce clutter
+  - Timezone used when displaying entries is now configurable in plugin settings. Still defaults to UTC.
 * 0.4.2 (2023-03-08)
   - Fixed issue when there is no recorded speed in a log entry
 * 0.4.1 (2023-03-06)
