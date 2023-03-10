@@ -338,7 +338,7 @@ module.exports = (app) => {
         type: 'string',
         default: 'UTC',
         title: 'Select the display time zone',
-        enum: timezones.default.map(tz => tz.tzCode)
+        oneOf: timezones.default.map(tz=> ({const: tz.tzCode, title: tz.label }))
       },
     },
   };
