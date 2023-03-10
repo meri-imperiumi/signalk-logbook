@@ -32,6 +32,7 @@ function AppPanel(props) {
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
+  const [timezone, setTimezone] = useState('UTC');
 
   const loginStatus = props.loginStatus.status;
 
@@ -68,6 +69,19 @@ function AppPanel(props) {
     };
   }, [daysToShow, needsUpdate, loginStatus]);
   // TODO: Depend on chosen time window to reload as needed
+
+  useEffect(() => {
+    fetch('/plugins/signalk-logbook/config')
+      .then((r) => r.json())
+      .then((v) => {
+        if (!v.configuration) {
+          return;
+        }
+        if (v.configuration.displayTimeZone) {
+          setTimezone(v.configuration.displayTimeZone);
+        }
+      });
+  }, [timezone]);
 
   function saveEntry(entry) {
     const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
@@ -155,6 +169,7 @@ function AppPanel(props) {
           editEntry={setEditEntry}
           cancel={() => setViewEntry(null)}
           categories={categories}
+          displayTimeZone={timezone}
           /> : null }
         { addEntry ? <EntryEditor
           entry={addEntry}
@@ -185,10 +200,10 @@ function AppPanel(props) {
           </Nav>
           <TabContent activeTab={activeTab}>
             <TabPane tabId="timeline">
-              { activeTab === 'timeline' ? <Timeline entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
+              { activeTab === 'timeline' ? <Timeline entries={data.entries} displayTimeZone={timezone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
             </TabPane>
             <TabPane tabId="book">
-              { activeTab === 'book' ? <Logbook entries={data.entries} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
+              { activeTab === 'book' ? <Logbook entries={data.entries} displayTimeZone={timezone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
             </TabPane>
             <TabPane tabId="map">
               { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }
