@@ -83,6 +83,10 @@ function EntryEditor(props) {
         updated.position[name] = val;
         break;
       }
+      case 'ago': {
+        updated[name] = parseInt(value, 10);
+        break;
+      }
       default: {
         updated[name] = value;
       }
