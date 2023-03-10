@@ -1,9 +1,9 @@
 const CircularBuffer = require('circular-buffer');
+const timezones = require('timezones-list');
 const Log = require('./Log');
 const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
 const openAPI = require('../schema/openapi.json');
-const timezones = require('timezones-list');
 
 function parseJwt(token) {
   if (!token) {
@@ -338,7 +338,10 @@ module.exports = (app) => {
         type: 'string',
         default: 'UTC',
         title: 'Select the display time zone',
-        oneOf: timezones.default.map(tz=> ({const: tz.tzCode, title: tz.label }))
+        oneOf: timezones.default.map((tz) => ({
+          const: tz.tzCode,
+          title: tz.label,
+        })),
       },
     },
   };
