@@ -107,7 +107,9 @@ function EntryEditor(props) {
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
         { Number.isNaN(Number(entry.ago))
-          && `Log entry ${entry.date.toLocaleString('en-GB', {timeZone: props.displayTimeZone})} by ${entry.author || 'auto'}`}
+          && `Log entry ${entry.date.toLocaleString('en-GB', {
+            timeZone: props.displayTimeZone,
+          })} by ${entry.author || 'auto'}`}
         { !Number.isNaN(Number(entry.ago))
           && 'New entry'}
       </ModalHeader>
