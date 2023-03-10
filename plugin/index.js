@@ -5,6 +5,14 @@ const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
 const openAPI = require('../schema/openapi.json');
 
+const timezonesList = [
+  {
+    tzCode: 'UTC',
+    label: 'UTC',
+  },
+  ...timezones.default,
+];
+
 function parseJwt(token) {
   if (!token) {
     return {};
@@ -338,7 +346,7 @@ module.exports = (app) => {
         type: 'string',
         default: 'UTC',
         title: 'Select the display time zone',
-        oneOf: timezones.default.map((tz) => ({
+        oneOf: timezonesList.map((tz) => ({
           const: tz.tzCode,
           title: tz.label,
         })),
