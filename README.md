@@ -85,6 +85,8 @@ The following SignalK paths are used by this logbook.
 |`communication.vhf.channel`||`/vhf`||
 |`navigation.courseRhumbline.nextPoint.position`||`/waypoint`||
 
+The [signalk-derived-data](https://github.com/sbender9/signalk-derived-data) and [signalk-path-mapper](https://github.com/sbender9/signalk-path-mapper) plugins are both useful to remap available data to the required canonical paths.
+
 ## API
 
 Other applications can also use the [logbook API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/meri-imperiumi/signalk-logbook/main/schema/openapi.yaml) for retrieving and writing log entries. This can be useful for automations with [Node-Red](https://nodered.org) or [NoFlo](https://noflojs.org) etc.
