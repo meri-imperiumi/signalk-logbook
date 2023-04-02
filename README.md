@@ -73,7 +73,7 @@ The following SignalK paths are used by this logbook.
 |`environment.wind.speedOverGround`|Wind|`/wind/speed`||
 |`environment.outside.pressure`|Baro|`/barometer`||
 |`environment.water.swell.state`|Sea|`/observations/seaState`||
-|`navigation.position`|Coordinates|`/position`||
+|`navigation.position`|Coordinates|`/position/longitude` `/position/latitude`||
 |`navigation.gnss.type`|Fix|`/position/source`|Defaults to "GPS".|
 |`navigation.trip.log`|Log|`/log`||
 |`propulsion.*.runTime`|Engine|`/engine/hours`||
