@@ -59,6 +59,32 @@ Note: unlike Signal K itself, the log entries are written using "human-friendly"
 
 It is a good idea to set up automatic backups of these files off the vessel, for example to [GitHub](https://github.com) or some other cloud storage service. How to handle this backup is out of the scope of this plugin.
 
+## Source data
+
+The following SignalK paths are used by this logbook.
+
+|SingleK path|Timeline name|YAML path|Notes|
+|-|-|-|-|
+|`navigation.datetime`|Time|`/datetime`|Falls back to system time if not present. Display timezone can be configured.|
+|`navigation.headingTrue`|Course|`/heading`||
+|`navigation.speedThroughWater`||`/speed/stw`||
+|`navigation.speedOverGround`|Speed|`/speed/sog`||
+|`environment.wind.directionTrue`|Wind|`/wind/direction`||
+|`environment.wind.speedOverGround`|Wind|`/wind/speed`||
+|`environment.outside.pressure`|Baro|`/barometer`||
+|`environment.water.swell.state`|Sea|`/observations/seaState`||
+|`navigation.position`|Coordinates|`/position`||
+|`navigation.gnss.type`|Fix|`/position/source`|Defaults to "GPS".|
+|`navigation.trip.log`|Log|`/log`||
+|`propulsion.*.runTime`|Engine|`/engine/hours`||
+|`sails.inventory.*`|||Sail changes are logged.|
+|`communication.crewNames`||`/crewNames`|Crew changes are logged.|
+|`steering.autopilot.state`|||Autopilot changes are logged.|
+|`navigation.state`|||If present, used to start and stop automated hourly entries. Changes are logged.|
+|`propulsion.*.state`|||Propulsion changes are logged.|
+|`communication.vhf.channel`||`/vhf`||
+|`navigation.courseRhumbline.nextPoint.position`||`/waypoint`||
+
 ## API
 
 Other applications can also use the [logbook API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/meri-imperiumi/signalk-logbook/main/schema/openapi.yaml) for retrieving and writing log entries. This can be useful for automations with [Node-Red](https://nodered.org) or [NoFlo](https://noflojs.org) etc.
