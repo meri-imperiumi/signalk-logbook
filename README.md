@@ -41,6 +41,7 @@ Note: unlike Signal K itself, the log entries are written using "human-friendly"
     latitude: 59.7243978
     source: GPS
   heading: 202
+  course: 198
   speed:
     stw: 12.5
     sog: 11.8
@@ -66,7 +67,8 @@ The following SignalK paths are used by this logbook.
 |SingleK path|Timeline name|YAML path|Notes|
 |-|-|-|-|
 |`navigation.datetime`|Time|`/datetime`|Falls back to system time if not present. Display timezone can be configured.|
-|`navigation.headingTrue`|Course|`/heading`||
+|`navigation.courseOverGroundTrue`|Course|`/course`||
+|`navigation.headingTrue`|Heading|`/heading`||
 |`navigation.speedThroughWater`||`/speed/stw`||
 |`navigation.speedOverGround`|Speed|`/speed/sog`||
 |`environment.wind.directionTrue`|Wind|`/wind/direction`||

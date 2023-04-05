@@ -42,9 +42,15 @@ function EntryDetails(props) {
             <td>{entry.speed.sog}kt</td>
             </tr>
           }
-          { !Number.isNaN(Number(entry.heading))
+          { !Number.isNaN(Number(entry.course))
             && <tr>
               <th>Course</th>
+              <td>{entry.course}°</td>
+            </tr>
+          }
+          { !Number.isNaN(Number(entry.heading))
+            && <tr>
+              <th>Heading</th>
               <td>{entry.heading}°</td>
             </tr>
           }

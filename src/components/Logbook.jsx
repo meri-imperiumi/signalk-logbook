@@ -33,6 +33,16 @@ function getWeather(entry) {
   return weather.join(', ');
 }
 
+function getCourse(entry) {
+  if (!Number.isNaN(Number(entry.course))) {
+    return `${entry.course}°`;
+  }
+  if (!Number.isNaN(Number(entry.heading))) {
+    return `HDT ${entry.heading}°`;
+  }
+  return '';
+}
+
 function Logbook(props) {
   const entries = props.entries.map((entry) => ({
     ...entry,
@@ -63,7 +73,7 @@ function Logbook(props) {
             <td>{entry.date.toLocaleString('en-GB', {
               timeZone: props.displayTimeZone,
             })}</td>
-            <td>{!Number.isNaN(Number(entry.heading)) ? `${entry.heading}°` : ''}</td>
+            <td>{getCourse(entry)}</td>
             <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
             <td>{getWeather(entry)}</td>
             <td>{entry.barometer}</td>
