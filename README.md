@@ -75,7 +75,7 @@ The following SignalK paths are used by this logbook.
 |`environment.water.swell.state`|Sea|`/observations/seaState`||
 |`navigation.position`|Coordinates|`/position/longitude` `/position/latitude`||
 |`navigation.gnss.type`|Fix|`/position/source`|Defaults to "GPS".|
-|`navigation.trip.log`|Log|`/log`||
+|`navigation.log`|Log|`/log`||
 |`propulsion.*.runTime`|Engine|`/engine/hours`||
 |`sails.inventory.*`|||Sail changes are logged.|
 |`communication.crewNames`||`/crewNames`|Crew changes are logged.|

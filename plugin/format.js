@@ -35,8 +35,8 @@ module.exports = function stateToEntry(state, text, author = '') {
     }
     data.speed.sog = ms2kt(state['navigation.speedOverGround']);
   }
-  if (!Number.isNaN(Number(state['navigation.trip.log']))) {
-    data.log = parseFloat((state['navigation.trip.log'] / 1852).toFixed(1));
+  if (!Number.isNaN(Number(state['navigation.log']))) {
+    data.log = parseFloat((state['navigation.log'] / 1852).toFixed(1));
   }
   if (state['navigation.courseRhumbline.nextPoint.position']
     && !Number.isNaN(Number(state['navigation.courseRhumbline.nextPoint.position'].latitude))) {
