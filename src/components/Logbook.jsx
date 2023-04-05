@@ -4,7 +4,34 @@ import {
   Button,
 } from 'reactstrap';
 import { Point } from 'where';
-import { getOktas } from '../helpers/observations';
+
+function getWeather(entry) {
+  const weather = [];
+  if (entry.wind) {
+    const wind = [];
+    if (!Number.isNaN(Number(entry.wind.speed))) {
+      wind.push(`${entry.wind.speed}kt`);
+    }
+    if (!Number.isNaN(Number(entry.wind.direction))) {
+      wind.push(`${entry.wind.direction}°`);
+    }
+    if (wind.length) {
+      weather.push(`Wind ${wind.join(' ')}`);
+    }
+  }
+  if (entry.observations) {
+    if (!Number.isNaN(Number(entry.observations.seaState))) {
+      weather.push(`Sea state ${entry.observations.seaState}`);
+    }
+    if (!Number.isNaN(Number(entry.observations.cloudCoverage))) {
+      weather.push(`Clouds ${entry.observations.cloudCoverage}/8`);
+    }
+    if (!Number.isNaN(Number(entry.observations.visibility))) {
+      weather.push(`Visibility ${entry.observations.visibility + 1}`);
+    }
+  }
+  return weather.join(', ');
+}
 
 function Logbook(props) {
   const entries = props.entries.map((entry) => ({
@@ -12,7 +39,6 @@ function Logbook(props) {
     point: entry.position ? new Point(entry.position.latitude, entry.position.longitude) : null,
     date: new Date(entry.datetime),
   }));
-  const oktas = getOktas();
   return (
     <div>
       <Table striped hover responsive>
@@ -21,10 +47,8 @@ function Logbook(props) {
             <th>Time</th>
             <th>Course</th>
             <th>Speed</th>
-            <th>Wind</th>
+            <th>Weather</th>
             <th>Baro</th>
-            <th>Sea</th>
-            <th>Sky</th>
             <th>Coordinates</th>
             <th>Fix</th>
             <th>Log</th>
@@ -41,13 +65,8 @@ function Logbook(props) {
             })}</td>
             <td>{!Number.isNaN(Number(entry.heading)) ? `${entry.heading}°` : ''}</td>
             <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
-            <td>
-              {entry.wind && !Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
-              {entry.wind && !Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
-            </td>
+            <td>{getWeather(entry)}</td>
             <td>{entry.barometer}</td>
-            <td>{entry.observations && !Number.isNaN(Number(entry.observations.seaState)) ? entry.observations.seaState : ''}</td>
-            <td>{entry.observations && !Number.isNaN(Number(entry.observations.cloudCoverage)) ? oktas[entry.observations.cloudCoverage] : ''}</td>
             <td>{entry.point ? entry.point.toString() : 'n/a'}</td>
             <td>{entry.position ? entry.position.source || 'GPS' : ''}</td>
             <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}NM` : ''}</td>
