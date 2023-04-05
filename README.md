@@ -103,6 +103,8 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.6.1 (2023-04-05)
+  - Motor start/stop is not logged separately when under way as it will change vessel state and produce a log that way
 * 0.6.0 (2023-04-05)
   - Course over ground is now also stored in the log data. It is shown instead of heading when available
   - Logbook view was made more compact by combining wind and weather observation columns
