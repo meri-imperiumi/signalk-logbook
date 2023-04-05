@@ -157,6 +157,10 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       // We can ignore state when it doesn't change
       return Promise.resolve();
     }
+    if (isUnderWay(oldState)) {
+      // Logging motor state changes is redundant when it anyway changes vessel state
+      return Promise.resolve();
+    }
     const engineName = propulsionState[1];
     if (value === 'started') {
       return appendLog(`Started ${engineName} engine`);
