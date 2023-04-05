@@ -3,7 +3,7 @@ const {
   readdir,
   readFile,
   writeFile,
-} = require('node:fs/promises');
+} = require('fs/promises');
 const { join, basename } = require('path');
 const { parse, stringify } = require('yaml');
 const { Validator } = require('jsonschema');
