@@ -65,6 +65,7 @@ module.exports = (app) => {
     'navigation.position',
     'navigation.gnss.type',
     'navigation.headingTrue',
+    'navigation.courseOverGroundTrue',
     'navigation.speedThroughWater',
     'navigation.speedOverGround',
     'navigation.log',

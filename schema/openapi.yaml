@@ -227,6 +227,11 @@ components:
           minimum: 0
           maximum: 360
           example: 190
+        course:
+          type: number
+          minimum: 0
+          maximum: 360
+          example: 190
         speed:
           type: object
           additionalProperties: false

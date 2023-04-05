@@ -23,6 +23,9 @@ module.exports = function stateToEntry(state, text, author = '') {
   if (!Number.isNaN(Number(state['navigation.headingTrue']))) {
     data.heading = rad2deg(state['navigation.headingTrue']);
   }
+  if (!Number.isNaN(Number(state['navigation.courseOverGroundTrue']))) {
+    data.course = rad2deg(state['navigation.courseOverGroundTrue']);
+  }
   if (!Number.isNaN(Number(state['navigation.speedThroughWater']))) {
     if (!data.speed) {
       data.speed = {};
