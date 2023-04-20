@@ -8,10 +8,12 @@ import {
 } from 'reactstrap';
 import ordinal from 'ordinal';
 import CrewEditor from './CrewEditor.jsx';
+import FilterEditor from './FilterEditor.jsx';
 import SailEditor from './SailEditor.jsx';
 
 function Metadata(props) {
   const [editSails, setEditSails] = useState(false);
+  const [editFilter, setEditFilter] = useState(false);
   const [editCrew, setEditCrew] = useState(false);
   const [crewNames, setCrew] = useState([]);
   const [sails, setSails] = useState([]);
@@ -123,6 +125,12 @@ function Metadata(props) {
         }, 1000);
       });
   }
+  function saveFilter(filter) {
+    setEditFilter(false);
+    props.setDaysToShow(filter.daysToShow);
+    // And then reload logs
+    props.setNeedsUpdate(true);
+  }
   function saveCrew(updatedCrew) {
     fetch('/signalk/v1/api/vessels/self/communication/crewNames', {
       method: 'PUT',
@@ -151,6 +159,11 @@ function Metadata(props) {
       save={saveCrew}
       username={props.loginStatus.username}
       /> : null }
+    { editFilter ? <FilterEditor
+      cancel={() => setEditFilter(false)}
+      daysToShow={props.daysToShow}
+      save={saveFilter}
+        /> : null }
     { editSails ? <SailEditor
       sails={sails}
       cancel={() => setEditSails(false)}
@@ -169,6 +182,13 @@ function Metadata(props) {
         && <Button onClick={() => setEditCrew(true)} size="sm">Edit</Button>
     }
     </List>
+    </Col>
+    <Col>
+      <div
+        onClick={() => setEditFilter(true)}
+      >
+        Last {props.daysToShow} days
+      </div>
     </Col>
     <Col className="text-end text-right">
     <List type="unstyled">

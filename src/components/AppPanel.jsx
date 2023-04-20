@@ -27,7 +27,7 @@ function AppPanel(props) {
     entries: [],
   });
   const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
-  const [daysToShow] = useState(7);
+  const [daysToShow, setDaysToShow] = useState(7);
   const [editEntry, setEditEntry] = useState(null);
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
@@ -154,6 +154,8 @@ function AppPanel(props) {
       <Metadata
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
+        daysToShow={daysToShow}
+        setDaysToShow={setDaysToShow}
         setNeedsUpdate={setNeedsUpdate}
       />
       <Row>
