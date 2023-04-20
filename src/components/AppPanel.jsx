@@ -53,7 +53,9 @@ function AppPanel(props) {
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
-        const toShow = days.slice(daysToShow * -1);
+        const showFrom = new Date();
+        showFrom.setDate(showFrom.getDate() - daysToShow);
+        const toShow = days.filter((d) => d >= showFrom.toISOString().substr(0, 10));
         Promise.all(toShow.map((day) => fetch(`/plugins/signalk-logbook/logs/${day}`)
           .then((r) => r.json())))
           .then((dayEntries) => {
