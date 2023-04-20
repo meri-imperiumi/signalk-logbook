@@ -195,11 +195,14 @@ function Metadata(props) {
     </List>
     </Col>
     <Col>
-      <div
-        onClick={() => setEditFilter(true)}
-      >
-        Last {props.daysToShow} days
-      </div>
+      <List type="unstyled">
+        <ListInlineItem><b>Show</b></ListInlineItem>
+        <ListInlineItem
+          onClick={() => setEditFilter(true)}
+        >
+          Last {props.daysToShow} days
+        </ListInlineItem>
+      </List>
     </Col>
     <Col className="text-end text-right">
     <List type="unstyled">
