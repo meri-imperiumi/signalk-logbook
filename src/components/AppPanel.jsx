@@ -27,7 +27,7 @@ function AppPanel(props) {
     entries: [],
   });
   const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
-  const [daysToShow] = useState(7);
+  const [daysToShow, setDaysToShow] = useState(7);
   const [editEntry, setEditEntry] = useState(null);
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
@@ -53,7 +53,9 @@ function AppPanel(props) {
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
-        const toShow = days.slice(daysToShow * -1);
+        const showFrom = new Date();
+        showFrom.setDate(showFrom.getDate() - daysToShow);
+        const toShow = days.filter((d) => d >= showFrom.toISOString().substr(0, 10));
         Promise.all(toShow.map((day) => fetch(`/plugins/signalk-logbook/logs/${day}`)
           .then((r) => r.json())))
           .then((dayEntries) => {
@@ -69,6 +71,16 @@ function AppPanel(props) {
     };
   }, [daysToShow, needsUpdate, loginStatus]);
   // TODO: Depend on chosen time window to reload as needed
+
+  useEffect(() => {
+    fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0')
+      .then((r) => r.json())
+      .then((v) => {
+        if (v && v.filter && v.filter.daysToShow) {
+          setDaysToShow(v.filter.daysToShow);
+        }
+      });
+  }, [loginStatus]);
 
   useEffect(() => {
     fetch('/plugins/signalk-logbook/config')
@@ -154,6 +166,8 @@ function AppPanel(props) {
       <Metadata
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
+        daysToShow={daysToShow}
+        setDaysToShow={setDaysToShow}
         setNeedsUpdate={setNeedsUpdate}
       />
       <Row>
