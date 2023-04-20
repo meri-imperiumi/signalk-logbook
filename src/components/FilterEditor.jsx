@@ -37,7 +37,7 @@ function FilterEditor(props) {
               id="daysToShow"
               name="daysToShow"
               type="number"
-              min={0}
+              min={1}
               value={daysToShow}
               onChange={handleChange}
             />
