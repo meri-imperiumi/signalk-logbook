@@ -71,6 +71,16 @@ function AppPanel(props) {
   // TODO: Depend on chosen time window to reload as needed
 
   useEffect(() => {
+    fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0')
+      .then((r) => r.json())
+      .then((v) => {
+        if (v && v.filter && v.filter.daysToShow) {
+          setDaysToShow(v.filter.daysToShow);
+        }
+      });
+  }, [loginStatus]);
+
+  useEffect(() => {
     fetch('/plugins/signalk-logbook/config')
       .then((r) => r.json())
       .then((v) => {

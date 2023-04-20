@@ -126,10 +126,21 @@ function Metadata(props) {
       });
   }
   function saveFilter(filter) {
-    setEditFilter(false);
-    props.setDaysToShow(filter.daysToShow);
-    // And then reload logs
-    props.setNeedsUpdate(true);
+    fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter,
+      }),
+    })
+      .then(() => {
+        setEditFilter(false);
+        props.setDaysToShow(filter.daysToShow);
+        // And then reload logs
+        props.setNeedsUpdate(true);
+      });
   }
   function saveCrew(updatedCrew) {
     fetch('/signalk/v1/api/vessels/self/communication/crewNames', {
