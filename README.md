@@ -103,7 +103,7 @@ Some additional ideas for the future:
 
 ## Changes
 
-* 0.7.0 (git main)
+* 0.7.0 (2023-04-27)
   - Time range filter for logs to show is now editable (and persisted)
 * 0.6.1 (2023-04-05)
   - Motor start/stop is not logged separately when under way as it will change vessel state and produce a log that way
