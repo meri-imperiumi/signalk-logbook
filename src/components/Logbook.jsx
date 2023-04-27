@@ -4,6 +4,8 @@ import {
   Button,
 } from 'reactstrap';
 import { Point } from 'where';
+import { DateTime } from 'luxon';
+import styles from './styles.module.css';
 
 function getWeather(entry) {
   const weather = [];
@@ -43,6 +45,29 @@ function getCourse(entry) {
   return '';
 }
 
+function toDateTime(entry, props) {
+    return DateTime.fromJSDate(entry.date).setZone(props.displayTimeZone);
+}
+
+function entriesForSameDay(entry, previous, props) {
+    function sameDay(d1, d2) {
+        return d1.hasSame(d2, 'year') && d1.hasSame(d2, 'month') && d1.hasSame(d2, 'day');
+    }
+
+    return previous && sameDay(toDateTime(previous, props), toDateTime(entry, props));
+}
+
+function toLocaleString(entry, previous, props) {
+    const dt = toDateTime(entry, props);
+
+    if (entriesForSameDay(entry, previous, props)) {
+        return dt.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
+    }
+    else {
+        return `${dt.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)} (${dt.toLocaleString({ weekday: 'long' })})`;
+    }
+}
+
 function Logbook(props) {
   const entries = props.entries.map((entry) => ({
     ...entry,
@@ -68,11 +93,10 @@ function Logbook(props) {
           </tr>
         </thead>
         <tbody>
-        {entries.map((entry) => (
-          <tr key={entry.datetime} onClick={() => props.editEntry(entry)}>
-            <td>{entry.date.toLocaleString('en-GB', {
-              timeZone: props.displayTimeZone,
-            })}</td>
+        {entries.map((entry, index) => (
+          <tr className={!entriesForSameDay(entry, entries[index-1], props) && styles["new-day"]}
+              key={entry.datetime} onClick={() => props.editEntry(entry)}>
+            <td>{toLocaleString(entry, entries[index-1], props)}</td>
             <td>{getCourse(entry)}</td>
             <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
             <td>{getWeather(entry)}</td>
