@@ -3,8 +3,6 @@ info:
   title: Signal K Logbook
   description: API for the semi-automatic vessel logbook
   version: 0.2.0
-servers:
-  - url: http://localhost:3000
 tags:
   - name: entries
     description: Log entry management
