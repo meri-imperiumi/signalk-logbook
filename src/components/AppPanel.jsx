@@ -167,6 +167,7 @@ function AppPanel(props) {
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
         daysToShow={daysToShow}
+        displayTimeZone={timezone}
         setDaysToShow={setDaysToShow}
         setNeedsUpdate={setNeedsUpdate}
       />
