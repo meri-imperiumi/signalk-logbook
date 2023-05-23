@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup logbook to GitHub
+
+[Service]
+ExecStart=/home/pi/logbook-backup/backup-logs.sh
+Type=oneshot
+User=pi
+
+[Install]
+WantedBy=timers.target

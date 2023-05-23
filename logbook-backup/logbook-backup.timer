@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up logbook every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=3600
+
+[Install]
+WantedBy=timers.target
