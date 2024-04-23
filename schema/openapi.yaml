@@ -270,7 +270,7 @@ components:
         vhf:
           type: string
           maxLength: 2
-          minLength: 2
+          minLength: 1
           example: 10
         crewNames:
           type: array
