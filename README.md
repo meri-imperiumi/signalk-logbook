@@ -112,7 +112,7 @@ Some additional ideas for the future:
 * 0.6.0 (2023-04-05)
   - Course over ground is now also stored in the log data. It is shown instead of heading when available
   - Logbook view was made more compact by combining wind and weather observation columns
-  - Compability with older Node.js versions, like the one on Venus OS
+  - Compatibility with older Node.js versions, like the one on Venus OS
   - The "log" data now uses `navigation.log` instead of `navigation.trip.log`
 * 0.5.0 (2023-03-13)
   - Timezone used when displaying entries is now configurable in plugin settings. Still defaults to UTC.
