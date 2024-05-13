@@ -103,6 +103,8 @@ Some additional ideas for the future:
 
 ## Changes
 
+* 0.7.2 (2024-05-13)
+  - Fix issue storing entries when `navigation.position` includes altitude
 * 0.7.1 (2024-04-23)
   - Allow storing log entries when VHF channel is a single digit one
 * 0.7.0 (2023-04-27)
