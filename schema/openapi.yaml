@@ -195,6 +195,9 @@ components:
               minimum: -180
               maximum: 180
               example: 13.1936481
+            altitude:
+              type: number
+              example: 0
             source:
               type: string
               example: GPS
