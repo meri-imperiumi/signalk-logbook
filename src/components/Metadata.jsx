@@ -195,6 +195,10 @@ function Metadata(props) {
     </List>
     </Col>
     <Col>
+        <ListInlineItem><b>Time Zone</b></ListInlineItem>
+        <ListInlineItem>{props.displayTimeZone}</ListInlineItem>
+    </Col>
+    <Col>
       <List type="unstyled">
         <ListInlineItem><b>Show</b></ListInlineItem>
         <ListInlineItem
