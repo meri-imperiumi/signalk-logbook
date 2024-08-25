@@ -1,3 +1,4 @@
+const { EventEmitter } = require('events');
 const {
   stat,
   readdir,
@@ -9,8 +10,9 @@ const { parse, stringify } = require('yaml');
 const { Validator } = require('jsonschema');
 const openAPI = require('../schema/openapi.json');
 
-class Log {
+class Log extends EventEmitter {
   constructor(dir) {
+    super();
     this.dir = dir;
     this.validator = null;
   }
@@ -130,6 +132,7 @@ class Log {
           datetime: new Date(data.datetime),
         };
         d.push(normalized);
+        this.emit('entry', normalized);
         return this.writeDate(date, d);
       });
   }

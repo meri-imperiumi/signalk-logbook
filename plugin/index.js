@@ -1,5 +1,8 @@
 const CircularBuffer = require('circular-buffer');
 const timezones = require('timezones-list');
+const { appendFile } = require('fs/promises');
+const mustache = require('mustache');
+const { Point } = require('where');
 const Log = require('./Log');
 const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
@@ -47,6 +50,31 @@ function sendCrewNames(app, plugin) {
   sendDelta(app, plugin, new Date(), 'communication.crewNames', configuration.crewNames || []);
 }
 
+function printEntries(log, config, app) {
+  log.on('entry', (entry) => {
+    const point = new Point(entry.position.latitude, entry.position.longitude);
+    const printFriendly = {
+      ...entry,
+      date: entry.datetime.toISOString().substr(0, 10),
+      time: entry.datetime.toISOString().substr(11, 5),
+      latitude: point.toString().split(' ')[0],
+      longitude: point.toString().split(' ')[1],
+    };
+    const output = mustache.render(config.template_entry, printFriendly);
+    appendFile(config.device, `${output}\n`)
+      .then(() => {
+        if (entry.end) {
+          const endOutput = mustache.render(config.template_end, printFriendly);
+          return appendFile(config.device, `${endOutput}\n`);
+        }
+        return Promise.resolve();
+      })
+      .catch((e) => {
+        app.error(`Error:${e.message}`);
+      });
+  });
+}
+
 module.exports = (app) => {
   const plugin = {};
   let unsubscribes = [];
@@ -88,8 +116,12 @@ module.exports = (app) => {
   let log;
   let state = {};
 
-  plugin.start = () => {
+  plugin.start = (options = {}) => {
     log = new Log(app.getDataDirPath());
+    if (options.printOutput && options.printOutput.enable && options.printOutput.device) {
+      printEntries(log, options.printOutput, app);
+    }
+
     const subscription = {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
@@ -351,6 +383,42 @@ module.exports = (app) => {
           const: tz.tzCode,
           title: tz.label,
         })),
+      },
+      printOutput: {
+        type: 'object',
+        title: 'Output new log entries to a printer',
+        properties: {
+          enable: {
+            type: 'boolean',
+            title: 'Enable print output',
+            default: false,
+          },
+          device: {
+            type: 'string',
+            title: 'Printer device path to write to',
+            default: '/dev/usb/lp0',
+          },
+          template_entry: {
+            type: 'string',
+            title: 'Mustache template for individual entries',
+            default: '{{date}}|{{time}}|{{latitude}}|{{longitude}}|{{speed.sog}}|{{course}}|{{wind.speed}}|{{wind.direction}}|{{barometer}}|{{text}}',
+          },
+          template_end: {
+            type: 'string',
+            title: 'Mustache template for trip end',
+            default: '*************************************************************',
+          },
+        },
+      },
+    },
+  };
+  plugin.uiSchema = {
+    printOutput: {
+      template_entry: {
+        'ui:widget': 'textarea',
+      },
+      template_end: {
+        'ui:widget': 'textarea',
       },
     },
   };
