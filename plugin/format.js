@@ -14,7 +14,8 @@ module.exports = function stateToEntry(state, text, author = '') {
   };
   if (state['navigation.position']) {
     data.position = {
-      ...state['navigation.position'],
+      latitude: state['navigation.position'].latitude,
+      longitude: state['navigation.position'].longitude,
     };
   }
   if (state['navigation.gnss.type'] && data.position) {
