@@ -75,3 +75,22 @@ test('appendEntry does not wipe the day when a stored entry fails validation', a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('appendEntry creates a new day file when none exists', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const log = new Log(dir);
+    const date = '2026-06-12';
+    const entry = {
+      datetime: '2026-06-12T10:00:00.000Z', text: 'Engine on', category: 'engine',
+    };
+
+    await log.appendEntry(date, entry);
+
+    const after = parse(await readFile(join(dir, `${date}.yml`), 'utf-8'));
+    assert.strictEqual(after.length, 1);
+    assert.strictEqual(after[0].text, 'Engine on');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
