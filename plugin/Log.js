@@ -97,7 +97,12 @@ class Log {
         if (valid.errors.length > 0) {
           return Promise.reject(valid.errors[0]);
         }
-        return this.getDate(dateString).catch(() => []);
+        return this.getDate(dateString).catch((err) => {
+          if (err.code === 'ENOENT') {
+            return [];
+          }
+          throw err;
+        });
       })
       .then((date) => {
         const normalized = {
@@ -122,7 +127,12 @@ class Log {
         if (valid.errors.length > 0) {
           return Promise.reject(valid.errors[0]);
         }
-        return this.getDate(date).catch(() => []);
+        return this.getDate(date).catch((err) => {
+          if (err.code === 'ENOENT') {
+            return [];
+          }
+          throw err;
+        });
       })
       .then((d) => {
         const normalized = {

@@ -2,6 +2,20 @@ const test = require('node:test');
 const assert = require('node:assert');
 const stateToEntry = require('../plugin/format');
 
+test('waypoint copies only latitude and longitude', () => {
+  const state = {
+    'navigation.course.nextPoint': {
+      position: {
+        latitude: 48.7, longitude: -123.1, altitude: 0, foo: 'bar',
+      },
+    },
+  };
+
+  const entry = stateToEntry(state, 'Test entry');
+
+  assert.deepStrictEqual(entry.waypoint, { latitude: 48.7, longitude: -123.1 });
+});
+
 test('single engine populates engine.hours and engine.engines', () => {
   const state = { 'propulsion.main.runTime': 44280 }; // 12.3h
 
