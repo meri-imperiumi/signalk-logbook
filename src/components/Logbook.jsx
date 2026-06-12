@@ -104,7 +104,11 @@ function Logbook(props) {
             <td>{entry.point ? entry.point.toString() : 'n/a'}</td>
             <td>{entry.position ? entry.position.source || 'GPS' : ''}</td>
             <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}NM` : ''}</td>
-            <td>{entry.engine && !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''}</td>
+            <td>{entry.engine && (
+              entry.engine.engines && Object.keys(entry.engine.engines).length > 1
+                ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}h`).join(', ')
+                : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''
+            )}</td>
             <td>{entry.author || 'auto'}</td>
             <td>{entry.text}</td>
           </tr>
