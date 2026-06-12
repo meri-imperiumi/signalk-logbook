@@ -94,3 +94,19 @@ test('appendEntry creates a new day file when none exists', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('writeEntry creates a new day file when none exists', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const log = new Log(dir);
+    const entry = {
+      datetime: '2026-06-12T10:00:00.000Z', text: 'Departed', category: 'navigation',
+    };
+    await log.writeEntry(entry);
+    const after = parse(await readFile(join(dir, '2026-06-12.yml'), 'utf-8'));
+    assert.strictEqual(after.length, 1);
+    assert.strictEqual(after[0].text, 'Departed');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
