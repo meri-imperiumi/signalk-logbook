@@ -244,7 +244,10 @@ module.exports = (app) => {
           ...state,
         };
       }
-      const author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      let author = '';
+      if (req.cookies && req.cookies.JAUTHENTICATION) {
+        author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      }
       const data = stateToEntry(stats, req.body.text, author);
       if (req.body.category) {
         data.category = req.body.category;
@@ -305,7 +308,10 @@ module.exports = (app) => {
       const entry = {
         ...req.body,
       };
-      const author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      let author = '';
+      if (req.cookies && req.cookies.JAUTHENTICATION) {
+        author = parseJwt(req.cookies.JAUTHENTICATION).id;
+      }
       if (author && !entry.author) {
         entry.author = author;
       }
