@@ -100,7 +100,9 @@ function EntryDetails(props) {
             && <tr>
               <th>Engine</th>
               <td>
-                {!Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h ` : ''}
+                {entry.engine.engines && Object.keys(entry.engine.engines).length > 1
+                  ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}h`).join(', ')
+                  : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''}
               </td>
             </tr>
           }

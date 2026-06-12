@@ -270,6 +270,15 @@ components:
             hours:
               type: number
               minimum: 0
+            engines:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties: false
+                properties:
+                  hours:
+                    type: number
+                    minimum: 0
         vhf:
           type: string
           maxLength: 2
