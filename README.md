@@ -107,6 +107,7 @@ Some additional ideas for the future:
 
 * 0.8.1 (2026-06-12)
   - Added safety for missing sail type in sail plan editor
+  - Added icon that works better in the SK webapps screen
 * 0.8.0 (2026-06-12)
   - Added support for displaying engine hours for multiple engines, when available
   - In logbook view days are now shown with a separator
