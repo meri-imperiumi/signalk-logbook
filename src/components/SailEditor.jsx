@@ -30,7 +30,7 @@ function sailText(sail) {
   if (sail.material) {
     string += `${sail.material} `;
   }
-  if (string === '') {
+  if (string === '' && sail.type) {
     string += `${sail.type.charAt(0).toUpperCase()}${sail.type.slice(1)}`;
   } else {
     string += sail.type;
