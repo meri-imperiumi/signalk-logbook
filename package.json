@@ -10,7 +10,7 @@
     "build": "webpack --mode=production",
     "lint": "eslint *.js src/ plugin/",
     "pretest": "npm run build",
-    "test": "npm run lint"
+    "test": "npm run lint && node --test"
   },
   "repository": {
     "type": "git",
