@@ -105,8 +105,12 @@ Some additional ideas for the future:
 
 ## Changes
 
-* 0.7.3 (git main)
+* 0.8.0 (2026-06-12)
+  - Added support for displaying engine hours for multiple engines, when available
+  - In logbook view days are now shown with a separator
   - Get next waypoint position from `navigation.course.nextPoint` to support both rhumb line and great circle routes
+  - Added safety against clearing logfile on validation failures
+  - Added timezone to the metadata view
 * 0.7.2 (2024-05-13)
   - Fix issue storing entries when `navigation.position` includes altitude
 * 0.7.1 (2024-04-23)
