@@ -83,17 +83,21 @@ module.exports = function stateToEntry(state, text, author = '') {
     }
     data.observations.visibility = state['environment.outside.visibility'];
   }
-  Object.keys(state).forEach((key) => {
-    if (!key.match(/propulsion\.[A-Za-z0-9]+\.runTime/)) {
-      return;
+  const engineKeys = Object.keys(state).filter((key) => key.match(/propulsion\.[A-Za-z0-9]+\.runTime/)
+    && !Number.isNaN(Number(state[key])));
+  if (engineKeys.length > 0) {
+    data.engine = {};
+    data.engine.engines = {};
+    engineKeys.forEach((key) => {
+      const instance = key.split('.')[1];
+      data.engine.engines[instance] = { hours: parseFloat((state[key] / 60 / 60).toFixed(1)) };
+    });
+    // Only mirror to the scalar when there is exactly one engine — keeps single-engine
+    // entries and all pre-existing log entries byte-compatible with prior format.
+    if (engineKeys.length === 1) {
+      data.engine.hours = data.engine.engines[Object.keys(data.engine.engines)[0]].hours;
     }
-    if (!Number.isNaN(Number(state[key]))) {
-      if (!data.engine) {
-        data.engine = {};
-      }
-      data.engine.hours = parseFloat((state[key] / 60 / 60).toFixed(1));
-    }
-  });
+  }
   if (state['communication.vhf.channel']) {
     data.vhf = state['communication.vhf.channel'];
   }

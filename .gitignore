@@ -2,3 +2,4 @@
 package-lock.json
 /public/
 /schema/openapi.json
+.DS_Store
