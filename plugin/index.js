@@ -2,6 +2,7 @@ const CircularBuffer = require('circular-buffer');
 const timezones = require('timezones-list');
 const Log = require('./Log');
 const stateToEntry = require('./format');
+const applyBodyFields = require('./entryFields');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const openAPI = require('../schema/openapi.json');
@@ -272,32 +273,17 @@ module.exports = (app) => {
       if (req.cookies && req.cookies.JAUTHENTICATION) {
         author = parseJwt(req.cookies.JAUTHENTICATION).id;
       }
-      const data = stateToEntry(stats, req.body.text, author);
-      if (req.body.category) {
-        data.category = req.body.category;
-      } else {
-        data.category = 'navigation';
+      const data = applyBodyFields(stateToEntry(stats, req.body.text, author), req.body);
+      if (req.body.observations && !Number.isNaN(Number(req.body.observations.seaState))) {
+        sendDelta(
+          app,
+          plugin,
+          new Date(data.datetime),
+          'environment.water.swell.state',
+          data.observations.seaState,
+        );
       }
-      if (req.body.observations) {
-        data.observations = {
-          ...req.body.observations,
-        };
-        if (!Number.isNaN(Number(data.observations.seaState))) {
-          sendDelta(
-            app,
-            plugin,
-            new Date(data.datetime),
-            'environment.water.swell.state',
-            data.observations.seaState,
-          );
-        }
-      }
-      if (req.body.position) {
-        data.position = {
-          ...req.body.position,
-        };
-        // TODO: Send delta on manually entered position?
-      }
+      // TODO: Send delta on manually entered position?
       const dateString = new Date(data.datetime).toISOString().substr(0, 10);
       log.appendEntry(dateString, data)
         .then(() => {

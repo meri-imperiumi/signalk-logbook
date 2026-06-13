@@ -168,6 +168,11 @@ components:
           maximum: 15
         observations:
           $ref: '#/components/schemas/Observations'
+        vhf:
+          type: string
+          maxLength: 2
+          minLength: 1
+          example: '70'
     Entry:
       type: object
       additionalProperties: false
