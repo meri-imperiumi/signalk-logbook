@@ -74,6 +74,67 @@ function buildConfig(options = {}) {
   };
 }
 
+function appendEntry(log, app, state, text, category, datetimeOverride) {
+  const data = stateToEntry(state, text);
+  data.category = category;
+  if (datetimeOverride) {
+    data.datetime = new Date(datetimeOverride).toISOString();
+  }
+  const dateString = new Date(data.datetime).toISOString().substr(0, 10);
+  return log.appendEntry(dateString, data)
+    .then(() => {
+      app.setPluginStatus(`Automatic log entry: ${text}`);
+      return null;
+    });
+}
+
+function processNotification(path, value, state, episodes, log, app, config, now) {
+  if (!config.enabled) {
+    return Promise.resolve();
+  }
+  const underlying = path.replace(/^notifications\./, '');
+  if (isExcluded(underlying, config.excludePaths)) {
+    return Promise.resolve();
+  }
+  const notifState = value && value.state;
+  const rank = levelRank(notifState);
+  const episode = episodes.get(path);
+
+  if (rank > 0 && rank >= levelRank(config.minLevel)) {
+    if (!episode) {
+      episodes.set(path, {
+        startTime: now,
+        openState: notifState,
+        peakState: notifState,
+        message: value && value.message,
+        transitions: 1,
+        clearedSince: null,
+      });
+      return appendEntry(
+        log,
+        app,
+        state,
+        formatRaise(value, underlying),
+        categoryForPath(underlying),
+      );
+    }
+    episode.transitions += 1;
+    episode.clearedSince = null;
+    if (value && value.message) {
+      episode.message = value.message;
+    }
+    if (LEVELS[notifState] > LEVELS[episode.peakState]) {
+      episode.peakState = notifState;
+    }
+    return Promise.resolve();
+  }
+
+  if (episode && episode.clearedSince === null) {
+    episode.clearedSince = now;
+  }
+  return Promise.resolve();
+}
+
 module.exports = {
   LEVELS,
   levelRank,
@@ -83,5 +144,6 @@ module.exports = {
   formatRaise,
   formatClear,
   buildConfig,
+  processNotification,
   stateToEntry,
 };

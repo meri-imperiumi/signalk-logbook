@@ -85,3 +85,126 @@ test('buildConfig applies defaults and reads overrides', () => {
     logClears: false,
   });
 });
+
+function harness() {
+  const entries = [];
+  const log = {
+    appendEntry: (date, data) => {
+      entries.push({ date, data });
+      return Promise.resolve();
+    },
+  };
+  const app = { setPluginStatus: () => {}, setPluginError: () => {} };
+  const state = { 'navigation.datetime': '2026-06-14T12:00:00.000Z' };
+  return {
+    entries, log, app, state,
+  };
+}
+
+test('a raise opens an episode and logs exactly one entry', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  await n.processNotification(
+    'notifications.propulsion.1.temperature',
+    { state: 'alarm', message: 'High temperature' },
+    state,
+    episodes,
+    log,
+    app,
+    n.buildConfig({}),
+    1000,
+  );
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(entries[0].data.text, 'Alarm: High temperature (propulsion.1.temperature)');
+  assert.strictEqual(entries[0].data.category, 'engine');
+  assert.strictEqual(episodes.size, 1);
+});
+
+test('re-raises and brief clears within an episode add no further entries', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.tanks.fuel.0.currentLevel';
+  const cfg = n.buildConfig({});
+  await n.processNotification(p, { state: 'warn', message: 'Low fuel' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 1000);
+  await n.processNotification(
+    p,
+    { state: 'alarm', message: 'Low fuel' },
+    state,
+    episodes,
+    log,
+    app,
+    cfg,
+    2000,
+  );
+  assert.strictEqual(entries.length, 1);
+  const ep = episodes.get(p);
+  assert.strictEqual(ep.peakState, 'alarm');
+  assert.strictEqual(ep.transitions, 2);
+  assert.strictEqual(ep.clearedSince, null);
+});
+
+test('a notification below the minimum level opens nothing', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  await n.processNotification(
+    'notifications.x.y',
+    { state: 'warn', message: 'm' },
+    state,
+    episodes,
+    log,
+    app,
+    n.buildConfig({ notificationMinLevel: 'alarm' }),
+    0,
+  );
+  assert.strictEqual(entries.length, 0);
+  assert.strictEqual(episodes.size, 0);
+});
+
+test('a clear marks clearedSince without logging', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.propulsion.1.temperature';
+  const cfg = n.buildConfig({});
+  await n.processNotification(p, { state: 'alarm', message: 'Hot' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, null, state, episodes, log, app, cfg, 5000);
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(episodes.get(p).clearedSince, 5000);
+});
+
+test('excluded paths and disabled config are ignored', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  await n.processNotification(
+    'notifications.navigation.gnss.methodQuality',
+    { state: 'warn', message: 'm' },
+    state,
+    episodes,
+    log,
+    app,
+    n.buildConfig({ notificationExcludePaths: ['navigation.gnss'] }),
+    0,
+  );
+  await n.processNotification(
+    'notifications.propulsion.1.temperature',
+    { state: 'alarm', message: 'm' },
+    state,
+    episodes,
+    log,
+    app,
+    n.buildConfig({ logNotifications: false }),
+    0,
+  );
+  assert.strictEqual(entries.length, 0);
+  assert.strictEqual(episodes.size, 0);
+});
