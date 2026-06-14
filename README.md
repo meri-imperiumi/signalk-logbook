@@ -88,8 +88,29 @@ The following SignalK paths are used by this logbook.
 |`propulsion.*.state`|||Propulsion changes are logged.|
 |`communication.vhf.channel`||`/vhf`||
 |`navigation.course.nextPoint.position`||`/waypoint`||
+|`notifications.*`||`/category`|Alarms and warnings are logged automatically. See below.|
 
 The [signalk-derived-data](https://github.com/sbender9/signalk-derived-data) and [signalk-path-mapper](https://github.com/sbender9/signalk-path-mapper) plugins are both useful to remap available data to the required canonical paths.
+
+## Automatic notification logging
+
+The plugin records SignalK notifications (alarms and warnings) automatically. When a
+notification rises to the configured minimum level (`warn` by default) a log entry is
+written, and another is written when it clears.
+
+To avoid log spam from a sensor that cycles across its threshold (a bilge or low-tank
+alarm, for example), repeated raises and brief clears are coalesced into a single
+*episode*: one "raised" entry when it first fires, and one "cleared" entry only after it
+has stayed clear for the debounce window — the clear entry notes how long it lasted, the
+peak level reached, and how many times it toggled.
+
+Configuration (plugin settings):
+
+* **Automatically log notifications** — master on/off (default on).
+* **Minimum notification level to log** — `alert`, `warn` (default), `alarm`, or `emergency`.
+* **Minutes a notification must stay clear before it is logged as resolved** — debounce window (default 5).
+* **Notification paths to ignore** — prefix matches to suppress known-noisy paths (e.g. `navigation.gnss`).
+* **Also log when a notification clears** — turn off for raise-only logging (default on).
 
 ## API
 
