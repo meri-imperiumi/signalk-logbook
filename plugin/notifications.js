@@ -138,6 +138,27 @@ function processNotification(path, value, state, episodes, log, app, config, now
   return Promise.resolve();
 }
 
+function sweepNotifications(episodes, state, log, app, config, now) {
+  const pending = [];
+  episodes.forEach((episode, path) => {
+    if (episode.clearedSince !== null && now - episode.clearedSince >= config.debounceMs) {
+      episodes.delete(path);
+      if (config.logClears) {
+        const underlying = path.replace(/^notifications\./, '');
+        pending.push(appendEntry(
+          log,
+          app,
+          state,
+          formatClear(episode, underlying),
+          categoryForPath(underlying),
+          episode.clearedSince,
+        ));
+      }
+    }
+  });
+  return Promise.all(pending);
+}
+
 module.exports = {
   LEVELS,
   levelRank,
@@ -148,5 +169,6 @@ module.exports = {
   formatClear,
   buildConfig,
   processNotification,
+  sweepNotifications,
   stateToEntry,
 };

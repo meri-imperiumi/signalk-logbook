@@ -208,3 +208,71 @@ test('excluded paths and disabled config are ignored', async () => {
   assert.strictEqual(entries.length, 0);
   assert.strictEqual(episodes.size, 0);
 });
+
+test('an episode closes only after the debounce window, logging one backdated clear', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.propulsion.1.temperature';
+  const cfg = n.buildConfig({ notificationDebounceMinutes: 5 }); // 300000 ms
+  await n.processNotification(p, { state: 'alarm', message: 'High temp' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 60000);
+
+  await n.sweepNotifications(episodes, state, log, app, cfg, 120000); // within window
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(episodes.size, 1);
+
+  await n.sweepNotifications(episodes, state, log, app, cfg, 360000); // 360000 - 60000 >= 300000
+  assert.strictEqual(entries.length, 2);
+  assert.strictEqual(episodes.size, 0);
+  assert.strictEqual(entries[1].data.text, 'Cleared after 1 min: High temp');
+  assert.strictEqual(entries[1].data.datetime, new Date(60000).toISOString());
+});
+
+test('a re-raise before the window cancels the pending close', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.propulsion.1.temperature';
+  const cfg = n.buildConfig({});
+  await n.processNotification(p, { state: 'alarm', message: 'Hot' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 60000);
+  await n.processNotification(p, { state: 'alarm', message: 'Hot' }, state, episodes, log, app, cfg, 90000);
+  await n.sweepNotifications(episodes, state, log, app, cfg, 600000);
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(episodes.size, 1);
+});
+
+test('a flapping notification yields exactly two entries spanning the noise', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.tanks.bilge.0.level';
+  const cfg = n.buildConfig({}); // warn+, 5 min debounce
+  await n.processNotification(p, { state: 'warn', message: 'Bilge high' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 1000);
+  await n.processNotification(p, { state: 'alarm', message: 'Bilge high' }, state, episodes, log, app, cfg, 2000);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 3000);
+  await n.processNotification(p, { state: 'warn', message: 'Bilge high' }, state, episodes, log, app, cfg, 4000);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 5000);
+  await n.sweepNotifications(episodes, state, log, app, cfg, 5000 + 300000);
+  assert.strictEqual(entries.length, 2);
+  assert.match(entries[1].data.text, /peaked alarm, 3 transitions/);
+});
+
+test('logNotificationClears:false closes episodes without a clear entry', async () => {
+  const {
+    entries, log, app, state,
+  } = harness();
+  const episodes = new Map();
+  const p = 'notifications.propulsion.1.temperature';
+  const cfg = n.buildConfig({ logNotificationClears: false });
+  await n.processNotification(p, { state: 'alarm', message: 'Hot' }, state, episodes, log, app, cfg, 0);
+  await n.processNotification(p, { state: 'normal' }, state, episodes, log, app, cfg, 60000);
+  await n.sweepNotifications(episodes, state, log, app, cfg, 60000 + 300000);
+  assert.strictEqual(entries.length, 1);
+  assert.strictEqual(episodes.size, 0);
+});
