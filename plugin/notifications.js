@@ -77,7 +77,7 @@ function buildConfig(options = {}) {
 function appendEntry(log, app, state, text, category, datetimeOverride) {
   const data = stateToEntry(state, text);
   data.category = category;
-  if (datetimeOverride) {
+  if (datetimeOverride != null) {
     data.datetime = new Date(datetimeOverride).toISOString();
   }
   const dateString = new Date(data.datetime).toISOString().substr(0, 10);
@@ -129,6 +129,9 @@ function processNotification(path, value, state, episodes, log, app, config, now
     return Promise.resolve();
   }
 
+  // A state below the configured minimum (incl. alert/normal) is intentionally
+  // treated as cleared — this also guarantees an episode that de-escalates and
+  // sticks below the threshold still closes after the debounce window.
   if (episode && episode.clearedSince === null) {
     episode.clearedSince = now;
   }
