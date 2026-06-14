@@ -67,7 +67,8 @@ function buildConfig(options = {}) {
   return {
     enabled: options.logNotifications !== false,
     minLevel: options.notificationMinLevel || 'warn',
-    debounceMs: (Number(options.notificationDebounceMinutes) || 5) * 60000,
+    debounceMs: (options.notificationDebounceMinutes != null
+      ? Number(options.notificationDebounceMinutes) : 5) * 60000,
     excludePaths: Array.isArray(options.notificationExcludePaths)
       ? options.notificationExcludePaths : [],
     logClears: options.logNotificationClears !== false,
@@ -170,5 +171,4 @@ module.exports = {
   buildConfig,
   processNotification,
   sweepNotifications,
-  stateToEntry,
 };

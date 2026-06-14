@@ -84,6 +84,7 @@ test('buildConfig applies defaults and reads overrides', () => {
     excludePaths: ['navigation.gnss'],
     logClears: false,
   });
+  assert.strictEqual(n.buildConfig({ notificationDebounceMinutes: 0 }).debounceMs, 0);
 });
 
 function harness() {
