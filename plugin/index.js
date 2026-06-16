@@ -3,6 +3,7 @@ const timezones = require('timezones-list');
 const Log = require('./Log');
 const stateToEntry = require('./format');
 const { processTriggers, processHourly } = require('./triggers');
+const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const openAPI = require('../schema/openapi.json');
 
 const timezonesList = [
@@ -80,6 +81,7 @@ module.exports = (app) => {
     'steering.autopilot.state',
     'communication.crewNames',
     'communication.vhf.channel',
+    'notifications.*',
   ];
 
   // We keep 15min of past state to allow slight backdating of entries
@@ -87,9 +89,14 @@ module.exports = (app) => {
 
   let log;
   let state = {};
+  const episodes = new Map();
+  let notificationConfig = buildConfig({});
 
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
+    const options = app.readPluginOptions();
+    notificationConfig = buildConfig((options && options.configuration) || {});
+    episodes.clear();
     const subscription = {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
@@ -115,7 +122,20 @@ module.exports = (app) => {
           return u.values.reduce((
             previousPromise,
             v,
-          ) => previousPromise.then(() => processTriggers(v.path, v.value, state, log, app)
+          ) => previousPromise.then(() => (
+            v.path.startsWith('notifications.')
+              ? processNotification(
+                v.path,
+                v.value,
+                state,
+                episodes,
+                log,
+                app,
+                notificationConfig,
+                Date.now(),
+              )
+              : processTriggers(v.path, v.value, state, log, app)
+          )
             .then((stateUpdates) => {
               if (!stateUpdates) {
                 return;
@@ -153,6 +173,10 @@ module.exports = (app) => {
         sendCrewNames(app, plugin);
       }
       buffer.enq(state);
+      sweepNotifications(episodes, state, log, app, notificationConfig, Date.now())
+        .catch((err) => {
+          app.setPluginError(`Failed to store notification entry: ${err.message}`);
+        });
       // We can keep a clone of the previous values
       state = {
         ...state,
@@ -336,6 +360,7 @@ module.exports = (app) => {
     unsubscribes.forEach((f) => f());
     unsubscribes = [];
     clearInterval(interval);
+    episodes.clear();
   };
 
   plugin.schema = {
@@ -357,6 +382,40 @@ module.exports = (app) => {
           const: tz.tzCode,
           title: tz.label,
         })),
+      },
+      logNotifications: {
+        type: 'boolean',
+        default: true,
+        title: 'Automatically log notifications (alarms and warnings)',
+      },
+      notificationMinLevel: {
+        type: 'string',
+        default: 'warn',
+        title: 'Minimum notification level to log',
+        oneOf: [
+          { const: 'alert', title: 'Alert' },
+          { const: 'warn', title: 'Warning' },
+          { const: 'alarm', title: 'Alarm' },
+          { const: 'emergency', title: 'Emergency' },
+        ],
+      },
+      notificationDebounceMinutes: {
+        type: 'number',
+        default: 5,
+        title: 'Minutes a notification must stay clear before it is logged as resolved',
+      },
+      notificationExcludePaths: {
+        type: 'array',
+        default: [],
+        title: 'Notification paths to ignore (prefix match, e.g. navigation.gnss)',
+        items: {
+          type: 'string',
+        },
+      },
+      logNotificationClears: {
+        type: 'boolean',
+        default: true,
+        title: 'Also log when a notification clears',
       },
     },
   };
