@@ -52,6 +52,10 @@
   "signalk": {
     "appIcon": "./logbook.png",
     "displayName": "Logbook",
+    "recommends": [
+      "@meri-imperiumi/signalk-autostate",
+      "@meri-imperiumi/signalk-triplogger"
+    ],
     "screenshots": [
       "https://camo.githubusercontent.com/62e9e7da04facb5582c22faffccf7406ad098e7af66505dd9e13a530657a0a63/68747470733a2f2f692e696d6775722e636f6d2f304d3743644f592e706e67",
       "https://camo.githubusercontent.com/c2bfc2915386ae11cb7126e238e01cbbef88ac872c75fea286036b9af0109f3f/68747470733a2f2f692e696d6775722e636f6d2f586136584e79682e706e67",
