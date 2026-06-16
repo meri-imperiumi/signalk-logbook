@@ -52,8 +52,11 @@
   "signalk": {
     "appIcon": "./logbook.png",
     "displayName": "Logbook",
-    "recommends": [
+    "requires": [
       "@meri-imperiumi/signalk-autostate",
+    ],
+    "recommends": [
+      "@meri-imperiumi/signalk-triplogger",
       "@signalk/sailsconfiguration"
     ],
     "screenshots": [
