@@ -1,7 +1,7 @@
 Semi-automatic logbook for Signal K
 ===================================
 
-Status: ready for the first test runs
+Status: in production on multiple vessels
 
 This application provides both a server-side plugin and the user interface for maintaining semi-automatic logbooks with [Signal K](https://signalk.org). Just like traditional logbooks, you can write an entry at any time. However, there are several things that are done automatically for you:
 

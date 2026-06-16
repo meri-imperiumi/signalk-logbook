@@ -1,3 +1,6 @@
+* 0.9.0 (2026-06-16)
+  - Notifications and alerts are now logged
+  - Added automatic Signal K plugin testing
 * 0.8.1 (2026-06-12)
   - Added safety for missing sail type in sail plan editor
   - Added icon that works better in the SK webapps screen
