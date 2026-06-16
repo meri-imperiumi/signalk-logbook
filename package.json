@@ -53,7 +53,7 @@
     "appIcon": "./logbook.png",
     "displayName": "Logbook",
     "requires": [
-      "@meri-imperiumi/signalk-autostate",
+      "@meri-imperiumi/signalk-autostate"
     ],
     "recommends": [
       "@meri-imperiumi/signalk-triplogger",
