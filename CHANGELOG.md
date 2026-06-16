@@ -1,3 +1,5 @@
+* 0.9.1 (2026-06-16)
+  - Better app icon
 * 0.9.0 (2026-06-16)
   - Notifications and alerts are now logged
   - Added automatic Signal K plugin testing
