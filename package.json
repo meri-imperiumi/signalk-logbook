@@ -51,7 +51,13 @@
   },
   "signalk": {
     "appIcon": "./logbook.png",
-    "displayName": "Logbook"
+    "displayName": "Logbook",
+    "screenshots": [
+      "https://camo.githubusercontent.com/62e9e7da04facb5582c22faffccf7406ad098e7af66505dd9e13a530657a0a63/68747470733a2f2f692e696d6775722e636f6d2f304d3743644f592e706e67",
+      "https://camo.githubusercontent.com/c2bfc2915386ae11cb7126e238e01cbbef88ac872c75fea286036b9af0109f3f/68747470733a2f2f692e696d6775722e636f6d2f586136584e79682e706e67",
+      "https://user-images.githubusercontent.com/3346/219135937-0e1b75cf-13ed-4f79-9ba0-0d2b6fee7747.jpeg",
+      "https://user-images.githubusercontent.com/3346/222392061-6760eb71-93a8-4c99-b47b-a9f2fd7b1c54.png"
+    ]
   },
   "signalk-plugin-enabled-by-default": true,
   "publishConfig": {
