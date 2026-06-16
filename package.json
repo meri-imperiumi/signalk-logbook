@@ -54,7 +54,7 @@
     "displayName": "Logbook",
     "recommends": [
       "@meri-imperiumi/signalk-autostate",
-      "@meri-imperiumi/signalk-triplogger"
+      "@signalk/sailsconfiguration"
     ],
     "screenshots": [
       "https://camo.githubusercontent.com/62e9e7da04facb5582c22faffccf7406ad098e7af66505dd9e13a530657a0a63/68747470733a2f2f692e696d6775722e636f6d2f304d3743644f592e706e67",
