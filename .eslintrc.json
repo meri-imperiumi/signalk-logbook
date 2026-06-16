@@ -23,6 +23,7 @@
         "optionalDependencies": false
       }
     ],
-    "react/prop-types": "warn"
+    "react/prop-types": "warn",
+    "linebreak-style": "warn"
   }
 }
