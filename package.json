@@ -8,7 +8,7 @@
     "dev": "webpack --watch --mode=development",
     "prebuild": "js-yaml schema/openapi.yaml > schema/openapi.json",
     "build": "webpack --mode=production",
-    "lint": "eslint *.js src/ plugin/",
+    "lint": "eslint *.js src/ plugin/ test/",
     "pretest": "npm run build",
     "test": "npm run lint && node --test"
   },

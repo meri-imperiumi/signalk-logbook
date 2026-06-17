@@ -27,7 +27,7 @@ test('single engine populates engine.hours and engine.engines', () => {
 
 test('twin engine populates engine.engines without setting engine.hours', () => {
   const state = {
-    'propulsion.port.runTime': 44280,      // 12.3h
+    'propulsion.port.runTime': 44280, // 12.3h
     'propulsion.starboard.runTime': 43560, // 12.1h
   };
 
