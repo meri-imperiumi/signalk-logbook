@@ -126,4 +126,4 @@ Some additional ideas for the future:
 
 ## Changes
 
-See <CHANGELOG.md>.
+See [Changelog](CHANGELOG.md)
