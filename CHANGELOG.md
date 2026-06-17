@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.2] - 2026-06-16
+### Changed
+- `vhf` can now be submitted in POST requests
+- App icon is now smaller
+
 ## [0.9.1] - 2026-06-16
 ### Changed
 - Better app icon
