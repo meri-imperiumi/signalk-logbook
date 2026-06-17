@@ -3,6 +3,7 @@ const timezones = require('timezones-list');
 const Log = require('./Log');
 const stateToEntry = require('./format');
 const applyBodyFields = require('./entryFields');
+const resolveAgo = require('./ago');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const openAPI = require('../schema/openapi.json');
@@ -257,13 +258,16 @@ module.exports = (app) => {
     router.post('/logs', (req, res) => {
       res.contentType('application/json');
       let stats;
-      if (req.body.ago > buffer.size()) {
+      // Default to 0 (most recent sample) when `ago` is missing/invalid —
+      // otherwise buffer.get(undefined) throws and 500s the request.
+      const ago = resolveAgo(req.body.ago);
+      if (ago > buffer.size()) {
         // We don't have history that far, sadly
         res.sendStatus(404);
         return;
       }
       if (buffer.size() > 0) {
-        stats = buffer.get(req.body.ago);
+        stats = buffer.get(ago);
       } else {
         stats = {
           ...state,
