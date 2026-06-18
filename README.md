@@ -7,6 +7,8 @@ This application provides both a server-side plugin and the user interface for m
 
 * Entries written when starting/ending a trip (requires [signalk-autostate](https://github.com/meri-imperiumi/signalk-autostate) plugin)
 * When underway, an entry is created every hour recording the current conditions
+* Engine stop/start is logged automatically (if available in Signal K. See [signalk-alternator-engine-on](https://github.com/meri-imperiumi/signalk-alternator-engine-on))
+* Signal K alerts when they're raised and cleared
 
 ## User interface
 
