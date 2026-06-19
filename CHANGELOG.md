@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9.3] - 2026-06-19
+### Fixed
+- The `ago` key defaults to 0 instead of failing on HTTP POST requests
+
 ## [0.9.2] - 2026-06-16
 ### Changed
 - `vhf` can now be submitted in POST requests
