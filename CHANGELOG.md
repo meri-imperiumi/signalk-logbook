@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.9.4] - 2026-06-29
 ### Added
 - When a [watch schedule is active](https://github.com/hoeken/signalk-watch-schedule), watch changes get logged automatically
 

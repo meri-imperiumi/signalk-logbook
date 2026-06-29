@@ -9,6 +9,7 @@ This application provides both a server-side plugin and the user interface for m
 * When underway, an entry is created every hour recording the current conditions
 * Engine stop/start is logged automatically (if available in Signal K. See [signalk-alternator-engine-on](https://github.com/meri-imperiumi/signalk-alternator-engine-on))
 * Signal K alerts when they're raised and cleared
+* Watch changes are logged automatically (requires [signalk-watch-schedule](https://github.com/hoeken/signalk-watch-schedule) plugin)
 
 ## User interface
 
@@ -91,6 +92,7 @@ The following SignalK paths are used by this logbook.
 |`communication.vhf.channel`||`/vhf`||
 |`navigation.course.nextPoint.position`||`/waypoint`||
 |`notifications.*`||`/category`|Alarms and warnings are logged automatically. See below.|
+|`watch.current`|||Watch changes are logged.|
 
 The [signalk-derived-data](https://github.com/sbender9/signalk-derived-data) and [signalk-path-mapper](https://github.com/sbender9/signalk-path-mapper) plugins are both useful to remap available data to the required canonical paths.
 
