@@ -84,6 +84,7 @@ module.exports = (app) => {
     'communication.crewNames',
     'communication.vhf.channel',
     'notifications.*',
+    'watch.current',
   ];
 
   // We keep 15min of past state to allow slight backdating of entries

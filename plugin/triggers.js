@@ -146,6 +146,13 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       }
       break;
     }
+    case 'watch.current': {
+      if (oldState[path] === value || !oldState[path]) {
+        // We can ignore state when it doesn't change
+        return Promise.resolve();
+      }
+      return appendLog(`${value} on watch`);
+    }
     default: {
       break;
     }
