@@ -10,10 +10,10 @@ function calculateBounds(points) {
   const x = points.map((xy) => xy.lon);
   const y = points.map((xy) => xy.lat);
   return [
-    Math.min(...y),
     Math.min(...x),
-    Math.max(...y),
+    Math.min(...y),
     Math.max(...x),
+    Math.max(...y),
   ];
 }
 
@@ -37,8 +37,11 @@ function Map(props) {
     const rect = mapContainer.current.getBoundingClientRect();
     setBbox([rect.width, rect.height]);
   }, []);
-  const centerAndZoom = viewport(calculateBounds(points), bbox);
-  centerAndZoom.zoom -= 1.5;
+  const viewportResult = viewport(calculateBounds(points), bbox);
+  const centerAndZoom = {
+    center: [viewportResult.center[1], viewportResult.center[0]],
+    zoom: viewportResult.zoom - 1.5
+  };
   useEffect(() => {
     if (entries.length < 2) {
       return;

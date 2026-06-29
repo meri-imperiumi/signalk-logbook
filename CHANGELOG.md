@@ -4,6 +4,9 @@
 ### Added
 - When a [watch schedule is active](https://github.com/hoeken/signalk-watch-schedule), watch changes get logged automatically
 
+### Fixed
+- Map loads correctly also on southerly latitudes
+
 ## [0.9.3] - 2026-06-19
 ### Fixed
 - The `ago` key defaults to 0 instead of failing on HTTP POST requests
