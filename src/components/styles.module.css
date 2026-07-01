@@ -1,3 +1,6 @@
 .new-day {
     border-top: double 4px;
 }
+.on-watch {
+    text-decoration: underline;
+}

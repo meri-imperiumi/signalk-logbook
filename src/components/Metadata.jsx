@@ -10,15 +10,18 @@ import ordinal from 'ordinal';
 import CrewEditor from './CrewEditor.jsx';
 import FilterEditor from './FilterEditor.jsx';
 import SailEditor from './SailEditor.jsx';
+import styles from './styles.module.css';
 
 function Metadata(props) {
   const [editSails, setEditSails] = useState(false);
   const [editFilter, setEditFilter] = useState(false);
   const [editCrew, setEditCrew] = useState(false);
   const [crewNames, setCrew] = useState([]);
+  const [onWatch, setOnWatch] = useState([]);
   const [sails, setSails] = useState([]);
   const paths = [
     'communication.crewNames',
+    'watch.current',
     'sails.inventory.*',
   ];
   const activeSails = sails.filter((s) => s.active);
@@ -36,6 +39,12 @@ function Metadata(props) {
         if (v.path === 'communication.crewNames') {
           if (JSON.stringify(crewNames) !== JSON.stringify(v.value)) {
             setCrew(v.value);
+          }
+          return;
+        }
+        if (v.patch === 'watch.current') {
+          if (onWatch !== v.value) {
+            setOnWatch(v.value);
           }
           return;
         }
@@ -186,6 +195,7 @@ function Metadata(props) {
     {crewNames.map((crewName) => (
       <ListInlineItem
       key={crewName}
+      className={(onWatch === crewName) ? styles['on-watch'] : 'idle'}
       onClick={() => setEditCrew(true)}
       >{crewName}</ListInlineItem>
     ))}
