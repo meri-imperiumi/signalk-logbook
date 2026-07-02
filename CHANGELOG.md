@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Changed
+- Hourly automatic entries now check if there is an entry already (produced by user or by another automation) before writing one
+- Currently on-watch crew member is shown underlined
 
 ## [0.9.4] - 2026-06-29
 ### Added

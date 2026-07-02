@@ -167,9 +167,12 @@ module.exports = (app) => {
       if (!state.datetime) {
         state.datetime = new Date().toISOString();
       }
-      if (new Date(state.datetime).getMinutes() === 0) {
+      // How many minutes within the hour do we consider be the "hour entry"?
+      const hourlyWindow = 1;
+      if (new Date(state.datetime).getMinutes() === hourlyWindow) {
         // Store hourly log entry
-        processHourly(state, log, app)
+        const hourlyState = buffer.get(hourlyWindow);
+        processHourly(hourlyState, log, app, hourlyWindow)
           .catch((err) => {
             app.setPluginError(`Failed to store entry: ${err.message}`);
           });

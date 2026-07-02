@@ -147,8 +147,21 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
     case 'watch.current': {
-      if (oldState[path] === value || !oldState[path]) {
+      if (oldState[path] === value) {
         // We can ignore state when it doesn't change
+        return Promise.resolve();
+      }
+      if (!value) {
+        if (!oldState[path]) {
+          // Falsy to falsy transition, ignore
+          return Promise.resolve();
+        }
+        if (oldState['navigation.state'] === 'sailing'
+          || oldState['navigation.state'] === 'motoring') {
+          // Still under way, but stopped watch schedule
+          return appendLog('Watch schedule stopped');
+        }
+        // Not under way, no need to log watches stopping
         return Promise.resolve();
       }
       return appendLog(`${value} on watch`);
@@ -203,14 +216,49 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
   return Promise.resolve();
 };
 
-exports.processHourly = function processHourly(oldState, log, app) {
+exports.processHourly = function processHourly(oldState, log, app, minutesAfter = 0) {
   if (oldState['navigation.state'] !== 'sailing' && oldState['navigation.state'] !== 'motoring') {
     return Promise.resolve();
   }
   const data = stateToEntry(oldState, '');
-  const dateString = new Date(data.datetime).toISOString().substr(0, 10);
-  return log.appendEntry(dateString, data)
-    .then(() => {
-      app.setPluginStatus('Automatic hourly log entry');
+
+  const dateString = data.datetime.substr(0, 10);
+
+  // First ensure there is no entry inside the window already
+  return log.getDate(dateString)
+    .catch((err) => {
+      if (err.code === 'ENOENT') {
+        return [];
+      }
+      throw err;
+    })
+    .then((entries) => {
+      if (!entries || !entries.length) {
+        return Promise.resolve(true);
+      }
+      if (!minutesAfter) {
+        return Promise.resolve(true);
+      }
+      const withinWindow = entries.find((entry) => {
+        const diff = Math.abs(data.datetime - entry.date) / 1000 / 60;
+        if (diff < minutesAfter) {
+          return true;
+        }
+        return false;
+      });
+      if (withinWindow) {
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(true);
+    })
+    .then((createEntry) => {
+      if (!createEntry) {
+        app.setPluginStatus('Skipped automatic hourly log entry an entry exists already');
+        return Promise.resolve();
+      }
+      return log.appendEntry(dateString, data)
+        .then(() => {
+          app.setPluginStatus('Automatic hourly log entry');
+        });
     });
 };
