@@ -130,7 +130,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       if (!value || !value.length) {
         return Promise.resolve();
       }
-      if (JSON.stringify(oldState[path]) === JSON.stringify(path)) {
+      if (JSON.stringify(oldState[path]) === JSON.stringify(value)) {
         return Promise.resolve();
       }
       const added = value.filter((v) => oldState[path].indexOf(v) === -1);
