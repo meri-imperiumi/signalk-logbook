@@ -147,7 +147,8 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
     case 'watch.current': {
-      if (oldState[path] === value) {
+      const nameValue = value?.teamName || null;
+      if (oldState[path] === nameValue) {
         // We can ignore state when it doesn't change
         return Promise.resolve();
       }
@@ -164,7 +165,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         // Not under way, no need to log watches stopping
         return Promise.resolve();
       }
-      return appendLog(`${value} on watch`);
+      return appendLog(`${nameValue} on watch`);
     }
     default: {
       break;
