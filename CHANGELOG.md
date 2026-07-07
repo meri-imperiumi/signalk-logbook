@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.9.6] - 2026-07-07
 ### Fixed
 - Logbook no longer fails on empty files
 - Automatic entries for watch changes now record names correctly
