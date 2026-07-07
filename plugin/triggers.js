@@ -11,6 +11,19 @@ function isUnderWay(state) {
   return false;
 }
 
+function watchLabel(value) {
+  if (!value) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value !== 'object') {
+    return '';
+  }
+  return value.teamName || value.name || value.label || '';
+}
+
 function sailsString(state, app) {
   const string = [];
   Object.keys(state).forEach((path) => {
@@ -147,12 +160,14 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
     case 'watch.current': {
-      if (oldState[path] === value) {
+      const oldWatch = watchLabel(oldState[path]);
+      const newWatch = watchLabel(value);
+      if (oldWatch === newWatch) {
         // We can ignore state when it doesn't change
         return Promise.resolve();
       }
-      if (!value) {
-        if (!oldState[path]) {
+      if (!newWatch) {
+        if (!oldWatch) {
           // Falsy to falsy transition, ignore
           return Promise.resolve();
         }
@@ -164,7 +179,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         // Not under way, no need to log watches stopping
         return Promise.resolve();
       }
-      return appendLog(`${value} on watch`);
+      return appendLog(`${newWatch} on watch`);
     }
     default: {
       break;
@@ -215,6 +230,8 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
 
   return Promise.resolve();
 };
+
+exports.watchLabel = watchLabel;
 
 exports.processHourly = function processHourly(oldState, log, app, minutesAfter = 0) {
   if (oldState['navigation.state'] !== 'sailing' && oldState['navigation.state'] !== 'motoring') {
