@@ -42,7 +42,7 @@ function Metadata(props) {
           }
           return;
         }
-        if (v.patch === 'watch.current') {
+        if (v.path === 'watch.current') {
           if (onWatch !== v.value) {
             setOnWatch(v.value);
           }
