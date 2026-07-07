@@ -35,7 +35,13 @@ class Log {
         }
         return readFile(path, 'utf-8');
       })
-      .then((content) => parse(content))
+      .then((content) => {
+        if (!content) {
+          // Empty file
+          return [];
+        }
+        return parse(content);
+      })
       .then((data) => this.validateDate(data)
         .then((valid) => {
           if (valid.errors.length > 0) {
