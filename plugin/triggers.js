@@ -240,7 +240,7 @@ exports.processHourly = function processHourly(oldState, log, app, minutesAfter 
         return Promise.resolve(true);
       }
       const withinWindow = entries.find((entry) => {
-        const diff = Math.abs(data.datetime - entry.date) / 1000 / 60;
+        const diff = Math.abs(new Date(data.datetime) - new Date(entry.datetime)) / 1000 / 60;
         if (diff < minutesAfter) {
           return true;
         }
