@@ -17,7 +17,7 @@ function Metadata(props) {
   const [editFilter, setEditFilter] = useState(false);
   const [editCrew, setEditCrew] = useState(false);
   const [crewNames, setCrew] = useState([]);
-  const [onWatch, setOnWatch] = useState([]);
+  const [onWatch, setOnWatch] = useState(null);
   const [sails, setSails] = useState([]);
   const paths = [
     'communication.crewNames',
@@ -195,7 +195,7 @@ function Metadata(props) {
     {crewNames.map((crewName) => (
       <ListInlineItem
       key={crewName}
-      className={(onWatch === crewName) ? styles['on-watch'] : 'idle'}
+      className={(onWatch && onWatch.crewName === crewName) ? styles['on-watch'] : 'idle'}
       onClick={() => setEditCrew(true)}
       >{crewName}</ListInlineItem>
     ))}
