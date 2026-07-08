@@ -147,8 +147,9 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
     case 'watch.current': {
-      const nameValue = value?.teamName || null;
-      if (oldState[path] === nameValue || oldState[path]?.teamName === nameValue) {
+      const nameValue = (value && value.teamName) ? value.teamName : null;
+      if (oldState[path] === nameValue
+        || (oldState[path] && oldState[path].teamName) === nameValue) {
         // We can ignore state when it doesn't change
         return Promise.resolve();
       }
