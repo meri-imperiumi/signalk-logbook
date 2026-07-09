@@ -5,6 +5,7 @@
 
 ### Fixed
 - "N minutes ago" now shows the selected value
+- Crew list modification logging
 
 ## [0.9.6] - 2026-07-07
 ### Fixed
