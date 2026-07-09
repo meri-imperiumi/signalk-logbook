@@ -24,7 +24,7 @@ paths:
       tags:
       - entries
       summary: Create new log entry
-      description: Create a new log entry for either now or up to 15 minutes ago
+      description: Create a new log entry for either now, up to 15 minutes ago, or an explicit date-time
       requestBody:
         content:
           application/json:
@@ -166,6 +166,9 @@ components:
           type: integer
           minimum: 0
           maximum: 15
+        datetime:
+          type: string
+          format: date-time
         observations:
           $ref: '#/components/schemas/Observations'
         vhf:

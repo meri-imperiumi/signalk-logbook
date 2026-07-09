@@ -18,12 +18,14 @@ import {
   AccordionHeader,
   AccordionItem,
 } from 'reactstrap';
+import { DateTime } from 'luxon';
 import { getSeaStates, getVisibility } from '../helpers/observations';
 
 function EntryEditor(props) {
   const [entry, updateEntry] = useState({
     ...props.entry,
   });
+  const isNew = props.isNew || !Number.isNaN(Number(entry.ago));
 
   const fixTypes = [
     'GPS',
@@ -33,6 +35,28 @@ function EntryEditor(props) {
     'Celestial',
     'DR',
   ];
+
+  function displayZone() {
+    return props.displayTimeZone || 'UTC';
+  }
+
+  function datetimeLocalNow() {
+    return DateTime.now().setZone(displayZone()).toFormat("yyyy-MM-dd'T'HH:mm");
+  }
+
+  function datetimeLocalToIso(value) {
+    const datetime = DateTime.fromFormat(value, "yyyy-MM-dd'T'HH:mm", {
+      zone: displayZone(),
+    });
+    return datetime.isValid ? datetime.toUTC().toISO() : value;
+  }
+
+  function whenValue() {
+    if (entry.datetime) {
+      return 'specific';
+    }
+    return Number.isNaN(Number(entry.ago)) ? '0' : entry.ago.toString();
+  }
 
   // Default: should observations be open?
   const [open, setOpen] = useState(entry.observations || !Number.isNaN(Number(entry.ago)) ? 'observations' : '');
@@ -87,6 +111,16 @@ function EntryEditor(props) {
         updated[name] = parseInt(value, 10);
         break;
       }
+      case 'when': {
+        if (value === 'specific') {
+          delete updated.ago;
+          updated.datetime = updated.datetime || datetimeLocalNow();
+        } else {
+          delete updated.datetime;
+          updated.ago = parseInt(value, 10);
+        }
+        break;
+      }
       default: {
         updated[name] = value;
       }
@@ -94,7 +128,15 @@ function EntryEditor(props) {
     updateEntry(updated);
   }
   function save() {
-    props.save(entry);
+    const savingEntry = {
+      ...entry,
+    };
+    if (savingEntry.datetime) {
+      savingEntry.datetime = datetimeLocalToIso(savingEntry.datetime);
+    }
+    delete savingEntry.when;
+    delete savingEntry.timeMode;
+    props.save(savingEntry);
   }
   function deleteEntry() {
     props.delete(entry);
@@ -110,15 +152,15 @@ function EntryEditor(props) {
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
-        { Number.isNaN(Number(entry.ago))
+        { !isNew
           && `Log entry ${entry.date.toLocaleString('en-GB', {
             timeZone: props.displayTimeZone,
           })} by ${entry.author || 'auto'}`}
-        { !Number.isNaN(Number(entry.ago))
+        { isNew
           && 'New entry'}
       </ModalHeader>
       <ModalBody>
-        { Number.isNaN(Number(entry.ago))
+        { !isNew
           && <Row>
           <Col className="text-end text-right">
             <Button color="danger" onClick={deleteEntry}>
@@ -141,22 +183,37 @@ function EntryEditor(props) {
               onChange={handleChange}
             />
           </FormGroup>
-          { !Number.isNaN(Number(entry.ago))
+          { isNew
             && <FormGroup>
-            <Label for="ago">
+            <Label for="when">
               This happened
             </Label>
             <Input
-              id="ago"
-              name="ago"
+              id="when"
+              name="when"
               type="select"
-              value={entry.ago}
+              value={whenValue()}
               onChange={handleChange}
             >
               {agoOptions.map((ago) => (
-              <option key={ago} value={ago}>{ago} minutes ago</option>
+              <option key={ago} value={ago}>{ago === 0 ? 'Now' : `${ago} minutes ago`}</option>
               ))}
+              <option value="specific">Specific time</option>
             </Input>
+          </FormGroup>
+          }
+          { isNew && whenValue() === 'specific'
+            && <FormGroup>
+            <Label for="datetime">
+              Date and time
+            </Label>
+            <Input
+              id="datetime"
+              name="datetime"
+              type="datetime-local"
+              value={entry.datetime || datetimeLocalNow()}
+              onChange={handleChange}
+            />
           </FormGroup>
           }
           <FormGroup>

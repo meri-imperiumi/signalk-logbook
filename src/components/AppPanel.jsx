@@ -189,9 +189,11 @@ function AppPanel(props) {
           /> : null }
         { addEntry ? <EntryEditor
           entry={addEntry}
+          isNew={true}
           cancel={() => setAddEntry(null)}
           save={saveAddEntry}
           categories={categories}
+          displayTimeZone={timezone}
           /> : null }
         <Col className="bg-light border">
           <Nav tabs>
