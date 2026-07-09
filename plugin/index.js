@@ -1,9 +1,8 @@
 const CircularBuffer = require('circular-buffer');
 const timezones = require('timezones-list');
 const Log = require('./Log');
-const stateToEntry = require('./format');
-const applyBodyFields = require('./entryFields');
 const resolveAgo = require('./ago');
+const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const openAPI = require('../schema/openapi.json');
@@ -262,27 +261,38 @@ module.exports = (app) => {
     router.post('/logs', (req, res) => {
       res.contentType('application/json');
       let stats;
-      // Default to 0 (most recent sample) when `ago` is missing/invalid —
-      // otherwise buffer.get(undefined) throws and 500s the request.
-      const ago = resolveAgo(req.body.ago);
-      if (ago > buffer.size()) {
-        // We don't have history that far, sadly
-        res.sendStatus(404);
-        return;
-      }
-      if (buffer.size() > 0) {
-        stats = buffer.get(ago);
-      } else {
-        stats = {
-          ...state,
-        };
-      }
       let author = '';
       if (req.cookies && req.cookies.JAUTHENTICATION) {
         author = parseJwt(req.cookies.JAUTHENTICATION).id;
       }
-      const data = applyBodyFields(stateToEntry(stats, req.body.text, author), req.body);
-      if (req.body.observations && !Number.isNaN(Number(req.body.observations.seaState))) {
+      if (!req.body.datetime) {
+        // Default to 0 (most recent sample) when `ago` is missing/invalid —
+        // otherwise buffer.get(undefined) throws and 500s the request.
+        const ago = resolveAgo(req.body.ago);
+        if (ago > buffer.size()) {
+          // We don't have history that far, sadly
+          res.sendStatus(404);
+          return;
+        }
+        if (buffer.size() > 0) {
+          stats = buffer.get(ago);
+        } else {
+          stats = {
+            ...state,
+          };
+        }
+      }
+      let data;
+      try {
+        data = newEntryFromBody(req.body, stats, author);
+      } catch (e) {
+        handleError(e, res);
+        return;
+      }
+      const shouldSendSeaState = !req.body.datetime
+        && req.body.observations
+        && !Number.isNaN(Number(req.body.observations.seaState));
+      if (shouldSendSeaState) {
         sendDelta(
           app,
           plugin,
