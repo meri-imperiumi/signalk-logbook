@@ -196,7 +196,32 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         } else {
           const diff = headingDifference(lastLoggedHeading, currentAverageHeading);
           if (diff > HEADING_CHANGE_THRESHOLD) {
-            const text = `Heading changed to ${Math.round(currentAverageHeading)}°`;
+            let text = `Heading changed to ${Math.round(currentAverageHeading)}°`;
+
+            const windDirection = oldState['environment.wind.directionTrue'];
+            if (typeof windDirection === 'number' && !isNaN(windDirection)) {
+              const hOld = lastLoggedHeading;
+              const hNew = currentAverageHeading;
+              const w = windDirection;
+
+              const rOld = (w - hOld + 360) % 360;
+              const rNew = (w - hNew + 360) % 360;
+
+              const sideOld = rOld < 180 ? 'starboard' : 'port';
+              const sideNew = rNew < 180 ? 'starboard' : 'port';
+
+              if (sideOld !== sideNew) {
+                const deltaR = (rNew - rOld + 180) % 360 - 180;
+                let maneuver = '';
+                if ((sideOld === 'starboard' && deltaR < 0) || (sideOld === 'port' && deltaR > 0)) {
+                  maneuver = 'Tack';
+                } else {
+                  maneuver = 'Gybe';
+                }
+                text = `${maneuver} (Heading ${Math.round(hNew)}°)`;
+              }
+            }
+
             return appendLog(text).then(() => {
               return {
                 'custom.headingBuffer': [],
