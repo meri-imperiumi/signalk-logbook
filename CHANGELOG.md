@@ -1,4 +1,11 @@
 # Changelog
+## [Unreleased]
+### Added
+- You can now choose the chart provider to use with the map feature
+
+### Fixed
+- "N minutes ago" now shows the selected value
+
 ## [0.9.6] - 2026-07-07
 ### Fixed
 - Logbook no longer fails on empty files
