@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
 import { Point } from 'where';
 import { viewport } from '@mapbox/geo-viewport';
+import { chartLayersWithFallback, tileProvider, DEFAULT_LAYER } from '../helpers/charts';
 
 function calculateBounds(points) {
   if (!points.length) {
@@ -30,6 +31,10 @@ function Map(props) {
   })));
   const [bbox, setBbox] = useState([640, 480]);
   const mapContainer = useRef(null);
+  // Tile layers come from SignalK's configured charts; fall back to a default
+  // until the fetch resolves (and if none are configured). See helpers/charts.
+  const [layers, setLayers] = useState([DEFAULT_LAYER]);
+  const [activeLayer, setActiveLayer] = useState(0);
   useEffect(() => {
     if (!mapContainer.current) {
       return;
@@ -37,6 +42,17 @@ function Map(props) {
     const rect = mapContainer.current.getBoundingClientRect();
     setBbox([rect.width, rect.height]);
   }, []);
+  useEffect(() => {
+    fetch('/signalk/v1/api/resources/charts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resource) => {
+        const available = chartLayersWithFallback(resource);
+        setLayers(available);
+        setActiveLayer((current) => (current < available.length ? current : 0));
+      })
+      .catch(() => {});
+  }, []);
+  const layer = layers[activeLayer] || DEFAULT_LAYER;
   const viewportResult = viewport(calculateBounds(points), bbox);
   const centerAndZoom = {
     center: [viewportResult.center[1], viewportResult.center[0]],
@@ -119,10 +135,43 @@ function Map(props) {
   };
   return (
   <div ref={mapContainer} style={{
+    position: 'relative',
     width: '80vw',
     height: '80vh',
   }}>
+    {layers.length > 1 ? (
+      <div style={{
+        position: 'absolute',
+        zIndex: 400,
+        margin: '8px',
+        background: 'rgba(255,255,255,0.85)',
+        borderRadius: '4px',
+        padding: '2px',
+      }}>
+        {layers.map((l, idx) => (
+          <button
+            key={l.identifier}
+            type="button"
+            onClick={() => setActiveLayer(idx)}
+            style={{
+              border: 'none',
+              margin: '1px',
+              padding: '2px 6px',
+              cursor: 'pointer',
+              borderRadius: '3px',
+              background: idx === activeLayer ? '#009bdb' : 'transparent',
+              color: idx === activeLayer ? '#fff' : '#333',
+            }}
+          >
+            {l.name}
+          </button>
+        ))}
+      </div>
+    ) : null}
     <PigeonMap
+      provider={tileProvider(layer.url)}
+      minZoom={layer.minZoom}
+      maxZoom={layer.maxZoom}
       center={centerAndZoom.center}
       zoom={centerAndZoom.zoom}
     >
