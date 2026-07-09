@@ -2,6 +2,7 @@
 ## [Unreleased]
 ### Added
 - You can now choose the chart provider to use with the map feature
+- Log entries can be made for arbitrary date and time and not only "N minutes ago"
 
 ### Fixed
 - "N minutes ago" now shows the selected value
