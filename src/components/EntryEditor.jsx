@@ -150,7 +150,7 @@ function EntryEditor(props) {
               id="ago"
               name="ago"
               type="select"
-              value={entry.text}
+              value={entry.ago}
               onChange={handleChange}
             >
               {agoOptions.map((ago) => (
