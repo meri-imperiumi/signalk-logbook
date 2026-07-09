@@ -10,14 +10,13 @@ function headingDifference(h1, h2) {
 }
 
 function calculateCircularMean(values) {
-  let sinSum = 0;
-  let cosSum = 0;
-  for (const val of values) {
+  const sums = values.reduce((acc, val) => {
     const rad = (val * Math.PI) / 180;
-    sinSum += Math.sin(rad);
-    cosSum += Math.cos(rad);
-  }
-  const avgRad = Math.atan2(sinSum, cosSum);
+    acc.sinSum += Math.sin(rad);
+    acc.cosSum += Math.cos(rad);
+    return acc;
+  }, { sinSum: 0, cosSum: 0 });
+  const avgRad = Math.atan2(sums.sinSum, sums.cosSum);
   let avgDeg = (avgRad * 180) / Math.PI;
   if (avgDeg < 0) {
     avgDeg += 360;
@@ -161,12 +160,13 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       break;
     }
     case 'navigation.headingTrue': {
-      if (typeof value !== 'number' || isNaN(value)) {
+      if (typeof value !== 'number' || Number.isNaN(value)) {
         return Promise.resolve();
       }
 
       const options = app.readPluginOptions();
-      const logHeadingChanges = options && options.configuration && options.configuration.logHeadingChanges !== false;
+      const logHeadingChanges = options && options.configuration
+        && options.configuration.logHeadingChanges !== false;
       if (!logHeadingChanges) {
         return Promise.resolve();
       }
@@ -193,42 +193,39 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
             'custom.headingBuffer': newHeadingBuffer,
             'custom.lastLoggedHeading': currentAverageHeading,
           });
-        } else {
-          const diff = headingDifference(lastLoggedHeading, currentAverageHeading);
-          if (diff > HEADING_CHANGE_THRESHOLD) {
-            let text = `Heading changed to ${Math.round(currentAverageHeading)}°`;
+        }
+        const diff = headingDifference(lastLoggedHeading, currentAverageHeading);
+        if (diff > HEADING_CHANGE_THRESHOLD) {
+          let text = `Heading changed to ${Math.round(currentAverageHeading)}°`;
 
-            const windDirection = oldState['environment.wind.directionTrue'];
-            if (typeof windDirection === 'number' && !isNaN(windDirection)) {
-              const hOld = lastLoggedHeading;
-              const hNew = currentAverageHeading;
-              const w = windDirection;
+          const windDirection = oldState['environment.wind.directionTrue'];
+          if (typeof windDirection === 'number' && !Number.isNaN(windDirection)) {
+            const hOld = lastLoggedHeading;
+            const hNew = currentAverageHeading;
+            const w = windDirection;
 
-              const rOld = (w - hOld + 360) % 360;
-              const rNew = (w - hNew + 360) % 360;
+            const rOld = (w - hOld + 360) % 360;
+            const rNew = (w - hNew + 360) % 360;
 
-              const sideOld = rOld < 180 ? 'starboard' : 'port';
-              const sideNew = rNew < 180 ? 'starboard' : 'port';
+            const sideOld = rOld < 180 ? 'starboard' : 'port';
+            const sideNew = rNew < 180 ? 'starboard' : 'port';
 
-              if (sideOld !== sideNew) {
-                const deltaR = (rNew - rOld + 180) % 360 - 180;
-                let maneuver = '';
-                if ((sideOld === 'starboard' && deltaR < 0) || (sideOld === 'port' && deltaR > 0)) {
-                  maneuver = 'Tack';
-                } else {
-                  maneuver = 'Gybe';
-                }
-                text = `${maneuver} (Heading ${Math.round(hNew)}°)`;
+            if (sideOld !== sideNew) {
+              const deltaR = ((rNew - rOld + 180) % 360) - 180;
+              let maneuver = '';
+              if ((sideOld === 'starboard' && deltaR < 0) || (sideOld === 'port' && deltaR > 0)) {
+                maneuver = 'Tack';
+              } else {
+                maneuver = 'Gybe';
               }
+              text = `${maneuver} (Heading ${Math.round(hNew)}°)`;
             }
-
-            return appendLog(text).then(() => {
-              return {
-                'custom.headingBuffer': [],
-                'custom.lastLoggedHeading': currentAverageHeading,
-              };
-            });
           }
+
+          return appendLog(text).then(() => ({
+            'custom.headingBuffer': [],
+            'custom.lastLoggedHeading': currentAverageHeading,
+          }));
         }
       }
       return Promise.resolve({

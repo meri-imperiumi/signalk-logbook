@@ -54,13 +54,15 @@ test('processTriggers logs major heading change after stability', async () => {
   };
 
   // Fill buffer and set lastLoggedHeading
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 0, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 0 };
   }
 
   // Change heading to 90
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 15; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 90, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 90 };
   }
@@ -86,7 +88,8 @@ test('processTriggers logs tack when wind side changes via bow', async () => {
   };
 
   // Fill buffer and set lastLoggedHeading to 0
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 0, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 0 };
   }
@@ -95,7 +98,8 @@ test('processTriggers logs tack when wind side changes via bow', async () => {
   // Wind 140, H_old 0 -> R_old = 140 (Starboard)
   // Wind 140, H_new 180 -> R_new = 320 (Port)
   // Side changed from Starboard to Port. DeltaR = -80 (Tack).
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 15; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 180, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 180 };
   }
@@ -121,7 +125,8 @@ test('processTriggers logs gybe when wind side changes via stern', async () => {
   };
 
   // Fill buffer and set lastLoggedHeading to 0
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 0, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 0 };
   }
@@ -130,7 +135,8 @@ test('processTriggers logs gybe when wind side changes via stern', async () => {
   // Wind 140, H_old 0 -> R_old = 140 (Starboard)
   // Wind 140, H_new 200 -> R_new = 300 (Port)
   // Side changed from Starboard to Port. DeltaR = 160 (Gybe).
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 15; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 200, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 200 };
   }
@@ -155,13 +161,15 @@ test('processTriggers ignores heading changes when logHeadingChanges is disabled
   };
 
   // Fill buffer
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 0, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 0 };
   }
 
   // Trigger change
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 15; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 90, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 90 };
   }
@@ -184,7 +192,8 @@ test('processTriggers resets heading buffer when vessel stops', async () => {
   };
 
   // Fill buffer with 0s
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
     const updates = await processTriggers('navigation.headingTrue', 0, state, log, app);
     state = { ...state, ...updates, 'navigation.headingTrue': 0 };
   }
