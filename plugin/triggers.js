@@ -164,6 +164,13 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       if (typeof value !== 'number' || isNaN(value)) {
         return Promise.resolve();
       }
+
+      const options = app.readPluginOptions();
+      const logHeadingChanges = options && options.configuration && options.configuration.logHeadingChanges !== false;
+      if (!logHeadingChanges) {
+        return Promise.resolve();
+      }
+
       if (!isUnderWay(oldState)) {
         return Promise.resolve({
           'custom.headingBuffer': [],
