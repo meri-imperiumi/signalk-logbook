@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.10.0] - 2026-07-09
 ### Added
 - You can now choose the chart provider to use with the map feature
 - Log entries can be made for arbitrary date and time and not only "N minutes ago"
