@@ -22,6 +22,14 @@ Traditional logbook view:
 Log entries on a map:
 ![Map view](https://user-images.githubusercontent.com/3346/219135937-0e1b75cf-13ed-4f79-9ba0-0d2b6fee7747.jpeg)
 
+The map uses whatever chart layers you've configured in Signal K (via
+[resources providers](https://github.com/SignalK/charts-plugin) such as the charts plugin) — offline
+MBTiles, ENCs, or a tile proxy — with a layer switcher when more than one is available. If no charts
+are configured it falls back to OpenStreetMap tiles. Note that OSM's [tile usage
+policy](https://operations.osmfoundation.org/policies/tiles/) blocks referer-less requests, which
+self-hosted Signal K setups often trigger, so installing the charts plugin (or another
+`resources/charts` provider) is the reliable way to get a working map.
+
 Registering sail changes:
 ![Sails editor](https://user-images.githubusercontent.com/3346/222392061-6760eb71-93a8-4c99-b47b-a9f2fd7b1c54.png)
 
