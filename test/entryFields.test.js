@@ -40,3 +40,19 @@ test('state-derived fields pass through untouched', () => {
   assert.strictEqual(entry.heading, 190);
   assert.strictEqual(entry.vhf, '16'); // auto-captured channel kept when body has none
 });
+
+test('body author overrides the cookie-derived one (delegation)', () => {
+  assert.strictEqual(applyBodyFields({ author: 'token-id' }, { author: 'Bryan' }).author, 'Bryan');
+  assert.strictEqual(applyBodyFields({ author: 'token-id' }, {}).author, 'token-id');
+});
+
+test('non-string or empty body author is ignored', () => {
+  assert.strictEqual(applyBodyFields({ author: 'a' }, { author: '' }).author, 'a');
+  assert.strictEqual(applyBodyFields({ author: 'a' }, { author: 42 }).author, 'a');
+});
+
+test('body origin is accepted when valid, ignored otherwise', () => {
+  assert.strictEqual(applyBodyFields({ origin: 'manual' }, { origin: 'agent' }).origin, 'agent');
+  assert.strictEqual(applyBodyFields({ origin: 'manual' }, { origin: 'bogus' }).origin, 'manual');
+  assert.strictEqual(applyBodyFields({ origin: 'manual' }, {}).origin, 'manual');
+});

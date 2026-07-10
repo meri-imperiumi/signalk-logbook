@@ -28,5 +28,13 @@ module.exports = function applyBodyFields(data, body) {
       ...body.position,
     };
   }
+  if (typeof body.author === 'string' && body.author.length >= 1) {
+    // Delegation: an authenticated client (voice assistant, crew app) writes
+    // the line on behalf of the person who authored it.
+    entry.author = body.author;
+  }
+  if (['manual', 'auto', 'agent'].includes(body.origin)) {
+    entry.origin = body.origin;
+  }
   return entry;
 };
