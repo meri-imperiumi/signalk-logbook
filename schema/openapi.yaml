@@ -305,6 +305,14 @@ components:
         author:
           type: string
           example: auto
+        origin:
+          type: string
+          enum:
+          - manual
+          - auto
+          - agent
+          default: manual
+          example: auto
         category:
           type: string
           enum:
