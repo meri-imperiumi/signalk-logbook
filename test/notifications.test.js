@@ -277,3 +277,22 @@ test('logNotificationClears:false closes episodes without a clear entry', async 
   assert.strictEqual(entries.length, 1);
   assert.strictEqual(episodes.size, 0);
 });
+
+test('notification entries are stamped origin auto', async () => {
+  let captured;
+  const log = { appendEntry: async (date, data) => { captured = data; } };
+  const app = { setPluginStatus: () => {} };
+  const episodes = new Map();
+  await n.processNotification(
+    'notifications.navigation.restrictedArea.x',
+    { state: 'warn', message: 'Test warning' },
+    {},
+    episodes,
+    log,
+    app,
+    n.buildConfig({}),
+    Date.now(),
+  );
+  assert.strictEqual(captured.origin, 'auto');
+  assert.strictEqual(captured.author, '');
+});

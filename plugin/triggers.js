@@ -43,7 +43,7 @@ function sailsString(state, app) {
 
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
   function appendLog(text, additionalData = {}) {
-    const data = stateToEntry(oldState, text);
+    const data = stateToEntry(oldState, text, '', 'auto');
     Object.keys(additionalData).forEach((key) => {
       data[key] = additionalData[key];
     });
@@ -222,7 +222,7 @@ exports.processHourly = function processHourly(oldState, log, app, minutesAfter 
   if (oldState['navigation.state'] !== 'sailing' && oldState['navigation.state'] !== 'motoring') {
     return Promise.resolve();
   }
-  const data = stateToEntry(oldState, '');
+  const data = stateToEntry(oldState, '', '', 'auto');
 
   const dateString = data.datetime.substr(0, 10);
 

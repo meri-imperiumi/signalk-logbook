@@ -76,7 +76,7 @@ function buildConfig(options = {}) {
 }
 
 function appendEntry(log, app, state, text, category, datetimeOverride) {
-  const data = stateToEntry(state, text);
+  const data = stateToEntry(state, text, '', 'auto');
   data.category = category;
   if (datetimeOverride != null) {
     data.datetime = new Date(datetimeOverride).toISOString();
