@@ -47,6 +47,10 @@ test('body author overrides the cookie-derived one (delegation)', () => {
 });
 
 test('non-string or empty body author is ignored', () => {
+  // entry with NO pre-existing author: bad body.author must not produce one
+  assert.strictEqual(applyBodyFields({}, { author: '' }).author, undefined);
+  assert.strictEqual(applyBodyFields({}, { author: 42 }).author, undefined);
+  // pre-existing author preserved when body.author is bad
   assert.strictEqual(applyBodyFields({ author: 'a' }, { author: '' }).author, 'a');
   assert.strictEqual(applyBodyFields({ author: 'a' }, { author: 42 }).author, 'a');
 });
@@ -55,4 +59,5 @@ test('body origin is accepted when valid, ignored otherwise', () => {
   assert.strictEqual(applyBodyFields({ origin: 'manual' }, { origin: 'agent' }).origin, 'agent');
   assert.strictEqual(applyBodyFields({ origin: 'manual' }, { origin: 'bogus' }).origin, 'manual');
   assert.strictEqual(applyBodyFields({ origin: 'manual' }, {}).origin, 'manual');
+  assert.strictEqual(applyBodyFields({}, { origin: 'bogus' }).origin, undefined);
 });
