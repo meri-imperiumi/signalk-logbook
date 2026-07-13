@@ -146,6 +146,12 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       }
       break;
     }
+    case 'communication.skipperName': {
+      if (!oldState[path] || !value || oldState[path] === value) {
+        return Promise.resolve();
+      }
+      return appendLog(`${value} took over as skipper`);
+    }
     case 'watch.current': {
       const nameValue = (value && value.teamName) ? value.teamName : null;
       if (oldState[path] === nameValue

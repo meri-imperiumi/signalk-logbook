@@ -105,5 +105,8 @@ module.exports = function stateToEntry(state, text, author = '', origin = 'manua
   if (state['communication.crewNames']) {
     data.crewNames = state['communication.crewNames'];
   }
+  if (state['communication.skipperName']) {
+    data.skipperName = state['communication.skipperName'];
+  }
   return data;
 };

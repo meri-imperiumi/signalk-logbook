@@ -305,6 +305,9 @@ components:
           type: array
           items:
             type: string
+        skipperName:
+          type: string
+          example: Alice
         end:
           type: boolean
           default: false

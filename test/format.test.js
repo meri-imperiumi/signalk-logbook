@@ -52,3 +52,17 @@ test('stateToEntry stamps origin manual by default and accepts an override', () 
   assert.strictEqual(stateToEntry({}, 'hello', '', 'auto').origin, 'auto');
   assert.strictEqual(stateToEntry({}, 'hello', 'poseidon', 'agent').origin, 'agent');
 });
+
+test('skipperName is snapshotted into the entry', () => {
+  const state = { 'communication.skipperName': 'Alice' };
+
+  const entry = stateToEntry(state, 'Test entry');
+
+  assert.strictEqual(entry.skipperName, 'Alice');
+});
+
+test('entry has no skipperName key when state lacks one', () => {
+  const entry = stateToEntry({}, 'Test entry');
+
+  assert.strictEqual('skipperName' in entry, false);
+});
