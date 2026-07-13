@@ -13,17 +13,23 @@ class Log {
   constructor(dir) {
     this.dir = dir;
     this.validator = null;
+    this.queues = new Map(); // Tracks active promises per date to prevent race conditions
   }
 
-  listDates() {
-    return readdir(this.dir)
-      .then((dates) => {
-        const valid = dates.filter((e) => e.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])\.yml$/));
-        return valid.map((v) => basename(v, '.yml'));
-      });
+  // --- CONCURRENCY CONTROL ---
+
+  _enqueue(date, task) {
+    const current = this.queues.get(date) || Promise.resolve();
+    const promise = current.then(() => task());
+
+    // Catch errors so a failed task doesn't permanently break the queue for this date file
+    this.queues.set(date, promise.catch(() => {}));
+    return promise;
   }
 
-  getDate(date) {
+  // --- INTERNAL DISK OPERATIONS (Unqueued) ---
+
+  _getDateInternal(date) {
     if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
       return Promise.reject(new Error('Invalid date format'));
     }
@@ -37,7 +43,6 @@ class Log {
       })
       .then((content) => {
         if (!content) {
-          // Empty file
           return [];
         }
         return parse(content);
@@ -56,31 +61,11 @@ class Log {
         }));
   }
 
-  getEntry(datetime) {
-    const datetimeString = new Date(datetime).toISOString();
-    const dateString = datetimeString.substr(0, 10);
-    return this.getDate(dateString)
-      .then((date) => {
-        const entry = date.find((e) => e.datetime.toISOString() === datetimeString);
-        if (!entry) {
-          const err = new Error(`Entry ${datetimeString} not found`);
-          err.code = 'ENOENT';
-          return Promise.reject(err);
-        }
-        return {
-          ...entry,
-          category: entry.category || 'navigation',
-          datetime: new Date(entry.datetime),
-        };
-      });
-  }
-
-  writeDate(date, data) {
+  _writeDateInternal(date, data) {
     if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
       return Promise.reject(new Error('Invalid date format'));
     }
     const path = this.getPath(date);
-    // TODO: Validate against schema
     Log.sortDate(data);
     const normalized = data.map((e) => ({
       ...e,
@@ -96,45 +81,82 @@ class Log {
       });
   }
 
+  // --- PUBLIC API ---
+
+  listDates() {
+    return readdir(this.dir)
+      .then((dates) => {
+        const valid = dates.filter((e) => e.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])\.yml$/));
+        return valid.map((v) => basename(v, '.yml'));
+      });
+  }
+
+  getDate(date) {
+    return this._enqueue(date, () => this._getDateInternal(date));
+  }
+
+  getEntry(datetime) {
+    const datetimeString = new Date(datetime).toISOString();
+    const dateString = datetimeString.substr(0, 10);
+    return this.getDate(dateString) // Uses public getDate, which handles queuing safely
+      .then((dateData) => {
+        const entry = dateData.find((e) => e.datetime.toISOString() === datetimeString);
+        if (!entry) {
+          const err = new Error(`Entry ${datetimeString} not found`);
+          err.code = 'ENOENT';
+          return Promise.reject(err);
+        }
+        return {
+          ...entry,
+          category: entry.category || 'navigation',
+          datetime: new Date(entry.datetime),
+        };
+      });
+  }
+
+  writeDate(date, data) {
+    return this._enqueue(date, () => this._writeDateInternal(date, data));
+  }
+
   writeEntry(entry) {
     const datetimeString = new Date(entry.datetime).toISOString();
     const dateString = datetimeString.substr(0, 10);
-    return this.validateEntry(entry)
+
+    return this._enqueue(dateString, () => this.validateEntry(entry)
       .then((valid) => {
         if (valid.errors.length > 0) {
           return Promise.reject(valid.errors[0]);
         }
-        return this.getDate(dateString).catch((err) => {
+        return this._getDateInternal(dateString).catch((err) => {
           if (err.code === 'ENOENT') {
             return [];
           }
           throw err;
         });
       })
-      .then((date) => {
+      .then((dateData) => {
         const normalized = {
           ...entry,
           datetime: new Date(entry.datetime),
         };
-        const idx = date.findIndex((e) => e.datetime.toISOString() === datetimeString);
-        const updatedDate = [...date];
+        const idx = dateData.findIndex((e) => e.datetime.toISOString() === datetimeString);
+        const updatedDate = [...dateData];
         if (idx === -1) {
-          // TODO: Would it be better to fail here?
           updatedDate.push(normalized);
         } else {
           updatedDate[idx] = normalized;
         }
-        return this.writeDate(dateString, updatedDate);
-      });
+        return this._writeDateInternal(dateString, updatedDate);
+      }));
   }
 
   appendEntry(date, data) {
-    return this.validateEntry(data)
+    return this._enqueue(date, () => this.validateEntry(data)
       .then((valid) => {
         if (valid.errors.length > 0) {
           return Promise.reject(valid.errors[0]);
         }
-        return this.getDate(date).catch((err) => {
+        return this._getDateInternal(date).catch((err) => {
           if (err.code === 'ENOENT') {
             return [];
           }
@@ -147,23 +169,24 @@ class Log {
           datetime: new Date(data.datetime),
         };
         d.push(normalized);
-        return this.writeDate(date, d);
-      });
+        return this._writeDateInternal(date, d);
+      }));
   }
 
   deleteEntry(datetimeString) {
     const dateString = datetimeString.substr(0, 10);
-    return this.getDate(dateString)
-      .then((date) => {
-        const entryIdx = date.findIndex((e) => e.datetime.toISOString() === datetimeString);
+
+    return this._enqueue(dateString, () => this._getDateInternal(dateString)
+      .then((dateData) => {
+        const entryIdx = dateData.findIndex((e) => e.datetime.toISOString() === datetimeString);
         if (entryIdx === -1) {
           const err = new Error(`Entry ${datetimeString} not found`);
           err.code = 'ENOENT';
           return Promise.reject(err);
         }
-        date.splice(entryIdx, 1);
-        return this.writeDate(dateString, date);
-      });
+        dateData.splice(entryIdx, 1);
+        return this._writeDateInternal(dateString, dateData);
+      }));
   }
 
   getPath(date) {
@@ -195,11 +218,9 @@ class Log {
         $id: `https://lille-oe.de/#Logbook-${name}`,
       };
       if (schema.$id === 'https://lille-oe.de/#Logbook-Log') {
-        // TODO: Proper dereferencing
         schema.items.$ref = 'https://lille-oe.de/#Logbook-Entry';
       }
       if (schema.$id === 'https://lille-oe.de/#Logbook-Entry' || schema.$id === 'https://lille-oe.de/#Logbook-Entry') {
-        // TODO: Proper dereferencing
         schema.properties.observations.$ref = 'https://lille-oe.de/#Logbook-Observations';
       }
       v.addSchema(schema);

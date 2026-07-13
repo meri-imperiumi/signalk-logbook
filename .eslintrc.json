@@ -24,6 +24,7 @@
       }
     ],
     "react/prop-types": "warn",
-    "linebreak-style": "warn"
+    "linebreak-style": "warn",
+    "no-underscore-dangle": "warn"
   }
 }

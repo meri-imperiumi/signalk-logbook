@@ -3,6 +3,9 @@
 ### Added
 - Identification capability between manual, automatic, and AI-written entries (the last identified with the [EU-recommended label](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content))
 
+### Fixed
+- Added file write queue, so simultaneous log writes should not longer risk corrupting the current log file
+
 ## [0.10.0] - 2026-07-09
 ### Added
 - You can now choose the chart provider to use with the map feature
