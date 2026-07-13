@@ -95,6 +95,29 @@ test('appendEntry creates a new day file when none exists', async () => {
   }
 });
 
+test('getDate assigns origin to legacy entries at read time', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const date = '2026-06-11';
+    const stored = [
+      { datetime: '2026-06-11T08:00:00.000Z', text: 'Hourly entry' },
+      { datetime: '2026-06-11T09:00:00.000Z', text: 'Sail change', author: 'bryan' },
+      {
+        datetime: '2026-06-11T10:00:00.000Z', text: 'Drill logged', author: 'poseidon', origin: 'agent',
+      },
+    ];
+    await writeFile(join(dir, `${date}.yml`), stringify(stored), 'utf-8');
+
+    const log = new Log(dir);
+    const entries = await log.getDate(date);
+    assert.strictEqual(entries[0].origin, 'auto', 'authorless legacy entries read as auto');
+    assert.strictEqual(entries[1].origin, 'manual', 'authored legacy entries read as manual');
+    assert.strictEqual(entries[2].origin, 'agent', 'stored origin is preserved');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('writeEntry creates a new day file when none exists', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
   try {
