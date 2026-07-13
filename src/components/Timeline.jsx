@@ -10,6 +10,7 @@ import {
 } from 'reactstrap';
 import { Point } from 'where';
 import EntryDetails from './EntryDetails.jsx';
+import OriginBadge from './OriginBadge.jsx';
 
 function Timeline(props) {
   const entries = props.entries.map((entry) => ({
@@ -27,6 +28,7 @@ function Timeline(props) {
             <Row>
               <Col xs="3">
                 {entry.author || 'auto'}
+                <OriginBadge origin={entry.origin} />
               </Col>
               <Col className="text-end text-right">
                 {entry.date.toLocaleString('en-GB', {

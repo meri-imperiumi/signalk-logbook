@@ -6,6 +6,7 @@ import {
 import { Point } from 'where';
 import { DateTime } from 'luxon';
 import styles from './styles.module.css';
+import OriginBadge from './OriginBadge.jsx';
 
 function getWeather(entry) {
   const weather = [];
@@ -109,7 +110,7 @@ function Logbook(props) {
                 ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}h`).join(', ')
                 : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''
             )}</td>
-            <td>{entry.author || 'auto'}</td>
+            <td>{entry.author || 'auto'}<OriginBadge origin={entry.origin} /></td>
             <td>{entry.text}</td>
           </tr>
         ))}
