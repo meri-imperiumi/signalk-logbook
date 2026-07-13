@@ -176,6 +176,15 @@ components:
           maxLength: 2
           minLength: 1
           example: '70'
+        author:
+          type: string
+          example: Bryan
+        origin:
+          type: string
+          enum:
+          - manual
+          - auto
+          - agent
     Entry:
       type: object
       additionalProperties: false
@@ -304,6 +313,14 @@ components:
           example: Autopilot activated
         author:
           type: string
+          example: auto
+        origin:
+          type: string
+          enum:
+          - manual
+          - auto
+          - agent
+          default: manual
           example: auto
         category:
           type: string

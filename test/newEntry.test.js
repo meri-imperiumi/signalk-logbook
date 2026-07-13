@@ -59,3 +59,30 @@ test('newEntryFromBody with explicit datetime does not copy state-derived naviga
   assert.strictEqual(entry.position, undefined);
   assert.strictEqual(entry.wind, undefined);
 });
+
+test('newEntryFromBody with explicit datetime defaults origin to manual', () => {
+  const entry = newEntryFromBody(
+    {
+      datetime: '2026-07-07T18:45:00.000Z',
+      text: 'Explicit time entry',
+    },
+    {},
+    'admin',
+  );
+
+  assert.strictEqual(entry.origin, 'manual');
+});
+
+test('newEntryFromBody with explicit datetime allows body origin to override', () => {
+  const entry = newEntryFromBody(
+    {
+      datetime: '2026-07-07T18:45:00.000Z',
+      text: 'Agent entry',
+      origin: 'agent',
+    },
+    {},
+    'admin',
+  );
+
+  assert.strictEqual(entry.origin, 'agent');
+});

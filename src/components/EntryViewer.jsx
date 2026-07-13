@@ -7,6 +7,7 @@ import {
   Button,
 } from 'reactstrap';
 import EntryDetails from './EntryDetails.jsx';
+import OriginBadge from './OriginBadge.jsx';
 
 function EntryViewer(props) {
   const { entry } = props;
@@ -16,6 +17,7 @@ function EntryViewer(props) {
         Log entry {entry.date.toLocaleString('en-GB', {
           timeZone: props.displayTimeZone,
         })} by {entry.author || 'auto'}
+        <OriginBadge origin={entry.origin} />
       </ModalHeader>
       <ModalBody>
         <EntryDetails entry={entry} />

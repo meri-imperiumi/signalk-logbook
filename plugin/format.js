@@ -6,11 +6,12 @@ function ms2kt(ms) {
   return parseFloat((ms * 1.94384).toFixed(1));
 }
 
-module.exports = function stateToEntry(state, text, author = '') {
+module.exports = function stateToEntry(state, text, author = '', origin = 'manual') {
   const data = {
     datetime: state['navigation.datetime'] || new Date().toISOString(),
     text,
     author,
+    origin,
   };
   if (state['navigation.position']) {
     data.position = {

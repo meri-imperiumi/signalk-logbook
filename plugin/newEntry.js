@@ -19,6 +19,7 @@ function newEntryFromBody(body, stats, author = '') {
       datetime,
       text: body.text,
       author,
+      origin: 'manual',
     }, body);
   }
   return applyBodyFields(stateToEntry(stats, body.text, author), body);

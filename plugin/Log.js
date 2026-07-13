@@ -50,6 +50,7 @@ class Log {
           return data.map((entry) => ({
             ...entry,
             category: entry.category || 'navigation',
+            origin: entry.origin || (entry.author ? 'manual' : 'auto'),
             datetime: new Date(entry.datetime),
           }));
         }));

@@ -46,3 +46,9 @@ test('pre-existing entry with only engine.hours loads without error', () => {
   assert.strictEqual(oldEntry.engine.hours, 10.5);
   assert.strictEqual(oldEntry.engine.engines, undefined);
 });
+
+test('stateToEntry stamps origin manual by default and accepts an override', () => {
+  assert.strictEqual(stateToEntry({}, 'hello').origin, 'manual');
+  assert.strictEqual(stateToEntry({}, 'hello', '', 'auto').origin, 'auto');
+  assert.strictEqual(stateToEntry({}, 'hello', 'poseidon', 'agent').origin, 'agent');
+});
