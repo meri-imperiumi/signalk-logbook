@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Added
+- Identification capability between manual, automatic, and AI-written entries (the last identified with the [EU-recommended label](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content))
+
 ## [0.10.0] - 2026-07-09
 ### Added
 - You can now choose the chart provider to use with the map feature
