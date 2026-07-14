@@ -165,9 +165,7 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       }
 
       const options = app.readPluginOptions();
-      const logHeadingChanges = options && options.configuration
-        && options.configuration.logHeadingChanges !== false;
-      if (!logHeadingChanges) {
+      if (!options || !options.configuration || options.configuration.logHeadingChanges !== true) {
         return Promise.resolve();
       }
 

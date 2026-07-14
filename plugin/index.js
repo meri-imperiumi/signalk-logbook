@@ -423,7 +423,7 @@ module.exports = (app) => {
       },
       logHeadingChanges: {
         type: 'boolean',
-        default: true,
+        default: false,
         title: 'Log major heading changes',
       },
     },

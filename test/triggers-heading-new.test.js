@@ -3,12 +3,16 @@ const assert = require('node:assert');
 const { processTriggers } = require('../plugin/triggers');
 
 function appHarness(options = {}) {
+  const opts = { ...options };
+  if (opts.logHeadingChanges === undefined) {
+    opts.logHeadingChanges = true;
+  }
   const statuses = [];
   return {
     statuses,
     app: {
       setPluginStatus: (status) => statuses.push(status),
-      readPluginOptions: () => ({ configuration: options }),
+      readPluginOptions: () => ({ configuration: opts }),
     },
   };
 }
