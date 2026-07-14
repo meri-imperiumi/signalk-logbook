@@ -1,7 +1,9 @@
 # Changelog
-## [Unreleased]
+## [0.11.0] - 2026-07-14
 ### Added
 - Identification capability between manual, automatic, and AI-written entries (the last identified with the [EU-recommended label](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content))
+- Automatic logging of major heading changes (tack, gybe, etc). Opt-in.
+- Automatic logging of current skipper name (and skipper changes)
 
 ### Fixed
 - Added file write queue, so simultaneous log writes should not longer risk corrupting the current log file
