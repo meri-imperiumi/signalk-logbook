@@ -1,6 +1,29 @@
 const ordinal = require('ordinal');
 const stateToEntry = require('./format');
 
+function headingDifference(h1, h2) {
+  let diff = Math.abs(h1 - h2) % 360;
+  if (diff > 180) {
+    diff = 360 - diff;
+  }
+  return diff;
+}
+
+function calculateCircularMean(values) {
+  const sums = values.reduce((acc, val) => {
+    const rad = (val * Math.PI) / 180;
+    acc.sinSum += Math.sin(rad);
+    acc.cosSum += Math.cos(rad);
+    return acc;
+  }, { sinSum: 0, cosSum: 0 });
+  const avgRad = Math.atan2(sums.sinSum, sums.cosSum);
+  let avgDeg = (avgRad * 180) / Math.PI;
+  if (avgDeg < 0) {
+    avgDeg += 360;
+  }
+  return avgDeg;
+}
+
 function isUnderWay(state) {
   if (state['navigation.state'] === 'sailing') {
     return true;
@@ -58,6 +81,9 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
       });
   }
 
+  const HEADING_BUFFER_SIZE = 10;
+  const HEADING_CHANGE_THRESHOLD = 60;
+
   switch (path) {
     case 'steering.autopilot.state': {
       if (oldState[path] === value || !oldState[path]) {
@@ -87,11 +113,21 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         // We can ignore state when it doesn't change
         return Promise.resolve();
       }
-      if (value === 'anchored') {
-        return appendLog('Anchored', {
-          end: true,
-        });
+
+      const stateUpdates = {
+        'custom.headingBuffer': [],
+        'custom.lastLoggedHeading': null,
+      };
+
+      if (value === 'anchored' || value === 'moored') {
+        if (value === 'anchored') {
+          return appendLog('Anchored', {
+            end: true,
+          }).then(() => stateUpdates);
+        }
+        return Promise.resolve(stateUpdates);
       }
+
       if (value === 'sailing') {
         let text = '';
         if (oldState[path] === 'motoring') {
@@ -122,6 +158,79 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         });
       }
       break;
+    }
+    case 'navigation.headingTrue': {
+      if (typeof value !== 'number' || Number.isNaN(value)) {
+        return Promise.resolve();
+      }
+
+      const options = app.readPluginOptions();
+      if (!options || !options.configuration || options.configuration.logHeadingChanges !== true) {
+        return Promise.resolve();
+      }
+
+      if (!isUnderWay(oldState)) {
+        return Promise.resolve({
+          'custom.headingBuffer': [],
+          'custom.lastLoggedHeading': null,
+        });
+      }
+
+      const headingBuffer = oldState['custom.headingBuffer'] || [];
+      const lastLoggedHeading = oldState['custom.lastLoggedHeading'] || null;
+
+      const newHeadingBuffer = [...headingBuffer, value];
+      if (newHeadingBuffer.length > HEADING_BUFFER_SIZE) {
+        newHeadingBuffer.shift();
+      }
+
+      if (newHeadingBuffer.length >= 3) {
+        const currentAverageHeading = calculateCircularMean(newHeadingBuffer);
+        if (lastLoggedHeading === null) {
+          return Promise.resolve({
+            'custom.headingBuffer': newHeadingBuffer,
+            'custom.lastLoggedHeading': currentAverageHeading,
+          });
+        }
+        const diff = headingDifference(lastLoggedHeading, currentAverageHeading);
+        if (diff > HEADING_CHANGE_THRESHOLD) {
+          let text = `Heading changed to ${Math.round(currentAverageHeading)}°`;
+
+          if (oldState['navigation.state'] === 'sailing') {
+            const windDirection = oldState['environment.wind.directionTrue'];
+            if (typeof windDirection === 'number' && !Number.isNaN(windDirection)) {
+              const hOld = lastLoggedHeading;
+              const hNew = currentAverageHeading;
+              const w = windDirection;
+
+              const rOld = (w - hOld + 360) % 360;
+              const rNew = (w - hNew + 360) % 360;
+
+              const sideOld = rOld < 180 ? 'starboard' : 'port';
+              const sideNew = rNew < 180 ? 'starboard' : 'port';
+
+              if (sideOld !== sideNew) {
+                const deltaR = ((rNew - rOld + 180) % 360) - 180;
+                let maneuver = '';
+                if ((sideOld === 'starboard' && deltaR < 0) || (sideOld === 'port' && deltaR > 0)) {
+                  maneuver = 'Tack';
+                } else {
+                  maneuver = 'Gybe';
+                }
+                text = `${maneuver} (Heading ${Math.round(hNew)}°)`;
+              }
+            }
+          }
+
+          return appendLog(text).then(() => ({
+            'custom.headingBuffer': [],
+            'custom.lastLoggedHeading': currentAverageHeading,
+          }));
+        }
+      }
+      return Promise.resolve({
+        'custom.headingBuffer': newHeadingBuffer,
+      });
     }
     case 'communication.crewNames': {
       if (!oldState[path] || !oldState[path].length) {

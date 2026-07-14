@@ -422,6 +422,11 @@ module.exports = (app) => {
         default: true,
         title: 'Also log when a notification clears',
       },
+      logHeadingChanges: {
+        type: 'boolean',
+        default: false,
+        title: 'Log major heading changes',
+      },
     },
   };
 
