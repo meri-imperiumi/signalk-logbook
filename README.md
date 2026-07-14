@@ -94,6 +94,7 @@ The following SignalK paths are used by this logbook.
 |`propulsion.*.runTime`|Engine|`/engine/hours`||
 |`sails.inventory.*`|||Sail changes are logged.|
 |`communication.crewNames`||`/crewNames`|Crew changes are logged.|
+|`communication.skipperName`||`/skipperName`|Snapshotted into every entry. Skipper changes are logged.|
 |`steering.autopilot.state`|||Autopilot changes are logged.|
 |`navigation.state`|||If present, used to start and stop automated hourly entries. Changes are logged.|
 |`propulsion.*.state`|||Propulsion changes are logged.|
