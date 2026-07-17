@@ -94,6 +94,11 @@ module.exports = (app) => {
   let state = {};
   const episodes = new Map();
   let notificationConfig = buildConfig({});
+  // Deltas are processed strictly one at a time via this chain. Without
+  // serialization, overlapping deltas would each read stale `state` (trigger
+  // state updates only apply after the async log write resolves) and re-fire
+  // triggers, producing duplicate log entries.
+  let deltaChain = Promise.resolve();
 
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
@@ -118,7 +123,7 @@ module.exports = (app) => {
         if (!delta.updates) {
           return;
         }
-        delta.updates.reduce((prev, u) => prev.then(() => {
+        const processDelta = () => delta.updates.reduce((prev, u) => prev.then(() => {
           if (!u.values) {
             return Promise.resolve();
           }
@@ -159,6 +164,14 @@ module.exports = (app) => {
               state[v.path] = v.value;
             })), Promise.resolve());
         }), Promise.resolve());
+
+        // Queue this delta behind any in-flight one so the shared `state`
+        // object is never mutated concurrently by two triggers.
+        deltaChain = deltaChain
+          .then(processDelta)
+          .catch((err) => {
+            app.error(`Failed processing delta: ${err.message}`);
+          });
       },
     );
 
