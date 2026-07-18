@@ -182,7 +182,7 @@ module.exports = (app) => {
       }
       // How many minutes within the hour do we consider be the "hour entry"?
       const hourlyWindow = 1;
-      if (new Date(state.datetime).getMinutes() === hourlyWindow) {
+      if (new Date(state.datetime).getMinutes() === hourlyWindow && buffer.size() > hourlyWindow) {
         // Store hourly log entry
         const hourlyState = buffer.get(hourlyWindow);
         processHourly(hourlyState, log, app, hourlyWindow)
