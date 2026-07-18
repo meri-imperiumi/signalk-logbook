@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- Signal K deltas are now handled in sequence to guard agains duplicate trigger firings
+
 ## [0.11.0] - 2026-07-14
 ### Added
 - Identification capability between manual, automatic, and AI-written entries (the last identified with the [EU-recommended label](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content))
