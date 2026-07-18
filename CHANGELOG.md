@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.11.1] - 2026-07-18
 ### Fixed
 - Signal K deltas are now handled in sequence to guard agains duplicate trigger firings
 
