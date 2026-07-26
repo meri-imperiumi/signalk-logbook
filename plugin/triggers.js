@@ -119,13 +119,16 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         'custom.lastLoggedHeading': null,
       };
 
-      if (value === 'anchored' || value === 'moored') {
-        if (value === 'anchored') {
-          return appendLog('Anchored', {
-            end: true,
-          }).then(() => stateUpdates);
-        }
-        return Promise.resolve(stateUpdates);
+      if (value === 'anchored') {
+        return appendLog('Anchored', {
+          end: true,
+        }).then(() => stateUpdates);
+      }
+
+      if (value === 'moored') {
+        return appendLog('Stopped', {
+          end: true,
+        }).then(() => stateUpdates);
       }
 
       if (value === 'sailing') {
@@ -151,11 +154,6 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
           return appendLog('Sails down, motoring');
         }
         return appendLog('Motoring');
-      }
-      if (value === 'moored') {
-        return appendLog('Stopped', {
-          end: true,
-        });
       }
       break;
     }
