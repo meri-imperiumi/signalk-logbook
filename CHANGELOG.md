@@ -1,4 +1,8 @@
 # Changelog
+## [0.11.2] - 2026-07-27
+### Fixed
+- "Stopped" automatic log when moored after sailing works again
+
 ## [0.11.1] - 2026-07-18
 ### Fixed
 - Signal K deltas are now handled in sequence to guard agains duplicate trigger firings
