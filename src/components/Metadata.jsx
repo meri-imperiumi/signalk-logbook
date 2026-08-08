@@ -110,7 +110,7 @@ function Metadata(props) {
       }
       ws.close();
     };
-  }, [sails, crewNames]);
+  }, []);
 
   function saveSails(updatedSails) {
     const payload = updatedSails.map((s) => ({

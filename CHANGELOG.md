@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- Repeated looping crew list and sail configuration requests
+
 ## [0.11.2] - 2026-07-27
 ### Fixed
 - "Stopped" automatic log when moored after sailing works again
