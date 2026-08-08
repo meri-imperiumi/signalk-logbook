@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.11.3] - 2026-08-07
 ### Fixed
 - Repeated looping crew list and sail configuration requests
 
