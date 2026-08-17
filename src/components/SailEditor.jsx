@@ -1,5 +1,5 @@
 /* eslint-env browser */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -57,6 +57,13 @@ function sailText(sail) {
 
 function SailEditor(props) {
   const [sails, updateSails] = useState(props.sails);
+  // Sails may still be loading from the server when the editor is opened.
+  // Adopt them once available, but never clobber local edits.
+  useEffect(() => {
+    if (!sails.length && props.sails.length) {
+      updateSails(props.sails);
+    }
+  }, [props.sails]);
   function handleChange(id, e) {
     const { name, value } = e.target;
     const idx = sails.findIndex((s) => s.id === id);

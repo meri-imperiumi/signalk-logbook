@@ -12,6 +12,35 @@ import FilterEditor from './FilterEditor.jsx';
 import SailEditor from './SailEditor.jsx';
 import styles from './styles.module.css';
 
+function fetchJson(url) {
+  return fetch(url)
+    .then((r) => {
+      if (!r.ok) {
+        return [];
+      }
+      return r.json().catch(() => []);
+    })
+    .catch(() => []);
+}
+
+function mergeSails(prev, sailSettings) {
+  if (!Array.isArray(sailSettings) || sailSettings.length === 0) {
+    return prev;
+  }
+  // The sailsconfiguration REST API only provides id, name, and the
+  // current state. The full inventory comes via sails.inventory.* deltas
+  const merged = sailSettings.map((sail) => {
+    const existing = prev.find((s) => s.id === sail.id);
+    return existing ? { ...existing, ...sail } : sail;
+  });
+  const extras = prev.filter((s) => !sailSettings.some((x) => s.id === x.id));
+  const next = extras.concat(merged);
+  if (JSON.stringify(next) === JSON.stringify(prev)) {
+    return prev;
+  }
+  return next;
+}
+
 function Metadata(props) {
   const [editSails, setEditSails] = useState(false);
   const [editFilter, setEditFilter] = useState(false);
@@ -37,77 +66,67 @@ function Metadata(props) {
       }
       u.values.forEach((v) => {
         if (v.path === 'communication.crewNames') {
-          if (JSON.stringify(crewNames) !== JSON.stringify(v.value)) {
-            setCrew(v.value);
-          }
+          setCrew((prev) => (
+            JSON.stringify(prev) === JSON.stringify(v.value) ? prev : v.value
+          ));
           return;
         }
         if (v.path === 'watch.current') {
-          if (onWatch !== v.value) {
-            setOnWatch(v.value);
-          }
+          setOnWatch((prev) => (
+            JSON.stringify(prev) === JSON.stringify(v.value) ? prev : v.value
+          ));
           return;
         }
-        const updatedSails = [...sails];
         const matched = v.path.match(/sails\.inventory\.([a-zA-Z0-9]+)/);
         if (matched) {
-          const newSail = {
-            ...v.value,
-            id: matched[1],
-          };
-          const idx = updatedSails.findIndex((s) => s.id === matched[1]);
-          if (idx === -1) {
-            updatedSails.push(newSail);
-            setSails(updatedSails);
-            return;
-          }
-          if (JSON.stringify(newSail) === JSON.stringify(updatedSails[idx])) {
-            return;
-          }
-          updatedSails[idx] = newSail;
-          setSails(updatedSails);
+          setSails((prev) => {
+            const newSail = {
+              ...v.value,
+              id: matched[1],
+            };
+            const idx = prev.findIndex((s) => s.id === matched[1]);
+            if (idx === -1) {
+              return [...prev, newSail];
+            }
+            if (JSON.stringify(newSail) === JSON.stringify(prev[idx])) {
+              return prev;
+            }
+            const updatedSails = [...prev];
+            updatedSails[idx] = newSail;
+            return updatedSails;
+          });
         }
       });
     });
   }
 
   useEffect(() => {
-    let ws;
-    fetch('/signalk/v1/api/vessels/self/communication/crewNames')
-      .then((r) => r.json(), () => [])
+    const ws = props.adminUI.openWebsocket({ subscribe: 'none' });
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        context: 'vessels.self',
+        subscribe: paths.map((path) => ({
+          path,
+          period: 10000,
+        })),
+      }));
+    };
+    ws.onmessage = onMessage;
+
+    // Seed the current values via REST while waiting for deltas
+    fetchJson('/signalk/v1/api/vessels/self/communication/crewNames')
       .then((crew) => {
-        if (JSON.stringify(crewNames) !== JSON.stringify(crew.value)) {
-          setCrew(crew.value);
-          return Promise.reject(new Error('Skip'));
-        }
-        return fetch('/plugins/sailsconfiguration/sails');
-      })
-      .then((r) => r.json(), () => [])
+        const value = crew.value || [];
+        setCrew((prev) => (
+          JSON.stringify(prev) === JSON.stringify(value) ? prev : value
+        ));
+      });
+    fetchJson('/plugins/sailsconfiguration/sails')
       .then((sailSettings) => {
-        if (sails.length === 0 && sailSettings.length > 0) {
-          setSails(sailSettings);
-          return Promise.reject(new Error('Skip'));
-        }
-        return Promise.resolve();
-      })
-      .then(() => {
-        ws = props.adminUI.openWebsocket({ subscribe: 'none' });
-        ws.onopen = () => {
-          ws.send(JSON.stringify({
-            context: 'vessels.self',
-            subscribe: paths.map((path) => ({
-              path,
-              period: 10000,
-            })),
-          }));
-        };
-        ws.onmessage = onMessage;
-      })
-      .catch(() => {});
+        setSails((prev) => mergeSails(prev, sailSettings));
+      });
+
     return () => {
-      if (!ws) {
-        return;
-      }
       ws.close();
     };
   }, []);

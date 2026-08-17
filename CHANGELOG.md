@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- Sail configuration is again shown in the UI, and the sails editor works with full sail data
+
 ## [0.11.3] - 2026-08-07
 ### Fixed
 - Repeated looping crew list and sail configuration requests
