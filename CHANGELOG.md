@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.11.4] - 2026-08-18
 ### Fixed
 - Sail configuration is again shown in the UI, and the sails editor works with full sail data
 
