@@ -13,8 +13,21 @@ const DEFAULT_LAYER = {
   maxZoom: 19,
 };
 
+// Vector tile charts carry a `tilemapUrl` just like raster ones, but the tiles
+// they serve are protobuf, not images. Handing them to `tileProvider()` fills the
+// map with broken-tile placeholders wherever the chart has no tile (issue #100).
+// A denylist rather than a raster allowlist, so charts with an absent or unusual
+// `format` keep rendering exactly as before.
+const VECTOR_FORMATS = ['pbf', 'mvt'];
+
+function isVectorChart(chart) {
+  return Boolean(chart.format)
+    && VECTOR_FORMATS.includes(String(chart.format).toLowerCase());
+}
+
 // Normalize a SignalK `resources/charts` object into the tile layers we can
-// render. Charts without a `tilemapUrl` (WMS, S-57, plain PDFs…) are dropped.
+// render. Charts without a `tilemapUrl` (WMS, S-57, plain PDFs…) are dropped, as
+// are vector tile charts, which a raster tile layer cannot display.
 function parseChartLayers(resource) {
   if (!resource || typeof resource !== 'object') {
     return [];
@@ -22,7 +35,7 @@ function parseChartLayers(resource) {
   return Object.keys(resource)
     .map((key) => {
       const chart = resource[key];
-      if (!chart || !chart.tilemapUrl) {
+      if (!chart || !chart.tilemapUrl || isVectorChart(chart)) {
         return null;
       }
       return {

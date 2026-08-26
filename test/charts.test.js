@@ -28,6 +28,15 @@ const sampleResource = {
     type: 'WMS',
     chartUrl: 'http://example.com/wms',
   },
+  // Vector tile charts do have a tilemapUrl, but serve protobuf rather than
+  // images, so they can't be drawn as a raster tile layer (issue #100).
+  vector: {
+    identifier: 'world-display-z0-z11-runtime-z12',
+    name: 'World vector',
+    format: 'pbf',
+    type: 'tilelayer',
+    tilemapUrl: '/signalk/v1/api/resources/charts/world-display-z0-z11-runtime-z12/{z}/{x}/{y}',
+  },
 };
 
 test('parseChartLayers returns [] for missing or empty resources', () => {
@@ -49,6 +58,39 @@ test('parseChartLayers keeps only tile charts and maps their fields', () => {
   });
   // The WMS chart has no tilemapUrl and must be dropped
   assert.ok(!layers.some((l) => l.identifier === 'wms'));
+});
+
+test('parseChartLayers drops vector tile charts', () => {
+  const layers = charts.parseChartLayers(sampleResource);
+  assert.ok(!layers.some((l) => l.identifier === 'world-display-z0-z11-runtime-z12'));
+});
+
+test('parseChartLayers drops vector formats case-insensitively', () => {
+  ['pbf', 'PBF', 'mvt', 'MVT'].forEach((format) => {
+    const layers = charts.parseChartLayers({
+      vector: {
+        identifier: 'v', name: 'V', format, tilemapUrl: 'http://x/{z}/{x}/{y}',
+      },
+    });
+    assert.deepStrictEqual(layers, [], `format ${format} should be dropped`);
+  });
+});
+
+test('parseChartLayers keeps raster charts that declare a format', () => {
+  const layers = charts.parseChartLayers({
+    png: {
+      identifier: 'png', name: 'PNG chart', format: 'png', tilemapUrl: 'http://x/{z}/{x}/{y}',
+    },
+  });
+  assert.strictEqual(layers.length, 1);
+  assert.strictEqual(layers[0].identifier, 'png');
+});
+
+test('parseChartLayers keeps charts with no format declared', () => {
+  const layers = charts.parseChartLayers({
+    plain: { identifier: 'plain', name: 'Plain', tilemapUrl: 'http://x/{z}/{x}/{y}' },
+  });
+  assert.strictEqual(layers.length, 1);
 });
 
 test('parseChartLayers sorts layers by name for a stable switcher', () => {
