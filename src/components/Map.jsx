@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
 import { Point } from 'where';
 import { viewport } from '@mapbox/geo-viewport';
-import { chartLayersWithFallback, tileProvider, DEFAULT_LAYER } from '../helpers/charts';
+import { chartLayersWithFallback, tileProvider, isVectorLayer, DEFAULT_LAYER } from '../helpers/charts';
+import { entryMarkerColor } from '../helpers/markers';
+import VectorMap from './VectorMap';
 
 function calculateBounds(points) {
   if (!points.length) {
@@ -168,6 +170,16 @@ function Map(props) {
         ))}
       </div>
     ) : null}
+    {isVectorLayer(layer) ? (
+      <VectorMap
+        key={layer.identifier}
+        layer={layer}
+        points={points}
+        geoJson={geoJson}
+        entries={entries}
+        viewEntry={props.viewEntry}
+      />
+    ) : (
     <PigeonMap
       provider={tileProvider(layer.url)}
       minZoom={layer.minZoom}
@@ -182,23 +194,15 @@ function Map(props) {
           stroke: 'red',
         })}
       />
-      {entries.map((entry) => {
-        let color = '#009bdb';
-        if (entry.category === 'engine') {
-          color = '#ed1b2f';
-        }
-        if (entry.category === 'radio') {
-          color = '#00ae9d';
-        }
-        return (
+      {entries.map((entry) => (
         <Marker
           key={entry.datetime}
-          color={color}
+          color={entryMarkerColor(entry.category)}
           anchor={[entry.position.latitude, entry.position.longitude]}
           onClick={() => props.viewEntry(entry)} />
-        );
-      })}
+      ))}
     </PigeonMap>
+    )}
   </div>
   );
 }

@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Added
+- The map can now display vector tile charts (e.g. Open Waters `.pbf` served through signalk-charts-provider-simple), rendered with MapLibre GL. Vector charts are no longer hidden from the chart selection (reverts the workaround from #102; they now render properly, addressing #100 the right way)
+
 ## [0.11.4] - 2026-08-18
 ### Fixed
 - Sail configuration is again shown in the UI, and the sails editor works with full sail data
