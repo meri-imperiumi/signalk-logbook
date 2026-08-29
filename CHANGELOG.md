@@ -1,7 +1,11 @@
 # Changelog
 ## [Unreleased]
 ### Added
-- The map can now display vector tile charts (e.g. Open Waters `.pbf` served through signalk-charts-provider-simple), rendered with MapLibre GL. Vector charts are no longer hidden from the chart selection (reverts the workaround from #102; they now render properly, addressing #100 the right way)
+- The map can now display vector tile charts (e.g. Open Waters `.pbf` served through signalk-charts-provider-simple), rendered with MapLibre GL. When signalk-corridor-tile-downloader has mirrored the upstream chart style, that style is mounted with its full symbology (base map, bathymetry, labels); otherwise a style is generated from the chart's source layers. Vector charts are no longer hidden from the chart selection (reverts the workaround from #102; they now render properly, addressing #100 the right way)
+
+### Fixed
+- The log map track now uses the Signal K **v2** history API (`/signalk/v2/api/history/values`, duration-based ranges), which the history providers actually serve
+- Raster maps no longer log invalid `<svg>` attribute errors on first render by giving pigeon-maps the measured container size instead of letting it start from its unmeasured `-1` default
 
 ## [0.11.4] - 2026-08-18
 ### Fixed

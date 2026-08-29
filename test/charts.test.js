@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const charts = require('../src/helpers/charts');
 
 // A SignalK `resources/charts` response is an object keyed by chart identifier.
@@ -145,6 +147,69 @@ test('chartLayersWithFallback falls back to a single default layer when empty', 
   assert.deepStrictEqual(charts.chartLayersWithFallback(undefined), [charts.DEFAULT_LAYER]);
 });
 
+test('chartAssetsFromManifest: only a manifest with an absolute style URL counts', () => {
+  const style = 'http://host:3000/plugins/signalk-corridor-tile-downloader/assets/style.json';
+  assert.deepStrictEqual(
+    charts.chartAssetsFromManifest({ style, fonts: ['Noto Sans Regular'] }),
+    { style },
+  );
+  // No style (older downloader / mirror incomplete) → composed-style fallback
+  assert.strictEqual(charts.chartAssetsFromManifest({ fonts: [] }), null);
+  assert.strictEqual(
+    charts.chartAssetsFromManifest({ style: '/plugins/relative/style.json' }),
+    null,
+  );
+  assert.strictEqual(charts.chartAssetsFromManifest(null), null);
+  assert.strictEqual(charts.chartAssetsFromManifest(undefined), null);
+  assert.strictEqual(charts.chartAssetsFromManifest('junk'), null);
+});
+
+test('chartLayersWithFallback mounts the mirrored style over vector charts', () => {
+  const manifest = {
+    style: 'http://host:3000/plugins/signalk-corridor-tile-downloader/assets/style.json',
+  };
+  const layers = charts.chartLayersWithFallback(sampleResource, manifest);
+  // Mirror first (default selection), raster charts kept, composed
+  // vector charts replaced — the mirror renders the same tiles with
+  // full symbology
+  assert.strictEqual(layers.length, 3);
+  assert.strictEqual(layers[0].identifier, '__chart_mirror__');
+  assert.strictEqual(layers[0].name, 'Open Waters chart');
+  assert.strictEqual(layers[0].format, 'pbf');
+  assert.strictEqual(
+    layers[0].styleUrl,
+    'http://host:3000/plugins/signalk-corridor-tile-downloader/assets/style.json',
+  );
+  assert.ok(charts.isVectorLayer(layers[0]), 'mirror renders with MapLibre');
+  assert.ok(layers.some((l) => l.identifier === 'osm'), 'raster chart kept');
+  assert.ok(layers.some((l) => l.identifier === 'noaa'), 'raster chart kept');
+  assert.ok(
+    !layers.some((l) => l.identifier === 'world-display-z0-z11-runtime-z12'),
+    'composed vector chart replaced by the mirror',
+  );
+});
+
+test('chartLayersWithFallback mounts the mirror also with no configured charts', () => {
+  const manifest = { style: 'http://host:3000/plugins/style.json' };
+  // The downloader serves its mirrored style independently of
+  // resources/charts, so no OSM fallback is wanted either
+  const layers = charts.chartLayersWithFallback({}, manifest);
+  assert.strictEqual(layers.length, 1);
+  assert.strictEqual(layers[0].identifier, '__chart_mirror__');
+  assert.ok(!layers.some((l) => l.identifier === 'osm'), 'no OSM fallback when mirrored');
+});
+
+test('chartLayersWithFallback ignores manifests without a usable style', () => {
+  assert.deepStrictEqual(
+    charts.chartLayersWithFallback(sampleResource, { fonts: [] }),
+    charts.parseChartLayers(sampleResource),
+  );
+  assert.deepStrictEqual(
+    charts.chartLayersWithFallback(sampleResource, null),
+    charts.parseChartLayers(sampleResource),
+  );
+});
+
 test('tileProvider substitutes {z}/{x}/{y} into the template', () => {
   const provider = charts.tileProvider('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
   assert.strictEqual(provider(5, 3, 7), 'https://tile.openstreetmap.org/7/5/3.png');
@@ -258,4 +323,13 @@ test('vectorStyle resolves relative tile URLs against the page location', () => 
   } finally {
     delete global.window;
   }
+});
+
+test('mirror wiring: Map fetches the manifest, VectorMap mounts the mirrored style', () => {
+  const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
+  assert.match(map, /CHART_MIRROR_MANIFEST_URL/);
+  assert.match(map, /chartLayersWithFallback\(resource, manifest\)/);
+  const vectorMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'VectorMap.jsx'), 'utf8');
+  // The mirrored style URL wins over the generated geometry-only style
+  assert.match(vectorMap, /styleUrl \|\| vectorStyle/);
 });

@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
 import { Point } from 'where';
 import { viewport } from '@mapbox/geo-viewport';
-import { chartLayersWithFallback, tileProvider, isVectorLayer, DEFAULT_LAYER } from '../helpers/charts';
+import {
+  chartLayersWithFallback,
+  tileProvider,
+  isVectorLayer,
+  DEFAULT_LAYER,
+  CHART_MIRROR_MANIFEST_URL,
+} from '../helpers/charts';
 import { entryMarkerColor } from '../helpers/markers';
 import VectorMap from './VectorMap';
 
@@ -45,10 +51,17 @@ function Map(props) {
     setBbox([rect.width, rect.height]);
   }, []);
   useEffect(() => {
-    fetch('/signalk/v1/api/resources/charts')
+    // The corridor downloader's asset manifest carries the mirrored
+    // upstream chart style (full symbology) when one has been mirrored;
+    // chartLayersWithFallback mounts it over the composed vector styles
+    const chartsReady = fetch('/signalk/v1/api/resources/charts')
+      .then((res) => (res.ok ? res.json() : null));
+    const manifestReady = fetch(CHART_MIRROR_MANIFEST_URL)
       .then((res) => (res.ok ? res.json() : null))
-      .then((resource) => {
-        const available = chartLayersWithFallback(resource);
+      .catch(() => null);
+    Promise.all([chartsReady, manifestReady])
+      .then(([resource, manifest]) => {
+        const available = chartLayersWithFallback(resource, manifest);
         setLayers(available);
         setActiveLayer((current) => (current < available.length ? current : 0));
       })
@@ -72,9 +85,11 @@ function Map(props) {
       return arr;
     }, []);
     const from = entries[0].datetime;
-    const to = entries[entries.length - 1].datetime;
     const resolution = 300; // Position every 5min
-    fetch(`/signalk/v1/history/values?from=${from}&to=${to}&paths=navigation.position&resolution=${resolution}`)
+    // History API is v2 and ranges are duration-based (seconds back from
+    // now, see /signalk/v2/api/history/values in signalk-history-sqlite)
+    const duration = Math.ceil((Date.now() - Date.parse(from)) / 1000);
+    fetch(`/signalk/v2/api/history/values?duration=${duration}&paths=navigation.position&resolution=${resolution}`)
       .then((res) => res.json())
       .then((positions) => {
         if (!positions.data || !positions.data.length) {
@@ -184,6 +199,8 @@ function Map(props) {
       provider={tileProvider(layer.url)}
       minZoom={layer.minZoom}
       maxZoom={layer.maxZoom}
+      width={Math.round(bbox[0])}
+      height={Math.round(bbox[1])}
       center={centerAndZoom.center}
       zoom={centerAndZoom.zoom}
     >

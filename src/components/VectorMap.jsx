@@ -1,7 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Map as MapLibreMap, Marker } from 'maplibre-gl';
+// Import MapLibre's unminified build: the default ESM entry ships
+// pre-minified, and re-minifying it with terser mangles sibling-scope names
+// into collisions (Transform.clone() ended up calling `new Float64Array(4)
+//   .apply(...)`), crashing the map with "e.apply is not a function"
+import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl/dist/maplibre-gl-dev.mjs';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { vectorStyle } from '../helpers/charts';
+import { vectorStyle, assetUrl } from '../helpers/charts';
 import { entryMarkerColor } from '../helpers/markers';
 
 // MapLibre GL container for vector tile charts (`format: pbf`/`mvt`), which
@@ -11,6 +15,14 @@ import { entryMarkerColor } from '../helpers/markers';
 //
 // The component is keyed by chart identifier in Map, so a new chart creates a
 // fresh instance instead of migrating styles mid-flight.
+
+// MapLibre spawns tile-parsing workers from `WORKER_URL`. Its bundled
+// default derives a worker URL from `import.meta.url`, which webpack compiles
+// to a build-time `file://` path that browsers cannot load — vector tiles then
+// never parse and the map stays blank. Point it at the worker files copied
+// into `public/vendor/` by webpack (see webpack.config.js), resolved against
+// this webapp's runtime public path so it works both standalone and embedded.
+setWorkerUrl(assetUrl('vendor/maplibre-gl-worker-dev.mjs'));
 
 // [[west, south], [ east, north]] from the given points, or null
 function boundsOf(points) {
@@ -57,7 +69,10 @@ function VectorMap(props) {
     }
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: vectorStyle(props.layer),
+      // A mirrored upstream style (corridor downloader manifest, see
+      // helpers/charts) carries the full symbology; the generated
+      // geometry-only style is the fallback
+      style: props.layer.styleUrl || vectorStyle(props.layer),
       attributionControl: false,
     });
     mapRef.current = map;

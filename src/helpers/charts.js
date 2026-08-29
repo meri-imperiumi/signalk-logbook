@@ -9,6 +9,12 @@
 // signalk-corridor-tile-downloader) cannot be drawn as raster tiles (issue
 // #100), so they carry their source layers through to `vectorStyle()`, which
 // generates a MapLibre GL style for the WebGL renderer in VectorMap.
+//
+// When the corridor downloader has mirrored the upstream chart style, its
+// asset manifest carries the style URL and the map mounts that wholesale
+// (full symbology: base map, bathymetry, labels) instead — the composed
+// geometry-only style stays as the fallback for chart sources without a
+// mirror. Same approach as signalk-dead-reckoning (work doc #20).
 
 // Backward-compatible default when no tile charts are configured.
 const DEFAULT_LAYER = {
@@ -60,9 +66,60 @@ function parseChartLayers(resource) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// The corridor tile downloader's asset manifest, mirroring the upstream
+// chart style (full symbology: base map, bathymetry, labels) for offline
+// use. When it carries a style, the map mounts it wholesale instead of
+// composing geometry-only styles per chart.
+const CHART_MIRROR_MANIFEST_URL = '/plugins/signalk-corridor-tile-downloader/assets/manifest.json';
+
+// Identifier of the synthetic layer mounted for a mirrored chart style.
+const CHART_MIRROR_IDENTIFIER = '__chart_mirror__';
+
+// Validate the corridor downloader's asset manifest: only a manifest with
+// an absolute style URL counts, since MapLibre fetches the style over HTTP
+// and a relative URL would resolve against the webapp instead of the Signal
+// K server. Anything else (older downloader, incomplete mirror, junk)
+// yields null so callers keep the composed-style fallback.
+function chartAssetsFromManifest(value) {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const { style } = value;
+  if (typeof style !== 'string' || !/^https?:\/\//i.test(style)) {
+    return null;
+  }
+  return { style };
+}
+
+// The synthetic vector layer for a mirrored chart style, or null. The style
+// URL carries tiles, zooms and symbology, so VectorMap hands it to MapLibre
+// directly instead of generating a style.
+function mirroredChartLayer(manifest) {
+  const assets = chartAssetsFromManifest(manifest);
+  if (!assets) {
+    return null;
+  }
+  return {
+    identifier: CHART_MIRROR_IDENTIFIER,
+    name: 'Open Waters chart',
+    format: 'pbf',
+    styleUrl: assets.style,
+    minZoom: 0,
+    maxZoom: 19,
+    sourceLayers: [],
+  };
+}
+
 // Configured tile layers, or a single sane default when none are set up.
-function chartLayersWithFallback(resource) {
+// A mirrored upstream style is mounted first and replaces the configured
+// vector charts — it renders the same tiles with full symbology, the
+// composed styles are only the fallback. Raster charts are always kept.
+function chartLayersWithFallback(resource, manifest) {
+  const mirror = mirroredChartLayer(manifest);
   const layers = parseChartLayers(resource);
+  if (mirror) {
+    return [mirror].concat(layers.filter((layer) => !isVectorLayer(layer)));
+  }
   return layers.length ? layers : [DEFAULT_LAYER];
 }
 
@@ -92,6 +149,29 @@ function absoluteUrl(url) {
   }
   const base = new URL(window.location.href).origin;
   return url.startsWith('/') ? base + url : `${base}/${url}`;
+}
+
+// URL for a file shipped next to the built webapp (e.g. MapLibre's worker
+// scripts under `vendor/`). Resolved against webpack's runtime public path —
+// `__webpack_public_path__`, which webpack auto-detects from the script tag —
+// so it is correct both standalone (`/@scope/name/`) and embedded in the
+// Signal K dashboard.
+function assetUrl(path) {
+  /* eslint-disable no-undef, camelcase */
+  const publicPath = typeof __webpack_public_path__ !== 'undefined'
+    ? __webpack_public_path__
+    : '';
+  /* eslint-enable no-undef, camelcase */
+  const base = publicPath
+    || (typeof window !== 'undefined' ? window.location.href : undefined);
+  if (!base) {
+    return path;
+  }
+  try {
+    return new URL(path, base).href;
+  } catch (err) {
+    return path;
+  }
 }
 
 // Palette and name heuristics for the generated vector style. Without a
@@ -204,9 +284,12 @@ function vectorStyle(layer) {
 
 module.exports = {
   DEFAULT_LAYER,
+  CHART_MIRROR_MANIFEST_URL,
   parseChartLayers,
+  chartAssetsFromManifest,
   chartLayersWithFallback,
   tileProvider,
   isVectorLayer,
   vectorStyle,
+  assetUrl,
 };
