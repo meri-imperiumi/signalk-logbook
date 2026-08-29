@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.12.0] - 2026-08-28
 ### Added
 - The selected tab (Timeline, Logbook, Map) is now tracked in the URL hash, so a reload keeps you on the same tab, tabs can be shared as links (`#book`, `#map`), and browser back/forward switch between tabs
 - The log map now renders every configured chart with MapLibre GL: raster tile charts through a generated raster style, and vector tile charts (e.g. Open Waters `.pbf` served through signalk-charts-provider-simple, addressing #100 the right way and reverting the #102 workaround) through a style generated from the chart's source layers. When signalk-corridor-tile-downloader has mirrored the upstream chart style, that style is mounted with its full symbology (base map, bathymetry, labels); the downloader's raw `Signal K Corridor Cache` charts stay hidden from the layer switcher. pigeon-maps has been dropped along with its SVG rendering quirks, and the map zooms to fit the track, re-fitting when the position history resolves
