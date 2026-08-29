@@ -83,7 +83,12 @@ function ChartMap(props) {
       attributionControl: false,
       // Start zoomed to fit the track instead of MapLibre's world view;
       // MapLibre applies these once the container is measured and the
-      // style ready, so slow styles can't leave the map at [0,0]
+      // style ready, so slow styles can't leave the map at [0,0]. When
+      // there are no points yet (e.g. deep-linking to the map tab before
+      // the entry fetch resolves), bounds is null and MapLibre falls
+      // back to a neutral world view — the corridor downloader strips
+      // the mirrored style's own demo camera, so no uncached tiles are
+      // requested before fitBounds runs.
       ...(bounds ? { bounds, fitBoundsOptions: FIT_OPTIONS } : {}),
     });
     mapRef.current = map;

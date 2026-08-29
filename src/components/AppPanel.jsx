@@ -14,6 +14,7 @@ import Logbook from './Logbook.jsx';
 import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
+import { tabFromHash, hashForTab } from '../helpers/tabs';
 
 const categories = [
   'navigation',
@@ -26,7 +27,9 @@ function AppPanel(props) {
   const [data, setData] = useState({
     entries: [],
   });
-  const [activeTab, setActiveTab] = useState('timeline'); // Maybe timeline on mobile, book on desktop?
+  const [activeTab, setActiveTab] = useState(
+    () => tabFromHash(window.location.hash), // Maybe timeline on mobile, book on desktop?
+  );
   const [daysToShow, setDaysToShow] = useState(7);
   const [editEntry, setEditEntry] = useState(null);
   const [viewEntry, setViewEntry] = useState(null);
@@ -94,6 +97,29 @@ function AppPanel(props) {
         }
       });
   }, [timezone]);
+
+  // The logbook UI is embedded in the Signal K admin app, which routes on
+  // the URL hash (the logbook webapp lives at '#/e/_meri_imperiumi_signalk_logbook').
+  // The tab is stored in the hash's query string so the admin route is left
+  // untouched; a bare '#book' would navigate the admin app to a nonexistent
+  // route and blank the whole webapp. See helpers/tabs.
+  useEffect(() => {
+    function onHashChange() {
+      setActiveTab(tabFromHash(window.location.hash));
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+    };
+  }, []);
+
+  function selectTab(tab) {
+    setActiveTab(tab);
+    const target = hashForTab(tab, window.location.hash);
+    if (window.location.hash !== target) {
+      window.location.hash = target;
+    }
+  }
 
   function saveEntry(entry) {
     const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
@@ -198,20 +224,20 @@ function AppPanel(props) {
         <Col className="bg-light border">
           <Nav tabs>
             <NavItem>
-              <NavLink className={activeTab === 'timeline' ? 'active' : ''} onClick={() => setActiveTab('timeline')}>
+              <NavLink className={activeTab === 'timeline' ? 'active' : ''} onClick={() => selectTab('timeline')}>
                 Timeline
               </NavLink>
             </NavItem>
             <NavItem>
               <NavLink className={activeTab === 'book' ? 'active' : ''} onClick={() => {
-                setActiveTab('book');
+                selectTab('book');
                 props.adminUI.hideSideBar();
               }}>
                 Logbook
               </NavLink>
             </NavItem>
             <NavItem>
-              <NavLink className={activeTab === 'map' ? 'active' : ''} onClick={() => setActiveTab('map')}>
+              <NavLink className={activeTab === 'map' ? 'active' : ''} onClick={() => selectTab('map')}>
                 Map
               </NavLink>
             </NavItem>
