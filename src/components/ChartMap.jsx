@@ -5,13 +5,14 @@ import React, { useEffect, useRef } from 'react';
 //   .apply(...)`), crashing the map with "e.apply is not a function"
 import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl/dist/maplibre-gl-dev.mjs';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { vectorStyle, assetUrl } from '../helpers/charts';
+import { mapStyle, assetUrl } from '../helpers/charts';
 import { entryMarkerColor } from '../helpers/markers';
 
-// MapLibre GL container for vector tile charts (`format: pbf`/`mvt`), which
-// pigeon-maps cannot draw. The chart style is generated from the chart's
-// source layers (helpers/charts `vectorStyle`). Track and entry markers are
-// drawn to match the raster Map component.
+// MapLibre GL container for the log map, rendering every chart layer: raster
+// and vector tile charts through styles generated from the chart
+// (helpers/charts `mapStyle`), a mirrored upstream style wholesale. Track and
+// entry markers are drawn on top, zoomed to fit the track like the old
+// pigeon-maps renderer did from its center/zoom props.
 //
 // The component is keyed by chart identifier in Map, so a new chart creates a
 // fresh instance instead of migrating styles mid-flight.
@@ -24,6 +25,11 @@ import { entryMarkerColor } from '../helpers/markers';
 // this webapp's runtime public path so it works both standalone and embedded.
 setWorkerUrl(assetUrl('vendor/maplibre-gl-worker-dev.mjs'));
 
+// Camera options for fitting the track into the viewport: some padding
+// around the bounds, and a maxZoom so a single point (degenerate bounds)
+// doesn't zoom into the tile floor.
+const FIT_OPTIONS = { padding: 40, maxZoom: 11, animate: false };
+
 // [[west, south], [ east, north]] from the given points, or null
 function boundsOf(points) {
   const valid = points.filter((p) => Number.isFinite(Number(p.lat))
@@ -31,8 +37,8 @@ function boundsOf(points) {
   if (!valid.length) {
     return null;
   }
-  const lons = valid.map((p) => Number(p.lon));
-  const lats = valid.map((p) => Number(p.lat));
+  const lons = valid.map((p) => Number(Number(p.lon)));
+  const lats = valid.map((p) => Number(Number(p.lat)));
   return [
     [Math.min(...lons), Math.min(...lats)],
     [Math.max(...lons), Math.max(...lats)],
@@ -55,7 +61,7 @@ function drawMarkers(map, markersRef, entries, viewEntry) {
   });
 }
 
-function VectorMap(props) {
+function ChartMap(props) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -67,13 +73,18 @@ function VectorMap(props) {
     if (!containerRef.current) {
       return undefined;
     }
+    const bounds = boundsOf(latestRef.current.points);
     const map = new MapLibreMap({
       container: containerRef.current,
       // A mirrored upstream style (corridor downloader manifest, see
-      // helpers/charts) carries the full symbology; the generated
-      // geometry-only style is the fallback
-      style: props.layer.styleUrl || vectorStyle(props.layer),
+      // helpers/charts) carries the full symbology; otherwise a style is
+      // generated matching the chart's format
+      style: mapStyle(props.layer),
       attributionControl: false,
+      // Start zoomed to fit the track instead of MapLibre's world view;
+      // MapLibre applies these once the container is measured and the
+      // style ready, so slow styles can't leave the map at [0,0]
+      ...(bounds ? { bounds, fitBoundsOptions: FIT_OPTIONS } : {}),
     });
     mapRef.current = map;
 
@@ -96,10 +107,11 @@ function VectorMap(props) {
         },
       });
       drawMarkers(map, markersRef, latestRef.current.entries, latestRef.current.viewEntry);
-      const bounds = boundsOf(latestRef.current.points);
-      if (bounds) {
-        // maxZoom keeps a single point (degenerate bounds) sensible
-        map.fitBounds(bounds, { padding: 40, maxZoom: 11, animate: false });
+      // The constructor bounds can be computed against a container that
+      // MapLibre hadn't measured yet; re-fit once fully loaded
+      const loadedBounds = boundsOf(latestRef.current.points);
+      if (loadedBounds) {
+        map.fitBounds(loadedBounds, FIT_OPTIONS);
       }
     });
 
@@ -119,6 +131,17 @@ function VectorMap(props) {
     }
   }, [props.geoJson]);
 
+  // Zoom back to fit when the point set changes (history fetch resolving
+  // grows the bounds past the entry positions) — the old renderer
+  // recomputed center/zoom on every render, so refit to match
+  useEffect(() => {
+    const map = mapRef.current;
+    const bounds = boundsOf(props.points);
+    if (map && bounds && map.getSource('track')) {
+      map.fitBounds(bounds, FIT_OPTIONS);
+    }
+  }, [props.points]);
+
   // Markers follow the selected entries
   useEffect(() => {
     const map = mapRef.current;
@@ -137,4 +160,4 @@ function VectorMap(props) {
   );
 }
 
-export default VectorMap;
+export default ChartMap;

@@ -6,8 +6,8 @@ const charts = require('../src/helpers/charts');
 
 // A SignalK `resources/charts` response is an object keyed by chart identifier.
 // Tile charts carry a `tilemapUrl` template; other chart types (WMS, S-57…)
-// do not and can't be shown as pigeon tiles. Vector tile charts carry the
-// same `tilemapUrl` plus the `chartLayers` source layer ids we generate a
+// do not, and can't be rendered as XYZ tile layers. Vector tile charts carry
+// the same `tilemapUrl` plus the `chartLayers` source layer ids we generate a
 // MapLibre style from.
 const sampleResource = {
   osm: {
@@ -132,6 +132,51 @@ test('parseChartLayers keeps charts with no format declared', () => {
   assert.strictEqual(layers.length, 1);
 });
 
+test('parseChartLayers drops the corridor downloader cache charts', () => {
+  // The downloader's seamap cache and its derived mirrors register names like
+  // "Signal K Corridor Cache" / "Signal K Corridor Cache — <source id>"; the
+  // logbook renders the mirrored style instead, so hide the raw caches
+  const layers = charts.parseChartLayers({
+    seamap: {
+      identifier: 'passage_cache',
+      name: 'Signal K Corridor Cache',
+      format: 'png',
+      type: 'tilelayer',
+      tilemapUrl: '/signalk/v1/api/resources/charts/passage_cache/{z}/{x}/{y}',
+      minzoom: 8,
+      maxzoom: 14,
+    },
+    bathy: {
+      identifier: 'seascape-vector',
+      name: 'Signal K Corridor Cache — seascape-vector',
+      format: 'pbf',
+      tilemapUrl: '/signalk/v1/api/resources/charts/seascape-vector/{z}/{x}/{y}',
+      chartLayers: ['depth'],
+    },
+    other: {
+      identifier: 'other',
+      name: 'Some other chart',
+      tilemapUrl: 'http://x/{z}/{x}/{y}',
+    },
+  });
+  assert.strictEqual(layers.length, 1);
+  assert.strictEqual(layers[0].identifier, 'other');
+});
+
+test('chartLayersWithFallback falls back to the default when only corridor caches are configured', () => {
+  assert.deepStrictEqual(
+    charts.chartLayersWithFallback({
+      seamap: {
+        identifier: 'passage_cache',
+        name: 'Signal K Corridor Cache',
+        format: 'png',
+        tilemapUrl: '/signalk/v1/api/resources/charts/passage_cache/{z}/{x}/{y}',
+      },
+    }),
+    [charts.DEFAULT_LAYER],
+  );
+});
+
 test('parseChartLayers sorts layers by name for a stable switcher', () => {
   const names = charts.parseChartLayers(sampleResource).map((l) => l.name);
   assert.deepStrictEqual(names, ['NOAA ENC', 'OpenStreetMap', 'Passage vector']);
@@ -210,17 +255,68 @@ test('chartLayersWithFallback ignores manifests without a usable style', () => {
   );
 });
 
-test('tileProvider substitutes {z}/{x}/{y} into the template', () => {
-  const provider = charts.tileProvider('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
-  assert.strictEqual(provider(5, 3, 7), 'https://tile.openstreetmap.org/7/5/3.png');
+test('rasterStyle builds a MapLibre raster style from a chart layer', () => {
+  const style = charts.rasterStyle(charts.DEFAULT_LAYER);
+  assert.strictEqual(style.version, 8);
+  assert.strictEqual(style.sources.chart.type, 'raster');
+  assert.deepStrictEqual(style.sources.chart.tiles, [
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  ]);
+  // 256 is the standard XYZ tile size Signal K chart providers serve
+  assert.strictEqual(style.sources.chart.tileSize, 256);
+  assert.strictEqual(style.sources.chart.minzoom, 0);
+  assert.strictEqual(style.sources.chart.maxzoom, 19);
+  assert.deepStrictEqual(style.layers.map((l) => l.id), ['chart-background', 'chart-raster']);
+  assert.strictEqual(style.layers[1].source, 'chart');
+  assert.strictEqual(style.layers[1].type, 'raster');
 });
 
-test('tileProvider rotates {s} subdomains deterministically', () => {
-  const provider = charts.tileProvider('https://{s}.example.com/{z}/{x}/{y}.png');
-  // subdomain chosen from x+y so the same tile always hits the same host
-  assert.strictEqual(provider(0, 0, 1), 'https://a.example.com/1/0/0.png');
-  assert.strictEqual(provider(1, 0, 1), 'https://b.example.com/1/1/0.png');
-  assert.strictEqual(provider(1, 1, 1), 'https://c.example.com/1/1/1.png');
+test('rasterStyle expands {s} subdomains into per-host tile URLs', () => {
+  const layer = charts.parseChartLayers({
+    s: {
+      identifier: 's', name: 'Subdomains', tilemapUrl: 'https://{s}.example.com/{z}/{x}/{y}.png',
+    },
+  })[0];
+  // MapLibre has no {s} token of its own, so every subdomain becomes one
+  // tile URL it can spread requests across
+  assert.deepStrictEqual(charts.rasterStyle(layer).sources.chart.tiles, [
+    'https://a.example.com/{z}/{x}/{y}.png',
+    'https://b.example.com/{z}/{x}/{y}.png',
+    'https://c.example.com/{z}/{x}/{y}.png',
+  ]);
+});
+
+test('rasterStyle resolves relative tile URLs against the page location', () => {
+  global.window = { location: { href: 'http://localhost:3000/logbook/' } };
+  try {
+    const layer = charts.parseChartLayers({
+      noaa: {
+        identifier: 'noaa',
+        name: 'NOAA',
+        tilemapUrl: '/signalk/v1/api/resources/charts/noaa/{z}/{x}/{y}.png',
+      },
+    })[0];
+    assert.deepStrictEqual(charts.rasterStyle(layer).sources.chart.tiles, [
+      'http://localhost:3000/signalk/v1/api/resources/charts/noaa/{z}/{x}/{y}.png',
+    ]);
+  } finally {
+    delete global.window;
+  }
+});
+
+test('mapStyle mounts a mirrored style wholesale, else matches the chart format', () => {
+  assert.strictEqual(
+    charts.mapStyle({ styleUrl: 'http://host/style.json' }),
+    'http://host/style.json',
+  );
+  assert.deepStrictEqual(
+    charts.mapStyle(sampleVectorLayer()),
+    charts.vectorStyle(sampleVectorLayer()),
+  );
+  assert.deepStrictEqual(
+    charts.mapStyle(charts.DEFAULT_LAYER),
+    charts.rasterStyle(charts.DEFAULT_LAYER),
+  );
 });
 
 test('vectorStyle builds a MapLibre vector style from a chart layer', () => {
@@ -325,11 +421,33 @@ test('vectorStyle resolves relative tile URLs against the page location', () => 
   }
 });
 
-test('mirror wiring: Map fetches the manifest, VectorMap mounts the mirrored style', () => {
+test('mirror wiring: Map fetches the manifest, ChartMap mounts the style', () => {
   const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
   assert.match(map, /CHART_MIRROR_MANIFEST_URL/);
   assert.match(map, /chartLayersWithFallback\(resource, manifest\)/);
-  const vectorMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'VectorMap.jsx'), 'utf8');
-  // The mirrored style URL wins over the generated geometry-only style
-  assert.match(vectorMap, /styleUrl \|\| vectorStyle/);
+  // Everything renders through MapLibre now; pigeon-maps is gone
+  assert.doesNotMatch(map, /pigeon-maps/);
+  assert.match(map, /ChartMap/);
+  const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
+  // A mirrored style URL wins over the generated styles, which are picked
+  // by format
+  assert.match(chartMap, /mapStyle\(props\.layer\)/);
+});
+
+test('map wiring: the map starts zoomed to fit the track', () => {
+  const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
+  // Constructor bounds instead of MapLibre's [0,0] world view, a re-fit
+  // once loaded, and a re-fit when the point set updates (history fetch)
+  assert.match(chartMap, /fitBoundsOptions: FIT_OPTIONS/);
+  assert.match(chartMap, /map\.fitBounds\(loadedBounds, FIT_OPTIONS\)/);
+  assert.match(chartMap, /}, \[props\.points\]\)/);
+});
+
+test('map wiring: no tiles render until the chart list resolves', () => {
+  const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
+  // Fetching the chart resources (and the corridor manifest) can take a
+  // while; the layers state starts as null and a loading placeholder
+  // renders in its place, so no network-based OpenStreetMap tiles load first
+  assert.match(map, /useState\(null\)/);
+  assert.match(map, /Loading charts/);
 });

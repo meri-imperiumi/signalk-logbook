@@ -1,5 +1,5 @@
-// Entry marker colors by logbook category, shared by the raster (pigeon-maps)
-// and vector (MapLibre) map renderers so entries look the same on both.
+// Entry marker colors by logbook category, shared by the log map's entry
+// markers (ChartMap) and the entry forms so entries look the same in both.
 function entryMarkerColor(category) {
   if (category === 'engine') {
     return '#ed1b2f';

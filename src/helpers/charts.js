@@ -4,17 +4,20 @@
 // referer-tolerant proxy…) instead of hardcoding OSM's public tiles, which now
 // 403 for referer-less self-hosted setups (issue #76).
 //
-// Raster charts render through pigeon-maps providers (`tileProvider`). Vector
-// tile charts (`format: "pbf"`/`"mvt"`, e.g. Open Waters tiles cached by
-// signalk-corridor-tile-downloader) cannot be drawn as raster tiles (issue
-// #100), so they carry their source layers through to `vectorStyle()`, which
-// generates a MapLibre GL style for the WebGL renderer in VectorMap.
+// Every chart renders through MapLibre GL (components/ChartMap). Raster
+// tile charts get a generated raster style; vector tile charts (`format:
+// "pbf"`/`"mvt"`, e.g. Open Waters tiles cached by
+// signalk-corridor-tile-downloader, issue #100) get `vectorStyle()`, which
+// composes geometry-only layers from the chart's source layers.
 //
 // When the corridor downloader has mirrored the upstream chart style, its
 // asset manifest carries the style URL and the map mounts that wholesale
 // (full symbology: base map, bathymetry, labels) instead — the composed
 // geometry-only style stays as the fallback for chart sources without a
-// mirror. Same approach as signalk-dead-reckoning (work doc #20).
+// mirror. Same approach as signalk-dead-reckoning (work doc #20). Its raw
+// MBTiles caches ("Signal K Corridor Cache…") are dropped from the layer
+// list entirely: offline caches for other chart consumers, rendered here
+// properly by the mirror (or the composed fallback) instead.
 
 // Backward-compatible default when no tile charts are configured.
 const DEFAULT_LAYER = {
@@ -27,18 +30,31 @@ const DEFAULT_LAYER = {
 
 const VECTOR_FORMATS = ['pbf', 'mvt'];
 
+// Name prefix the corridor tile downloader stamps on its MBTiles caches (the
+// seamap file and derived mirrors). Those are offline caches surfaced through
+// `resources/charts`; in the logbook map the mirrored style (or the composed
+// vector fallback) renders the same tiles properly, so the raw caches would
+// only add duplicate, geometry-only entries to the layer switcher.
+const CORRIDOR_CACHE_NAME = 'Signal K Corridor Cache';
+
+function isCorridorCache(chart) {
+  return typeof chart.name === 'string'
+    && chart.name.includes(CORRIDOR_CACHE_NAME);
+}
+
 function isVectorFormat(format) {
   return Boolean(format) && VECTOR_FORMATS.includes(String(format).toLowerCase());
 }
 
-// Is a parsed layer a vector tile chart? Vector layers render with MapLibre
-// (components/VectorMap), raster ones with pigeon-maps.
+// Is a parsed layer a vector tile chart? Decides which generated style
+// `mapStyle` composes for ChartMap.
 function isVectorLayer(layer) {
   return isVectorFormat(layer.format);
 }
 
 // Normalize a SignalK `resources/charts` object into the tile layers we can
-// render. Charts without a `tilemapUrl` (WMS, S-57, plain PDFs…) are dropped.
+// render. Charts without a `tilemapUrl` (WMS, S-57, plain PDFs…) and the
+// corridor downloader's raw cache charts are dropped.
 function parseChartLayers(resource) {
   if (!resource || typeof resource !== 'object') {
     return [];
@@ -46,7 +62,7 @@ function parseChartLayers(resource) {
   return Object.keys(resource)
     .map((key) => {
       const chart = resource[key];
-      if (!chart || !chart.tilemapUrl) {
+      if (!chart || !chart.tilemapUrl || isCorridorCache(chart)) {
         return null;
       }
       return {
@@ -92,7 +108,7 @@ function chartAssetsFromManifest(value) {
 }
 
 // The synthetic vector layer for a mirrored chart style, or null. The style
-// URL carries tiles, zooms and symbology, so VectorMap hands it to MapLibre
+// URL carries tiles, zooms and symbology, so ChartMap hands it to MapLibre
 // directly instead of generating a style.
 function mirroredChartLayer(manifest) {
   const assets = chartAssetsFromManifest(manifest);
@@ -121,19 +137,6 @@ function chartLayersWithFallback(resource, manifest) {
     return [mirror].concat(layers.filter((layer) => !isVectorLayer(layer)));
   }
   return layers.length ? layers : [DEFAULT_LAYER];
-}
-
-// Turn a `{z}/{x}/{y}` (and optional `{s}` subdomain) template into a
-// pigeon-maps provider: (x, y, z, dpr) => url.
-function tileProvider(url) {
-  return (x, y, z) => {
-    const s = 'abc'[(x + y) % 3];
-    return url
-      .replace('{s}', s)
-      .replace('{z}', z)
-      .replace('{x}', x)
-      .replace('{y}', y);
-  };
 }
 
 // MapLibre tile URLs must be absolute; server-provided tilemapUrls may be
@@ -282,14 +285,65 @@ function vectorStyle(layer) {
   };
 }
 
+// MapLibre substitutes `{z}/{x}/{y}` itself but has no `{s}` subdomain
+// token; expand a subdomain template into one tile URL per host so requests
+// can still spread across them.
+function rasterTileUrls(url) {
+  if (!url.includes('{s}')) {
+    return [url];
+  }
+  return ['a', 'b', 'c'].map((s) => url.split('{s}').join(s));
+}
+
+// Build a MapLibre GL style for a raster chart layer: the tile pyramid is
+// the only painted layer, over a plain background. `tileSize` 256 is the
+// standard XYZ size Signal K chart providers serve.
+function rasterStyle(layer) {
+  return {
+    version: 8,
+    sources: {
+      chart: {
+        type: 'raster',
+        tiles: rasterTileUrls(absoluteUrl(layer.url)),
+        tileSize: 256,
+        minzoom: layer.minZoom,
+        maxzoom: layer.maxZoom,
+      },
+    },
+    layers: [
+      {
+        id: 'chart-background',
+        type: 'background',
+        paint: { 'background-color': VECTOR_COLORS.background },
+      },
+      {
+        id: 'chart-raster',
+        type: 'raster',
+        source: 'chart',
+      },
+    ],
+  };
+}
+
+// The MapLibre style for any chart layer: a mirrored upstream style mounted
+// wholesale (full symbology), else a generated style matching the chart's
+// format. ChartMap hands this to MapLibre directly.
+function mapStyle(layer) {
+  if (layer.styleUrl) {
+    return layer.styleUrl;
+  }
+  return isVectorLayer(layer) ? vectorStyle(layer) : rasterStyle(layer);
+}
+
 module.exports = {
   DEFAULT_LAYER,
   CHART_MIRROR_MANIFEST_URL,
   parseChartLayers,
   chartAssetsFromManifest,
   chartLayersWithFallback,
-  tileProvider,
   isVectorLayer,
+  mapStyle,
+  rasterStyle,
   vectorStyle,
   assetUrl,
 };

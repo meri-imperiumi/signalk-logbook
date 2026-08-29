@@ -2,8 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { entryMarkerColor } = require('../src/helpers/markers');
 
-// Marker colors must stay in sync between the raster (pigeon-maps) and
-// vector (MapLibre) renderers of the log map
+// Marker colors are used by the log map's entry markers (ChartMap) and
+// wherever entries are listed in the UI
 test('entryMarkerColor colors engine entries red', () => {
   assert.strictEqual(entryMarkerColor('engine'), '#ed1b2f');
 });

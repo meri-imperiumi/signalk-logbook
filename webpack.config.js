@@ -88,7 +88,7 @@ module.exports = {
         // MapLibre's tile-parsing workers load as module workers from these
         // files (the worker imports the shared chunk by relative URL), so they
         // must sit next to each other under vendor/ in the built webapp.
-        // VectorMap points MapLibre's WORKER_URL at them; webpack cannot
+        // ChartMap points MapLibre's WORKER_URL at them; webpack cannot
         // bundle them because MapLibre resolves the worker path at runtime.
         {
           from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker-dev.mjs',

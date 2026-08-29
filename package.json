@@ -40,7 +40,6 @@
     "eslint-plugin-react": "^7.32.2",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
-    "pigeon-maps": "^0.21.3",
     "querystring-es3": "^0.2.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
@@ -71,7 +70,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@mapbox/geo-viewport": "^0.5.0",
     "circular-buffer": "^1.0.3",
     "jsonschema": "^1.4.1",
     "luxon": "^3.3.0",

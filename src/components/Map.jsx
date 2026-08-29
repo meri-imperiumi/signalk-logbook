@@ -1,30 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Map as PigeonMap, GeoJson, Marker } from 'pigeon-maps';
+import React, { useState, useEffect } from 'react';
 import { Point } from 'where';
-import { viewport } from '@mapbox/geo-viewport';
 import {
   chartLayersWithFallback,
-  tileProvider,
-  isVectorLayer,
   DEFAULT_LAYER,
   CHART_MIRROR_MANIFEST_URL,
 } from '../helpers/charts';
-import { entryMarkerColor } from '../helpers/markers';
-import VectorMap from './VectorMap';
-
-function calculateBounds(points) {
-  if (!points.length) {
-    return [0, 0, 0, 0];
-  }
-  const x = points.map((xy) => xy.lon);
-  const y = points.map((xy) => xy.lat);
-  return [
-    Math.min(...x),
-    Math.min(...y),
-    Math.max(...x),
-    Math.max(...y),
-  ];
-}
+import ChartMap from './ChartMap';
 
 function Map(props) {
   // For map we only care about entries with a position
@@ -37,19 +18,13 @@ function Map(props) {
     lat: e.position.latitude,
     lon: e.position.longitude,
   })));
-  const [bbox, setBbox] = useState([640, 480]);
-  const mapContainer = useRef(null);
-  // Tile layers come from SignalK's configured charts; fall back to a default
-  // until the fetch resolves (and if none are configured). See helpers/charts.
-  const [layers, setLayers] = useState([DEFAULT_LAYER]);
+  // Tile layers come from SignalK's configured charts; `null` until the
+  // list resolves (fetching the corridor provider's manifest and the chart
+  // resources can take a while), then `[DEFAULT_LAYER]` when none are
+  // configured. Rendering nothing while `null` keeps the network-based
+  // OpenStreetMap default from loading first. See helpers/charts.
+  const [layers, setLayers] = useState(null);
   const [activeLayer, setActiveLayer] = useState(0);
-  useEffect(() => {
-    if (!mapContainer.current) {
-      return;
-    }
-    const rect = mapContainer.current.getBoundingClientRect();
-    setBbox([rect.width, rect.height]);
-  }, []);
   useEffect(() => {
     // The corridor downloader's asset manifest carries the mirrored
     // upstream chart style (full symbology) when one has been mirrored;
@@ -65,14 +40,11 @@ function Map(props) {
         setLayers(available);
         setActiveLayer((current) => (current < available.length ? current : 0));
       })
-      .catch(() => {});
+      .catch(() => {
+        setLayers([DEFAULT_LAYER]);
+      });
   }, []);
-  const layer = layers[activeLayer] || DEFAULT_LAYER;
-  const viewportResult = viewport(calculateBounds(points), bbox);
-  const centerAndZoom = {
-    center: [viewportResult.center[1], viewportResult.center[0]],
-    zoom: viewportResult.zoom - 1.5
-  };
+  const layer = layers === null ? null : layers[activeLayer] || DEFAULT_LAYER;
   useEffect(() => {
     if (entries.length < 2) {
       return;
@@ -151,11 +123,24 @@ function Map(props) {
     }).filter((e) => e !== null),
   };
   return (
-  <div ref={mapContainer} style={{
+  <div style={{
     position: 'relative',
     width: '80vw',
     height: '80vh',
   }}>
+    {layer === null ? (
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#666',
+      }}>
+        Loading charts…
+      </div>
+    ) : (
+    <React.Fragment>
     {layers.length > 1 ? (
       <div style={{
         position: 'absolute',
@@ -185,40 +170,15 @@ function Map(props) {
         ))}
       </div>
     ) : null}
-    {isVectorLayer(layer) ? (
-      <VectorMap
-        key={layer.identifier}
-        layer={layer}
-        points={points}
-        geoJson={geoJson}
-        entries={entries}
-        viewEntry={props.viewEntry}
-      />
-    ) : (
-    <PigeonMap
-      provider={tileProvider(layer.url)}
-      minZoom={layer.minZoom}
-      maxZoom={layer.maxZoom}
-      width={Math.round(bbox[0])}
-      height={Math.round(bbox[1])}
-      center={centerAndZoom.center}
-      zoom={centerAndZoom.zoom}
-    >
-      <GeoJson
-        data={geoJson}
-        styleCallback={() => ({
-          strokeWidth: '1',
-          stroke: 'red',
-        })}
-      />
-      {entries.map((entry) => (
-        <Marker
-          key={entry.datetime}
-          color={entryMarkerColor(entry.category)}
-          anchor={[entry.position.latitude, entry.position.longitude]}
-          onClick={() => props.viewEntry(entry)} />
-      ))}
-    </PigeonMap>
+    <ChartMap
+      key={layer.identifier}
+      layer={layer}
+      points={points}
+      geoJson={geoJson}
+      entries={entries}
+      viewEntry={props.viewEntry}
+    />
+    </React.Fragment>
     )}
   </div>
   );
