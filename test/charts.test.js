@@ -237,11 +237,11 @@ test('chartLayersWithFallback mounts the mirrored style over vector charts', () 
 test('chartLayersWithFallback mounts the mirror also with no configured charts', () => {
   const manifest = { style: 'http://host:3000/plugins/style.json' };
   // The downloader serves its mirrored style independently of
-  // resources/charts, so no OSM fallback is wanted either
+  // resources/charts, but the OSM default stays selectable next to it
   const layers = charts.chartLayersWithFallback({}, manifest);
-  assert.strictEqual(layers.length, 1);
+  assert.strictEqual(layers.length, 2);
   assert.strictEqual(layers[0].identifier, '__chart_mirror__');
-  assert.ok(!layers.some((l) => l.identifier === 'osm'), 'no OSM fallback when mirrored');
+  assert.strictEqual(layers[1], charts.DEFAULT_LAYER);
 });
 
 test('chartLayersWithFallback ignores manifests without a usable style', () => {
@@ -253,6 +253,64 @@ test('chartLayersWithFallback ignores manifests without a usable style', () => {
     charts.chartLayersWithFallback(sampleResource, null),
     charts.parseChartLayers(sampleResource),
   );
+});
+
+test('chartLayersWithFallback keeps the default selectable next to a vector-only setup', () => {
+  // The distance-to-shore plugin's world coastline is a data layer, not a
+  // basemap: when it is the only configured chart, OpenStreetMap must stay
+  // switchable instead of the map being stuck on bare coastline geometry
+  const layers = charts.chartLayersWithFallback({
+    vector: {
+      identifier: 'world-display-z0-z11-runtime-z12',
+      name: 'Distance To Shore Coastline - World z0-z12',
+      format: 'pbf',
+      type: 'tilelayer',
+      minzoom: 0,
+      maxzoom: 12,
+      chartLayers: ['coastline'],
+      tilemapUrl: '/signalk/v1/api/resources/charts/world-display-z0-z11-runtime-z12/{z}/{x}/{y}',
+    },
+  });
+  assert.deepStrictEqual(
+    layers.map((l) => l.identifier),
+    ['world-display-z0-z11-runtime-z12', 'osm'],
+  );
+  assert.ok(charts.isVectorLayer(layers[0]), 'vector chart stays the default selection');
+});
+
+test('chartLayersWithFallback appends the default after configured raster charts', () => {
+  const layers = charts.chartLayersWithFallback({
+    noaa: {
+      identifier: 'noaa',
+      name: 'NOAA ENC',
+      tilemapUrl: 'http://localhost:8080/noaa/{z}/{x}/{y}.png',
+    },
+  });
+  assert.deepStrictEqual(layers.map((l) => l.identifier), ['noaa', 'osm']);
+});
+
+test('chartLayersWithFallback does not duplicate an already-configured default', () => {
+  // Same tiles under another identifier: nothing to add
+  const byUrl = charts.chartLayersWithFallback({
+    osm: {
+      identifier: 'my-osm-mirror',
+      name: 'OpenStreetMap',
+      tilemapUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    },
+  });
+  assert.strictEqual(byUrl.length, 1);
+  assert.strictEqual(byUrl[0].identifier, 'my-osm-mirror');
+  // Same identifier with different tiles: appending would collide in the
+  // switcher's React keys, so the configured chart wins
+  const byIdentifier = charts.chartLayersWithFallback({
+    osm: {
+      identifier: 'osm',
+      name: 'My OSM proxy',
+      tilemapUrl: 'http://localhost:8090/osm/{z}/{x}/{y}.png',
+    },
+  });
+  assert.strictEqual(byIdentifier.length, 1);
+  assert.strictEqual(byIdentifier[0].name, 'My OSM proxy');
 });
 
 test('rasterStyle builds a MapLibre raster style from a chart layer', () => {
@@ -450,4 +508,14 @@ test('map wiring: no tiles render until the chart list resolves', () => {
   // renders in its place, so no network-based OpenStreetMap tiles load first
   assert.match(map, /useState\(null\)/);
   assert.match(map, /Loading charts/);
+});
+
+test('map wiring: the selected chart layer is remembered between visits', () => {
+  const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
+  // The picked layer id goes to localStorage and is looked up again when
+  // the chart list resolves — wrapped so private-mode storage doesn't throw
+  assert.match(map, /localStorage\.getItem\(ACTIVE_CHART_LAYER_KEY\)/);
+  assert.match(map, /localStorage\.setItem\(ACTIVE_CHART_LAYER_KEY/);
+  assert.match(map, /findIndex\(\(l\) => l\.identifier === remembered\)/);
+  assert.match(map, /rememberChartLayer\(layers\[idx\]\)/);
 });

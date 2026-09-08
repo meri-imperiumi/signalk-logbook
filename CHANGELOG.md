@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- The log map now always offers OpenStreetMap as a selectable chart option, also when other charts are configured — setups whose only chart is a data layer (such as the distance-to-shore plugin's world coastline tiles) get a usable basemap again instead of being stuck on bare coastline geometry. The chart selected in the map is remembered between visits
+
 ## [0.12.0] - 2026-08-28
 ### Added
 - The selected tab (Timeline, Logbook, Map) is now tracked in the URL hash, so a reload keeps you on the same tab, tabs can be shared as links (`#book`, `#map`), and browser back/forward switch between tabs

@@ -2,7 +2,9 @@
 // `resources/charts`; we turn the tile charts into layers the map can render,
 // showing whatever the user has set up (offline MBTiles, ENCs, a
 // referer-tolerant proxy…) instead of hardcoding OSM's public tiles, which now
-// 403 for referer-less self-hosted setups (issue #76).
+// 403 for referer-less self-hosted setups (issue #76). The OSM default stays
+// selectable alongside whatever is configured, so there is always a basemap
+// to switch to even when the only chart around is a data layer.
 //
 // Every chart renders through MapLibre GL (components/ChartMap). Raster
 // tile charts get a generated raster style; vector tile charts (`format:
@@ -126,17 +128,27 @@ function mirroredChartLayer(manifest) {
   };
 }
 
-// Configured tile layers, or a single sane default when none are set up.
-// A mirrored upstream style is mounted first and replaces the configured
-// vector charts — it renders the same tiles with full symbology, the
-// composed styles are only the fallback. Raster charts are always kept.
+// Configured tile layers, with the OpenStreetMap default always kept
+// selectable. A mirrored upstream style is mounted first and replaces the
+// configured vector charts — it renders the same tiles with full symbology,
+// the composed styles are only the fallback. Raster charts are always kept.
+// OSM is appended as the last switcher entry even when charts are configured:
+// a setup whose only chart is a data layer (e.g. the distance-to-shore
+// plugin's world coastline tiles) would otherwise be stuck on an unusable
+// base. Skipped when a configured chart already is that default — matching on
+// identifier or tile URL, either way it would only duplicate the switcher
+// (and collide in React's keys).
 function chartLayersWithFallback(resource, manifest) {
   const mirror = mirroredChartLayer(manifest);
   const layers = parseChartLayers(resource);
-  if (mirror) {
-    return [mirror].concat(layers.filter((layer) => !isVectorLayer(layer)));
+  const base = mirror
+    ? [mirror].concat(layers.filter((layer) => !isVectorLayer(layer)))
+    : layers;
+  if (!base.some((layer) => layer.identifier === DEFAULT_LAYER.identifier
+    || layer.url === DEFAULT_LAYER.url)) {
+    base.push(DEFAULT_LAYER);
   }
-  return layers.length ? layers : [DEFAULT_LAYER];
+  return base;
 }
 
 // MapLibre tile URLs must be absolute; server-provided tilemapUrls may be

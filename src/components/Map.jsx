@@ -7,6 +7,27 @@ import {
 } from '../helpers/charts';
 import ChartMap from './ChartMap';
 
+// localStorage key for the chart layer the user last picked, so revisits
+// start on the same basemap instead of the first configured chart
+const ACTIVE_CHART_LAYER_KEY = 'signalk-logbook:activeChartLayer';
+
+function storedChartLayer() {
+  try {
+    return window.localStorage.getItem(ACTIVE_CHART_LAYER_KEY);
+  } catch (err) {
+    // Private browsing can block storage; the selection just won't persist
+    return null;
+  }
+}
+
+function rememberChartLayer(layer) {
+  try {
+    window.localStorage.setItem(ACTIVE_CHART_LAYER_KEY, layer.identifier);
+  } catch (err) {
+    // See storedChartLayer
+  }
+}
+
 function Map(props) {
   // For map we only care about entries with a position
   const entries = props.entries.filter((e) => e.position).map((entry) => ({
@@ -20,9 +41,9 @@ function Map(props) {
   })));
   // Tile layers come from SignalK's configured charts; `null` until the
   // list resolves (fetching the corridor provider's manifest and the chart
-  // resources can take a while), then `[DEFAULT_LAYER]` when none are
-  // configured. Rendering nothing while `null` keeps the network-based
-  // OpenStreetMap default from loading first. See helpers/charts.
+  // resources can take a while), then the list with the OpenStreetMap default
+  // always selectable. Rendering nothing while `null` keeps the
+  // network-based OpenStreetMap default from loading first. See helpers/charts.
   const [layers, setLayers] = useState(null);
   const [activeLayer, setActiveLayer] = useState(0);
   useEffect(() => {
@@ -38,7 +59,13 @@ function Map(props) {
       .then(([resource, manifest]) => {
         const available = chartLayersWithFallback(resource, manifest);
         setLayers(available);
-        setActiveLayer((current) => (current < available.length ? current : 0));
+        // Restore the chart picked on a previous visit when it is still
+        // offered; the list may have changed underneath the stored id
+        const remembered = storedChartLayer();
+        const rememberedIdx = remembered
+          ? available.findIndex((l) => l.identifier === remembered)
+          : -1;
+        setActiveLayer(rememberedIdx > -1 ? rememberedIdx : 0);
       })
       .catch(() => {
         setLayers([DEFAULT_LAYER]);
@@ -96,6 +123,10 @@ function Map(props) {
       })
       .catch(() => {});
   }, [props.entries]);
+  const selectLayer = (idx) => {
+    setActiveLayer(idx);
+    rememberChartLayer(layers[idx]);
+  };
   const geoJson = {
     type: 'FeatureCollection',
     features: points.slice(1).map((current, idx) => {
@@ -154,7 +185,7 @@ function Map(props) {
           <button
             key={l.identifier}
             type="button"
-            onClick={() => setActiveLayer(idx)}
+            onClick={() => selectLayer(idx)}
             style={{
               border: 'none',
               margin: '1px',
