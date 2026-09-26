@@ -1,6 +1,8 @@
 # Changelog
 ## [Unreleased]
 
+## [0.13.1] - 2026-09-27
+
 ## [0.13.0] - 2026-09-27
 ### Changed
 - The webapp now builds against React 19 (and reactstrap 9.2.3), matching the React version provided by the Signal K admin UI through the Module Federation shared singleton. Previously the plugin was built against React 16 and only ran on the host's newer React through a version-mismatch fallback
