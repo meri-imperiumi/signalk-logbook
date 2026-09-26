@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- The webapp now builds against React 19 (and reactstrap 9.2.3), matching the React version provided by the Signal K admin UI through the Module Federation shared singleton. Previously the plugin was built against React 16 and only ran on the host's newer React through a version-mismatch fallback
+
 ### Fixed
 - The log map now always offers OpenStreetMap as a selectable chart option, also when other charts are configured — setups whose only chart is a data layer (such as the distance-to-shore plugin's world coastline tiles) get a usable basemap again instead of being stuck on bare coastline geometry. The chart selected in the map is remembered between visits
 
