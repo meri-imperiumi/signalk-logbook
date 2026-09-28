@@ -73,6 +73,7 @@ module.exports = (app) => {
     'navigation.log',
     'navigation.course.nextPoint',
     'environment.outside.pressure',
+    'environment.time.timezoneOffset', // Ship's time, from signalk-ships-time
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
     'environment.water.swell.state',

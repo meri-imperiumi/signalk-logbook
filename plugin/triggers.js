@@ -64,6 +64,22 @@ function sailsString(state, app) {
   return string.join(', ');
 }
 
+/**
+ * Formats a timezone offset in the environment.json schema's (-)hhmm
+ * encoding (as published by signalk-ships-time) for log text:
+ * 1300 → "UTC+13", -930 → "UTC-9:30", 330 → "UTC+3:30".
+ */
+function formatTimezoneOffset(hhmm) {
+  const sign = hhmm < 0 ? '-' : '+';
+  const abs = Math.abs(hhmm);
+  const hours = Math.floor(abs / 100);
+  const minutes = abs % 100;
+  if (minutes === 0) {
+    return `UTC${sign}${hours}`;
+  }
+  return `UTC${sign}${hours}:${String(minutes).padStart(2, '0')}`;
+}
+
 exports.processTriggers = function processTriggers(path, value, oldState, log, app) {
   function appendLog(text, additionalData = {}) {
     const data = stateToEntry(oldState, text, '', 'auto');
@@ -280,6 +296,19 @@ exports.processTriggers = function processTriggers(path, value, oldState, log, a
         return Promise.resolve();
       }
       return appendLog(`${nameValue} on watch`);
+    }
+    case 'environment.time.timezoneOffset': {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return Promise.resolve();
+      }
+      const oldOffset = oldState[path];
+      if (typeof oldOffset !== 'number' || !Number.isFinite(oldOffset)
+        || oldOffset === value) {
+        // We can ignore state when it doesn't change, and the first
+        // received value. Zero is a real offset (UTC), so no falsy check.
+        return Promise.resolve();
+      }
+      return appendLog(`Changed ship's time to ${formatTimezoneOffset(value)}`);
     }
     default: {
       break;
