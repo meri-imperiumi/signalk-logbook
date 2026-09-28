@@ -7,6 +7,7 @@ import { Point } from 'where';
 import { DateTime } from 'luxon';
 import styles from './styles.module.css';
 import OriginBadge from './OriginBadge.jsx';
+import { formatTimestamp } from '../helpers/timezone';
 
 function getWeather(entry) {
   const weather = [];
@@ -58,14 +59,15 @@ function entriesForSameDay(entry, previous, props) {
     return previous && sameDay(toDateTime(previous, props), toDateTime(entry, props));
 }
 
-function toLocaleString(entry, previous, props) {
+function formatEntryTime(entry, previous, props) {
     const dt = toDateTime(entry, props);
+    const timestamp = formatTimestamp(entry.date, props.displayTimeZone);
 
     if (entriesForSameDay(entry, previous, props)) {
-        return dt.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
+        return timestamp;
     }
     else {
-        return `${dt.toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)} (${dt.toLocaleString({ weekday: 'long' })})`;
+        return `${timestamp} (${dt.toLocaleString({ weekday: 'long' })})`;
     }
 }
 
@@ -97,7 +99,7 @@ function Logbook(props) {
         {entries.map((entry, index) => (
           <tr className={!entriesForSameDay(entry, entries[index-1], props) && styles["new-day"]}
               key={entry.datetime} onClick={() => props.editEntry(entry)}>
-            <td>{toLocaleString(entry, entries[index-1], props)}</td>
+            <td>{formatEntryTime(entry, entries[index-1], props)}</td>
             <td>{getCourse(entry)}</td>
             <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
             <td>{getWeather(entry)}</td>

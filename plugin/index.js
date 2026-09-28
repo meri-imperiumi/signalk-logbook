@@ -1,19 +1,10 @@
 const CircularBuffer = require('circular-buffer');
-const timezones = require('timezones-list');
 const Log = require('./Log');
 const resolveAgo = require('./ago');
 const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const openAPI = require('../schema/openapi.json');
-
-const timezonesList = [
-  {
-    tzCode: 'UTC',
-    label: 'UTC',
-  },
-  ...timezones.default,
-];
 
 function parseJwt(token) {
   if (!token) {
@@ -396,11 +387,12 @@ module.exports = (app) => {
       displayTimeZone: {
         type: 'string',
         default: 'UTC',
-        title: 'Select the display time zone',
-        oneOf: timezonesList.map((tz) => ({
-          const: tz.tzCode,
-          title: tz.label,
-        })),
+        title: 'Time zone to display log entries in',
+        description: 'Entries are always stored in UTC. Ship\'s time comes from the environment.time.timezoneOffset path published by signalk-ships-time',
+        oneOf: [
+          { const: 'UTC', title: 'UTC' },
+          { const: 'ship', title: "Ship's time" },
+        ],
       },
       logNotifications: {
         type: 'boolean',

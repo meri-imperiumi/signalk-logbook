@@ -15,6 +15,7 @@ import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
+import { displayZone, showFromKey } from '../helpers/timezone';
 
 const categories = [
   'navigation',
@@ -36,8 +37,15 @@ function AppPanel(props) {
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
   const [timezone, setTimezone] = useState('UTC');
+  // Ship's time offset from environment.time.timezoneOffset, published
+  // by signalk-ships-time in (-)hhmm encoding, e.g. 1300 → UTC+13
+  const [timezoneOffset, setTimezoneOffset] = useState(null);
 
   const loginStatus = props.loginStatus.status;
+
+  // Concrete zone the logbook renders in: UTC or the live ship's time.
+  // Storage stays UTC either way, this only drives display.
+  const displayTimeZone = displayZone(timezone, timezoneOffset);
 
   useEffect(() => {
     if (!needsUpdate) {
@@ -56,9 +64,8 @@ function AppPanel(props) {
     fetch('/plugins/signalk-logbook/logs')
       .then((res) => res.json())
       .then((days) => {
-        const showFrom = new Date();
-        showFrom.setDate(showFrom.getDate() - daysToShow);
-        const toShow = days.filter((d) => d >= showFrom.toISOString().substr(0, 10));
+        const showFrom = showFromKey(new Date(), displayTimeZone, daysToShow);
+        const toShow = days.filter((d) => d >= showFrom);
         Promise.all(toShow.map((day) => fetch(`/plugins/signalk-logbook/logs/${day}`)
           .then((r) => r.json())))
           .then((dayEntries) => {
@@ -72,8 +79,53 @@ function AppPanel(props) {
     return () => {
       clearInterval(interval);
     };
-  }, [daysToShow, needsUpdate, loginStatus]);
+  }, [daysToShow, needsUpdate, loginStatus, displayTimeZone]);
   // TODO: Depend on chosen time window to reload as needed
+
+  // Ship's time offset deltas, used when the display time zone setting
+  // is ship's time
+  useEffect(() => {
+    const ws = props.adminUI.openWebsocket({ subscribe: 'none' });
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        context: 'vessels.self',
+        subscribe: [
+          {
+            path: 'environment.time.timezoneOffset',
+            period: 10000,
+          },
+        ],
+      }));
+    };
+    ws.onmessage = (m) => {
+      const delta = JSON.parse(m.data);
+      if (!delta.updates) {
+        return;
+      }
+      delta.updates.forEach((u) => {
+        if (!u.values) {
+          return;
+        }
+        u.values.forEach((v) => {
+          if (v.path === 'environment.time.timezoneOffset' && Number.isFinite(v.value)) {
+            setTimezoneOffset(v.value);
+          }
+        });
+      });
+    };
+    // Seed the current offset via REST while waiting for deltas
+    fetch('/signalk/v1/api/vessels/self/environment/time/timezoneOffset')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((v) => {
+        if (v && Number.isFinite(v.value)) {
+          setTimezoneOffset(v.value);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0')
@@ -193,7 +245,6 @@ function AppPanel(props) {
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
         daysToShow={daysToShow}
-        displayTimeZone={timezone}
         setDaysToShow={setDaysToShow}
         setNeedsUpdate={setNeedsUpdate}
       />
@@ -204,14 +255,14 @@ function AppPanel(props) {
           save={saveEntry}
           delete={deleteEntry}
           categories={categories}
-          displayTimeZone={timezone}
+          displayTimeZone={displayTimeZone}
           /> : null }
         { viewEntry ? <EntryViewer
           entry={viewEntry}
           editEntry={setEditEntry}
           cancel={() => setViewEntry(null)}
           categories={categories}
-          displayTimeZone={timezone}
+          displayTimeZone={displayTimeZone}
           /> : null }
         { addEntry ? <EntryEditor
           entry={addEntry}
@@ -219,7 +270,7 @@ function AppPanel(props) {
           cancel={() => setAddEntry(null)}
           save={saveAddEntry}
           categories={categories}
-          displayTimeZone={timezone}
+          displayTimeZone={displayTimeZone}
           /> : null }
         <Col className="bg-light border">
           <Nav tabs>
@@ -244,10 +295,10 @@ function AppPanel(props) {
           </Nav>
           <TabContent activeTab={activeTab}>
             <TabPane tabId="timeline">
-              { activeTab === 'timeline' ? <Timeline entries={data.entries} displayTimeZone={timezone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
+              { activeTab === 'timeline' ? <Timeline entries={data.entries} displayTimeZone={displayTimeZone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
             </TabPane>
             <TabPane tabId="book">
-              { activeTab === 'book' ? <Logbook entries={data.entries} displayTimeZone={timezone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
+              { activeTab === 'book' ? <Logbook entries={data.entries} displayTimeZone={displayTimeZone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }
             </TabPane>
             <TabPane tabId="map">
               { activeTab === 'map' ? <Map entries={data.entries} editEntry={setEditEntry} viewEntry={setViewEntry} /> : null }

@@ -1,5 +1,10 @@
 # Changelog
 ## [Unreleased]
+### Added
+- The logbook display time zone can now be set to either UTC or the vessel's ship's time (the `environment.time.timezoneOffset` offset published by signalk-ships-time, which the plugin now recommends). The chosen time zone drives how entry timestamps render — ship's time without a timezone specifier, UTC with an explicit `Z` — as well as which days of entries the logbook loads and where its day breaks fall. Entries remain stored in UTC
+
+### Changed
+- The "Select the display time zone" plugin setting no longer offers the full IANA zone list; setups still holding an IANA zone display entries in UTC until reconfigured
 
 ## [0.13.2] - 2026-09-28
 ### Added

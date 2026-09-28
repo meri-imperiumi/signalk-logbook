@@ -11,6 +11,7 @@ import {
 import { Point } from 'where';
 import EntryDetails from './EntryDetails.jsx';
 import OriginBadge from './OriginBadge.jsx';
+import { formatTimestamp } from '../helpers/timezone';
 
 function Timeline(props) {
   const entries = props.entries.map((entry) => ({
@@ -31,9 +32,7 @@ function Timeline(props) {
                 <OriginBadge origin={entry.origin} />
               </Col>
               <Col className="text-end text-right">
-                {entry.date.toLocaleString('en-GB', {
-                  timeZone: props.displayTimeZone,
-                })}
+                {formatTimestamp(entry.date, props.displayTimeZone)}
               </Col>
             </Row>
           </CardHeader>

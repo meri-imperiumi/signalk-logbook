@@ -8,15 +8,14 @@ import {
 } from 'reactstrap';
 import EntryDetails from './EntryDetails.jsx';
 import OriginBadge from './OriginBadge.jsx';
+import { formatTimestamp } from '../helpers/timezone';
 
 function EntryViewer(props) {
   const { entry } = props;
   return (
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
-        Log entry {entry.date.toLocaleString('en-GB', {
-          timeZone: props.displayTimeZone,
-        })} by {entry.author || 'auto'}
+        Log entry {formatTimestamp(entry.date, props.displayTimeZone)} by {entry.author || 'auto'}
         <OriginBadge origin={entry.origin} />
       </ModalHeader>
       <ModalBody>

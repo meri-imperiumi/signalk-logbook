@@ -1,0 +1,72 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const {
+  offsetToZone,
+  displayZone,
+  formatTimestamp,
+  showFromKey,
+} = require('../src/helpers/timezone');
+
+test('offsetToZone formats (-)hhmm encoding as zero-padded fixed offsets', () => {
+  assert.strictEqual(offsetToZone(1300), '+13:00');
+  assert.strictEqual(offsetToZone(330), '+03:30');
+  assert.strictEqual(offsetToZone(-930), '-09:30');
+  assert.strictEqual(offsetToZone(200), '+02:00');
+  assert.strictEqual(offsetToZone(0), '+00:00');
+});
+
+test('displayZone resolves ship time from the timezone offset', () => {
+  assert.strictEqual(displayZone('ship', 1300), '+13:00');
+  assert.strictEqual(displayZone('ship', -930), '-09:30');
+  assert.strictEqual(displayZone('ship', 0), '+00:00');
+});
+
+test('displayZone falls back to UTC when ship time has no offset yet', () => {
+  assert.strictEqual(displayZone('ship', null), 'UTC');
+  assert.strictEqual(displayZone('ship', undefined), 'UTC');
+});
+
+test('displayZone falls back to UTC for unknown settings', () => {
+  assert.strictEqual(displayZone('UTC', 1300), 'UTC');
+  assert.strictEqual(displayZone('Europe/Helsinki', 0), 'UTC');
+  assert.strictEqual(displayZone(undefined, 1300), 'UTC');
+});
+
+test('formatTimestamp renders UTC with an explicit Z suffix', () => {
+  assert.strictEqual(
+    formatTimestamp(new Date('2026-09-28T14:30:05.000Z'), 'UTC'),
+    '2026-09-28 14:30:05Z',
+  );
+});
+
+test('formatTimestamp renders ship time without a timezone specifier', () => {
+  assert.strictEqual(
+    formatTimestamp(new Date('2026-09-28T14:30:05.000Z'), '+13:00'),
+    '2026-09-29 03:30:05',
+  );
+  assert.strictEqual(
+    formatTimestamp(new Date('2026-09-28T14:30:05.000Z'), '-09:30'),
+    '2026-09-28 05:00:05',
+  );
+});
+
+test('showFromKey limits the shown days in the display timezone', () => {
+  // 2026-09-28 23:00 ship's time (UTC+13): the last 7 days start on
+  // 2026-09-22 ship time, whose UTC day is 2026-09-21
+  assert.strictEqual(
+    showFromKey(new Date('2026-09-28T10:00:00.000Z'), '+13:00', 7),
+    '2026-09-21',
+  );
+});
+
+test('showFromKey limits the shown days in UTC', () => {
+  assert.strictEqual(
+    showFromKey(new Date('2026-09-28T10:00:00.000Z'), 'UTC', 7),
+    '2026-09-22',
+  );
+});
+
+test('showFromKey maps the first shown day to a UTC day key', () => {
+  // Storage days are UTC keys, so the limit must be expressed in UTC
+  assert.match(showFromKey(new Date(), '+13:00', 1), /^\d{4}-\d{2}-\d{2}$/);
+});

@@ -56,6 +56,7 @@
     ],
     "recommends": [
       "@meri-imperiumi/signalk-triplogger",
+      "@meri-imperiumi/signalk-ships-time",
       "@signalk/sailsconfiguration"
     ],
     "screenshots": [
@@ -75,7 +76,6 @@
     "luxon": "^3.3.0",
     "maplibre-gl": "^6.6.0",
     "ordinal": "^1.0.3",
-    "timezones-list": "^3.0.2",
     "where": "^0.4.1",
     "yaml": "^2.2.1"
   }
