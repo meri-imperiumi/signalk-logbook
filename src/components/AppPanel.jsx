@@ -15,7 +15,7 @@ import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
-import { displayZone, showFromKey } from '../helpers/timezone';
+import { displayZone, showFromKey, zoneLabel } from '../helpers/timezone';
 
 const categories = [
   'navigation',
@@ -245,6 +245,7 @@ function AppPanel(props) {
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
         daysToShow={daysToShow}
+        displayTimeZone={zoneLabel(displayTimeZone)}
         setDaysToShow={setDaysToShow}
         setNeedsUpdate={setNeedsUpdate}
       />

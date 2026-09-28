@@ -53,9 +53,21 @@ function showFromKey(now, zone, days) {
     .toISODate();
 }
 
+// Human-readable designation for a resolved display zone, matching how
+// ship's time changes are worded in the log: 'UTC', 'UTC+13', 'UTC-9:30'
+function zoneLabel(zone) {
+  if (!zone || zone === 'UTC') {
+    return 'UTC';
+  }
+  const sign = zone.startsWith('-') ? '-' : '+';
+  const [hours, minutes] = zone.replace(/^[+-]/, '').split(':');
+  return `UTC${sign}${parseInt(hours, 10)}${minutes === '00' ? '' : `:${minutes}`}`;
+}
+
 module.exports = {
   offsetToZone,
   displayZone,
   formatTimestamp,
   showFromKey,
+  zoneLabel,
 };

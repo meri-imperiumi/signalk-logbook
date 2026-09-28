@@ -5,6 +5,7 @@ const {
   displayZone,
   formatTimestamp,
   showFromKey,
+  zoneLabel,
 } = require('../src/helpers/timezone');
 
 test('offsetToZone formats (-)hhmm encoding as zero-padded fixed offsets', () => {
@@ -69,4 +70,16 @@ test('showFromKey limits the shown days in UTC', () => {
 test('showFromKey maps the first shown day to a UTC day key', () => {
   // Storage days are UTC keys, so the limit must be expressed in UTC
   assert.match(showFromKey(new Date(), '+13:00', 1), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('zoneLabel renders UTC', () => {
+  assert.strictEqual(zoneLabel('UTC'), 'UTC');
+  assert.strictEqual(zoneLabel(undefined), 'UTC');
+});
+
+test('zoneLabel renders ship time offsets', () => {
+  assert.strictEqual(zoneLabel('+13:00'), 'UTC+13');
+  assert.strictEqual(zoneLabel('-09:30'), 'UTC-9:30');
+  assert.strictEqual(zoneLabel('+03:30'), 'UTC+3:30');
+  assert.strictEqual(zoneLabel('+00:00'), 'UTC+0');
 });

@@ -19,6 +19,7 @@ import {
   AccordionItem,
 } from 'reactstrap';
 import { DateTime } from 'luxon';
+import { formatTimestamp } from '../helpers/timezone';
 import { getSeaStates, getVisibility } from '../helpers/observations';
 
 function EntryEditor(props) {
@@ -153,9 +154,7 @@ function EntryEditor(props) {
     <Modal isOpen={true} toggle={props.cancel}>
       <ModalHeader toggle={props.cancel}>
         { !isNew
-          && `Log entry ${entry.date.toLocaleString('en-GB', {
-            timeZone: props.displayTimeZone,
-          })} by ${entry.author || 'auto'}`}
+          && `Log entry ${formatTimestamp(entry.date, props.displayTimeZone)} by ${entry.author || 'auto'}`}
         { isNew
           && 'New entry'}
       </ModalHeader>
