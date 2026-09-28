@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [0.13.2] - 2026-09-28
 ### Added
 - Ship's time changes are logged automatically: when the vessel's timezone offset (`environment.time.timezoneOffset`, as published by signalk-ships-time) changes, an entry like "Changed ship's time to UTC+13" or "Changed ship's time to UTC-9:30" is written
 
