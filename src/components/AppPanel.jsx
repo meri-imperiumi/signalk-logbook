@@ -18,6 +18,7 @@ import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
 import { displayZone, showFromKey, zoneLabel } from '../helpers/timezone';
 import { apiToUiEntry, uiEntryToApi, draftToApiEntry } from '../helpers/entries';
+import { loadUnitPreferences, applyDisplayUnits } from '../helpers/units';
 
 const categories = [
   'navigation',
@@ -42,6 +43,10 @@ function AppPanel(props) {
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
+  // The user's unit preferences (per-user preset override → server-wide
+  // active preset), driving how telemetry renders. Null = server has no
+  // unitpreferences API; rendering then falls back to nautical units.
+  const [unitPrefs, setUnitPrefs] = useState(null);
   const [timezone, setTimezone] = useState('UTC');
   // Ship's time offset from environment.time.timezoneOffset, published
   // by signalk-ships-time in (-)hhmm encoding, e.g. 1300 → UTC+13
@@ -76,7 +81,9 @@ function AppPanel(props) {
     fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(new Date().toISOString())}`)
       .then((res) => res.json())
       .then((resources) => {
-        const entries = Object.values(resources).map(apiToUiEntry);
+        const entries = Object.values(resources)
+          .map(apiToUiEntry)
+          .map((entry) => applyDisplayUnits(entry, unitPrefs));
         setData({
           entries,
         });
@@ -89,8 +96,14 @@ function AppPanel(props) {
     return () => {
       clearInterval(interval);
     };
-  }, [daysToShow, needsUpdate, loginStatus, displayTimeZone]);
+  }, [daysToShow, needsUpdate, loginStatus, displayTimeZone, unitPrefs]);
   // TODO: Depend on chosen time window to reload as needed
+
+  // Unit preferences load once; entries render nautically until they
+  // resolve, then re-render through the user's preset
+  useEffect(() => {
+    loadUnitPreferences().then((prefs) => setUnitPrefs(prefs)).catch(() => setUnitPrefs(null));
+  }, []);
 
   // Ship's time offset deltas, used when the display time zone setting
   // is ship's time

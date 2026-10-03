@@ -489,6 +489,8 @@ module.exports = {
   METERS_PER_NM,
   MS_PER_KT,
   KT_PER_MS,
+  PA_PER_HPA,
+  SECONDS_PER_HOUR,
   BEAUFORT_TO_DOUGLAS,
   DOUGLAS_TO_BEAUFORT,
   apiToStorage,

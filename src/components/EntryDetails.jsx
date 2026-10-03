@@ -39,27 +39,27 @@ function EntryDetails(props) {
             && !Number.isNaN(Number(entry.speed.sog))
             && <tr>
             <th>Speed</th>
-            <td>{entry.speed.sog}kt</td>
+            <td>{entry.speed.sog}{entry.speed.sogUnit}</td>
             </tr>
           }
           { !Number.isNaN(Number(entry.course))
             && <tr>
               <th>Course</th>
-              <td>{entry.course}°</td>
+              <td>{entry.course}{entry.courseUnit}</td>
             </tr>
           }
           { !Number.isNaN(Number(entry.heading))
             && <tr>
               <th>Heading</th>
-              <td>{entry.heading}°</td>
+              <td>{entry.heading}{entry.headingUnit}</td>
             </tr>
           }
           { entry.wind
             && <tr>
               <th>Wind</th>
               <td>
-                {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}kt ` : ''}
-                {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}°` : ''}
+                {!Number.isNaN(Number(entry.wind.speed)) ? `${entry.wind.speed}${entry.wind.speedUnit} ` : ''}
+                {!Number.isNaN(Number(entry.wind.direction)) ? `${entry.wind.direction}${entry.wind.directionUnit}` : ''}
               </td>
             </tr>
           }
@@ -101,8 +101,8 @@ function EntryDetails(props) {
               <th>Engine</th>
               <td>
                 {entry.engine.engines && Object.keys(entry.engine.engines).length > 1
-                  ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}h`).join(', ')
-                  : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''}
+                  ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}${e.hoursUnit}`).join(', ')
+                  : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}${entry.engine.hoursUnit}` : ''}
               </td>
             </tr>
           }
