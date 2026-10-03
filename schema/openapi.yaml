@@ -136,21 +136,20 @@ components:
         example: '2023-02-22'
     Observations:
       type: object
-      additionalProperties: false
       properties:
         seaState:
-          description: Sea state in WMO sea state code
-          type: integer
+          description: Sea state in WMO sea state (Douglas) code; maps through the standard WMO correspondence to the Beaufort scale of the API path environment.water.seaState
+          type: number
           minimum: 0
           maximum: 9
         cloudCoverage:
-          description: Cloud coverage in oktas
-          type: integer
+          description: Cloud coverage in oktas; the API path environment.outside.cloudCover carries the ratio (n oktas = n/8)
+          type: number
           minimum: 0
           maximum: 8
         visibility:
           description: Visibility in fog scale
-          type: integer
+          type: number
           minimum: 0
           maximum: 9
     NewEntry:
@@ -187,20 +186,39 @@ components:
           - agent
     Entry:
       type: object
-      additionalProperties: false
+      description: "Log entry. Open content model: unknown fields are preserved verbatim. The `id` is the resource id of the entry in the Signal K v2 `logentries` resources API; `telemetry` parks pathvalues (unknown paths, or known paths carrying extra members like `$source`) that have no historical storage field."
       required:
       - datetime
       - text
       properties:
+        id:
+          type: string
+          format: uuid
+          description: Stable resource id (UUID), assigned at first storage
         datetime:
           type: string
           format: date-time
+        telemetry:
+          type: array
+          description: Parked Signal K pathvalues with no historical storage field
+          items:
+            type: object
+            required:
+            - path
+            - value
+            additionalProperties: true
+            properties:
+              path:
+                type: string
+              value: {}
+        schemaVersion:
+          type: integer
+          description: Reserved for future schema evolution; absent means 1
         position:
           type: object
           required:
           - latitude
           - longitude
-          additionalProperties: false
           properties:
             latitude:
               type: number
@@ -228,7 +246,6 @@ components:
           required:
           - latitude
           - longitude
-          additionalProperties: false
           properties:
             latitude:
               type: number
@@ -252,7 +269,6 @@ components:
           example: 190
         speed:
           type: object
-          additionalProperties: false
           properties:
             sog:
               type: number
@@ -267,7 +283,6 @@ components:
           example: 1013.25
         wind:
           type: object
-          additionalProperties: false
           properties:
             speed:
               type: number
@@ -282,7 +297,6 @@ components:
           $ref: '#/components/schemas/Observations'
         engine:
           type: object
-          additionalProperties: false
           properties:
             hours:
               type: number
@@ -291,14 +305,13 @@ components:
               type: object
               additionalProperties:
                 type: object
-                additionalProperties: false
                 properties:
                   hours:
                     type: number
                     minimum: 0
         vhf:
           type: string
-          maxLength: 2
+          maxLength: 3
           minLength: 1
           example: '10'
         crewNames:
@@ -319,19 +332,13 @@ components:
           example: auto
         origin:
           type: string
-          enum:
-          - manual
-          - auto
-          - agent
+          description: Recommended vocabulary is manual, auto, agent; other values are preserved (open enumeration)
           default: manual
           example: auto
         category:
           type: string
-          enum:
-          - navigation
-          - engine
-          - radio
-          - maintenance
+          description: Recommended vocabulary is navigation, engine, radio, maintenance; other values are preserved (open enumeration)
+          example: navigation
     Log:
       type: array
       items:

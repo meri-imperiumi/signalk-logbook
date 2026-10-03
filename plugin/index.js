@@ -4,6 +4,7 @@ const resolveAgo = require('./ago');
 const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
+const { createLogentriesProvider } = require('./provider');
 const openAPI = require('../schema/openapi.json');
 
 function parseJwt(token) {
@@ -67,7 +68,10 @@ module.exports = (app) => {
     'environment.time.timezoneOffset', // Ship's time, from signalk-ships-time
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
+    'environment.water.seaState',
     'environment.water.swell.state',
+    'environment.outside.cloudCover',
+    'environment.outside.visibility',
     'propulsion.*.state',
     'propulsion.*.runTime',
     'sails.inventory.*',
@@ -92,11 +96,60 @@ module.exports = (app) => {
   // triggers, producing duplicate log entries.
   let deltaChain = Promise.resolve();
 
+  /**
+   * Register the `logentries` resource provider. The resources API is an
+   * addition, not a dependency: when the running server has no resources
+   * API, or the type is already claimed by another provider, the rest of
+   * the plugin (v1 routes, triggers, UI) keeps working unchanged.
+   */
+  function registerLogentriesProvider() {
+    if (typeof app.registerResourceProvider !== 'function') {
+      app.debug('Server has no resources API; logentries provider not registered');
+      return;
+    }
+    // Live-state snapshot for the buffer enrichment tier, mirroring how
+    // v1 POST /logs resolves `ago` against the circular buffer.
+    const bufferLookup = (atMs, now) => {
+      const minutesBack = Math.max(0, Math.floor((now - atMs) / 60000));
+      if (buffer.size() > minutesBack) {
+        return buffer.get(minutesBack);
+      }
+      return {
+        ...state,
+      };
+    };
+    const enginePaths = () => Object.keys(state)
+      .filter((key) => key.match(/^propulsion\.[^.]+\.runTime$/));
+    try {
+      const methods = createLogentriesProvider({
+        app,
+        log,
+        bufferLookup,
+        enginePaths,
+        providerId: plugin.id,
+      });
+      app.registerResourceProvider({ type: 'logentries', methods });
+    } catch (err) {
+      app.error(`Failed to register logentries resource provider: ${err.message}`);
+    }
+  }
+
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
     const options = app.readPluginOptions();
     notificationConfig = buildConfig((options && options.configuration) || {});
     episodes.clear();
+
+    // Stamp ids on pre-existing entries and build the id → date index
+    // before the resource provider registers.
+    log.migrate()
+      .catch((err) => {
+        app.error(`Logbook id migration failed: ${err.message}`);
+      })
+      .then(() => {
+        registerLogentriesProvider();
+      });
+
     const subscription = {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
@@ -104,7 +157,6 @@ module.exports = (app) => {
         period: 1000,
       })),
     };
-
     app.subscriptionmanager.subscribe(
       subscription,
       unsubscribes,
