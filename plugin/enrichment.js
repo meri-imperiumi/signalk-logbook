@@ -291,11 +291,13 @@ async function enrichEntry(entry, {
   }
   try {
     const lookup = fillFromHistory(entry, historyApi, atMs, enginePaths || []);
+    // The timer is deliberately NOT unref'd: an unref'd timeout is the only
+    // pending handle while a history lookup hangs, and the event loop can
+    // then drain before it fires — the write would never resolve. A hung
+    // provider instead leaves a ref'd timer alive for at most
+    // historyTimeoutMs, which is bounded and harmless.
     const timeout = new Promise((resolve) => {
-      const timer = setTimeout(() => resolve(), historyTimeoutMs || HISTORY_TIMEOUT_MS);
-      if (timer.unref) {
-        timer.unref();
-      }
+      setTimeout(() => resolve(), historyTimeoutMs || HISTORY_TIMEOUT_MS);
     });
     return (await Promise.race([lookup, timeout])) || entry;
   } catch (err) {

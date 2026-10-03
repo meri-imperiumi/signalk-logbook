@@ -48,12 +48,14 @@ function delta(signalPath, value) {
   };
 }
 
-// Poll the on-disk log until the entry count stabilizes across two reads, so
-// the test observes the final state once all async writes have drained.
-async function settle(dir, date) {
+// Poll the on-disk log until the entry count stabilizes across two reads —
+// and, when `waitUntil` is supplied, until the expected write has actually
+// appeared. Stability alone is not enough on a loaded runner: both reads
+// can land before the async write drains, returning the pre-write state.
+async function settle(dir, date, waitUntil = null) {
   const log = new Log(dir);
   let last = [];
-  for (let i = 0; i < 30; i += 1) {
+  for (let i = 0; i < 60; i += 1) {
     let current = [];
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -61,7 +63,7 @@ async function settle(dir, date) {
     } catch (err) {
       current = [];
     }
-    if (i > 0 && current.length === last.length) {
+    if (i > 0 && current.length === last.length && (!waitUntil || waitUntil(current))) {
       return current;
     }
     last = current;
@@ -93,7 +95,11 @@ test('rapid duplicate deltas produce only a single log entry', async () => {
     cb(delta('propulsion.port.state', 'started'));
     cb(delta('propulsion.port.state', 'started'));
 
-    const entries = await settle(dir, date);
+    const entries = await settle(
+      dir,
+      date,
+      (candidate) => candidate.some((e) => e.text === 'Started port engine'),
+    );
     const started = entries.filter((e) => e.text === 'Started port engine');
     assert.strictEqual(
       started.length,
