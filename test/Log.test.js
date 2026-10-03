@@ -17,7 +17,8 @@ test('writeEntry does not wipe the day when a stored entry fails validation', as
       {
         datetime: '2026-06-11T09:00:00.000Z',
         text: 'Sail change',
-        position: { latitude: 48.7, longitude: -123.1, foo: 'bar' },
+        position: { latitude: 48.7, longitude: -123.1 },
+        heading: 'not-a-number',
       },
     ];
     await writeFile(join(dir, `${date}.yml`), stringify(stored), 'utf-8');
@@ -51,7 +52,8 @@ test('appendEntry does not wipe the day when a stored entry fails validation', a
       {
         datetime: '2026-06-11T09:00:00.000Z',
         text: 'Sail change',
-        position: { latitude: 48.7, longitude: -123.1, foo: 'bar' },
+        position: { latitude: 48.7, longitude: -123.1 },
+        heading: 'not-a-number',
       },
     ];
     await writeFile(join(dir, `${date}.yml`), stringify(stored), 'utf-8');

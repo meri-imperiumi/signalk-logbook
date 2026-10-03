@@ -3,17 +3,28 @@ const {
   readdir,
   readFile,
   writeFile,
+  mkdir,
+  copyFile,
+  access,
 } = require('fs/promises');
 const { join, basename } = require('path');
+const { randomUUID } = require('crypto');
 const { parse, stringify } = require('yaml');
 const { Validator } = require('jsonschema');
 const openAPI = require('../schema/openapi.json');
+
+const DATE_PATTERN = /^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/;
+const MIGRATION_BACKUP_DIR = 'id-migration-backup';
 
 class Log {
   constructor(dir) {
     this.dir = dir;
     this.validator = null;
     this.queues = new Map(); // Tracks active promises per date to prevent race conditions
+    // In-memory index of entry id → date string. Built by the startup
+    // migration scan and maintained on writes, so id-addressed operations
+    // find the right day file without scanning every file.
+    this.idIndex = new Map();
   }
 
   // --- CONCURRENCY CONTROL ---
@@ -30,7 +41,7 @@ class Log {
   // --- INTERNAL DISK OPERATIONS (Unqueued) ---
 
   _getDateInternal(date) {
-    if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
+    if (!date.match(DATE_PATTERN)) {
       return Promise.reject(new Error('Invalid date format'));
     }
     const path = this.getPath(date);
@@ -62,7 +73,7 @@ class Log {
   }
 
   _writeDateInternal(date, data) {
-    if (!date.match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/)) {
+    if (!date.match(DATE_PATTERN)) {
       return Promise.reject(new Error('Invalid date format'));
     }
     const path = this.getPath(date);
@@ -97,8 +108,8 @@ class Log {
 
   getEntry(datetime) {
     const datetimeString = new Date(datetime).toISOString();
-    const dateString = datetimeString.substr(0, 10);
-    return this.getDate(dateString) // Uses public getDate, which handles queuing safely
+    // Uses public getDate, which handles queuing safely
+    return this.getDate(datetimeString.substr(0, 10))
       .then((dateData) => {
         const entry = dateData.find((e) => e.datetime.toISOString() === datetimeString);
         if (!entry) {
@@ -111,6 +122,25 @@ class Log {
           category: entry.category || 'navigation',
           datetime: new Date(entry.datetime),
         };
+      });
+  }
+
+  getEntryById(id) {
+    const date = this.idIndex.get(id);
+    if (!date) {
+      const err = new Error(`Entry ${id} not found`);
+      err.code = 'ENOENT';
+      return Promise.reject(err);
+    }
+    return this.getDate(date)
+      .then((dateData) => {
+        const entry = dateData.find((e) => e.id === id);
+        if (!entry) {
+          const err = new Error(`Entry ${id} not found`);
+          err.code = 'ENOENT';
+          return Promise.reject(err);
+        }
+        return entry;
       });
   }
 
@@ -135,17 +165,26 @@ class Log {
         });
       })
       .then((dateData) => {
+        const idx = dateData.findIndex((e) => e.datetime.toISOString() === datetimeString);
+        // Keep every stored entry carrying its id: inherit the matched
+        // entry's id on edit, assign a fresh one for a new datetime.
+        const id = entry.id || (idx !== -1 ? dateData[idx].id : undefined) || randomUUID();
         const normalized = {
           ...entry,
+          id,
           datetime: new Date(entry.datetime),
         };
-        const idx = dateData.findIndex((e) => e.datetime.toISOString() === datetimeString);
         const updatedDate = [...dateData];
         if (idx === -1) {
           updatedDate.push(normalized);
         } else {
           updatedDate[idx] = normalized;
+          const previousId = dateData[idx].id;
+          if (previousId && previousId !== id) {
+            this.idIndex.delete(previousId);
+          }
         }
+        this.idIndex.set(id, dateString);
         return this._writeDateInternal(dateString, updatedDate);
       }));
   }
@@ -164,13 +203,108 @@ class Log {
         });
       })
       .then((d) => {
+        const id = data.id || randomUUID();
         const normalized = {
           ...data,
+          id,
           datetime: new Date(data.datetime),
         };
         d.push(normalized);
+        this.idIndex.set(id, date);
         return this._writeDateInternal(date, d);
       }));
+  }
+
+  /**
+   * Create-or-replace an entry addressed by its id (the resources API
+   * upsert). When the replacement moves the entry to another day file,
+   * it is executed write-new-then-delete-old, each step under its date's
+   * queue — a crash between the steps leaves at worst a duplicate, which
+   * the startup scan deduplicates.
+   */
+  upsertEntry(id, entry) {
+    if (entry.id && entry.id !== id) {
+      return Promise.reject(new Error('Entry id does not match the resource id'));
+    }
+    const data = {
+      ...entry,
+      id,
+    };
+    const datetime = new Date(data.datetime);
+    if (Number.isNaN(datetime.getTime())) {
+      return Promise.reject(new Error('Invalid datetime'));
+    }
+    const newDate = datetime.toISOString().substr(0, 10);
+    const oldDate = this.idIndex.get(id);
+
+    const writeNew = () => this._enqueue(newDate, () => this.validateEntry(data)
+      .then((valid) => {
+        if (valid.errors.length > 0) {
+          return Promise.reject(valid.errors[0]);
+        }
+        return this._getDateInternal(newDate).catch((err) => {
+          if (err.code === 'ENOENT') {
+            return [];
+          }
+          throw err;
+        });
+      })
+      .then((dateData) => {
+        const normalized = {
+          ...data,
+          datetime,
+        };
+        const updatedDate = [...dateData];
+        const idx = updatedDate.findIndex((e) => e.id === id);
+        if (idx === -1) {
+          updatedDate.push(normalized);
+        } else {
+          updatedDate[idx] = normalized;
+        }
+        return this._writeDateInternal(newDate, updatedDate);
+      }))
+      .then(() => {
+        this.idIndex.set(id, newDate);
+      });
+
+    if (!oldDate || oldDate === newDate) {
+      return writeNew();
+    }
+    return writeNew()
+      .then(() => this._enqueue(oldDate, () => this._getDateInternal(oldDate)
+        .then((dateData) => {
+          const idx = dateData.findIndex((e) => e.id === id);
+          if (idx === -1) {
+            return undefined;
+          }
+          dateData.splice(idx, 1);
+          return this._writeDateInternal(oldDate, dateData);
+        })));
+  }
+
+  deleteEntryById(id) {
+    const date = this.idIndex.get(id);
+    if (!date) {
+      const err = new Error(`Entry ${id} not found`);
+      err.code = 'ENOENT';
+      return Promise.reject(err);
+    }
+    return this._enqueue(date, () => this._getDateInternal(date)
+      .then((dateData) => {
+        const entryIdx = dateData.findIndex((e) => e.id === id);
+        if (entryIdx === -1) {
+          const err = new Error(`Entry ${id} not found`);
+          err.code = 'ENOENT';
+          return Promise.reject(err);
+        }
+        dateData.splice(entryIdx, 1);
+        return this._writeDateInternal(date, dateData);
+      }))
+      .then(() => {
+        if (this.idIndex.get(id) === date) {
+          this.idIndex.delete(id);
+        }
+      });
   }
 
   deleteEntry(datetimeString) {
@@ -184,7 +318,10 @@ class Log {
           err.code = 'ENOENT';
           return Promise.reject(err);
         }
-        dateData.splice(entryIdx, 1);
+        const [deleted] = dateData.splice(entryIdx, 1);
+        if (deleted.id && this.idIndex.get(deleted.id) === dateString) {
+          this.idIndex.delete(deleted.id);
+        }
         return this._writeDateInternal(dateString, dateData);
       }));
   }
@@ -202,8 +339,78 @@ class Log {
       if (a.datetime > b.datetime) {
         return 1;
       }
+      // Same-millisecond entries are allowed; ids break ties so the
+      // ordering is deterministic.
+      if (a.id < b.id) {
+        return -1;
+      }
+      if (a.id > b.id) {
+        return 1;
+      }
       return 0;
     });
+  }
+
+  /**
+   * One-time startup migration for pre-id entries: stamps a fresh UUID id
+   * on every entry, backs up day files before rewriting them in place,
+   * builds the in-memory id → date index and deduplicates entries that an
+   * interrupted cross-day move left in two files (the earliest copy wins).
+   * Idempotent: entries already carrying an id are kept, and once all
+   * entries are stamped a re-run changes nothing.
+   */
+  migrate() {
+    const seen = new Set();
+    return this.listDates()
+      .then((dates) => dates.sort())
+      .then((dates) => dates.reduce(
+        (prev, date) => prev.then(() => this._migrateDate(date, seen)),
+        Promise.resolve(),
+      ));
+  }
+
+  _migrateDate(date, seen) {
+    return this._getDateInternal(date)
+      // Unreadable or invalid day file: leave it untouched rather than
+      // rewriting it from a partially understood state.
+      .catch(() => null)
+      .then((data) => {
+        if (!data) {
+          return null;
+        }
+        let changed = false;
+        const kept = [];
+        data.forEach((source) => {
+          const entry = { ...source };
+          if (!entry.id || typeof entry.id !== 'string') {
+            entry.id = randomUUID();
+            changed = true;
+          }
+          if (seen.has(entry.id)) {
+            // Duplicate of an entry already seen in an earlier day file
+            // (interrupted cross-day move): keep a single copy.
+            changed = true;
+            return;
+          }
+          seen.add(entry.id);
+          this.idIndex.set(entry.id, date);
+          kept.push(entry);
+        });
+        if (!changed) {
+          return null;
+        }
+        return this._backupAndRewrite(date, kept);
+      });
+  }
+
+  _backupAndRewrite(date, kept) {
+    const backupDir = join(this.dir, MIGRATION_BACKUP_DIR);
+    const backupPath = join(backupDir, `${date}.yml`);
+    return mkdir(backupDir, { recursive: true })
+      .catch(() => {})
+      .then(() => access(backupPath))
+      .catch(() => copyFile(this.getPath(date), backupPath))
+      .then(() => this.writeDate(date, kept));
   }
 
   prepareValidator() {

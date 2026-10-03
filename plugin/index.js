@@ -4,6 +4,7 @@ const resolveAgo = require('./ago');
 const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
+const { createLogentriesProvider } = require('./provider');
 const openAPI = require('../schema/openapi.json');
 
 function parseJwt(token) {
@@ -67,7 +68,10 @@ module.exports = (app) => {
     'environment.time.timezoneOffset', // Ship's time, from signalk-ships-time
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
+    'environment.water.seaState',
     'environment.water.swell.state',
+    'environment.outside.cloudCover',
+    'environment.outside.visibility',
     'propulsion.*.state',
     'propulsion.*.runTime',
     'sails.inventory.*',
@@ -92,11 +96,60 @@ module.exports = (app) => {
   // triggers, producing duplicate log entries.
   let deltaChain = Promise.resolve();
 
+  /**
+   * Register the `logentries` resource provider. The resources API is an
+   * addition, not a dependency: when the running server has no resources
+   * API, or the type is already claimed by another provider, the rest of
+   * the plugin (v1 routes, triggers, UI) keeps working unchanged.
+   */
+  function registerLogentriesProvider() {
+    if (typeof app.registerResourceProvider !== 'function') {
+      app.debug('Server has no resources API; logentries provider not registered');
+      return;
+    }
+    // Live-state snapshot for the buffer enrichment tier, mirroring how
+    // v1 POST /logs resolves `ago` against the circular buffer.
+    const bufferLookup = (atMs, now) => {
+      const minutesBack = Math.max(0, Math.floor((now - atMs) / 60000));
+      if (buffer.size() > minutesBack) {
+        return buffer.get(minutesBack);
+      }
+      return {
+        ...state,
+      };
+    };
+    const enginePaths = () => Object.keys(state)
+      .filter((key) => key.match(/^propulsion\.[^.]+\.runTime$/));
+    try {
+      const methods = createLogentriesProvider({
+        app,
+        log,
+        bufferLookup,
+        enginePaths,
+        providerId: plugin.id,
+      });
+      app.registerResourceProvider({ type: 'logentries', methods });
+    } catch (err) {
+      app.error(`Failed to register logentries resource provider: ${err.message}`);
+    }
+  }
+
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
     const options = app.readPluginOptions();
     notificationConfig = buildConfig((options && options.configuration) || {});
     episodes.clear();
+
+    // Stamp ids on pre-existing entries and build the id → date index
+    // before the resource provider registers.
+    log.migrate()
+      .catch((err) => {
+        app.error(`Logbook id migration failed: ${err.message}`);
+      })
+      .then(() => {
+        registerLogentriesProvider();
+      });
+
     const subscription = {
       context: 'vessels.self',
       subscribe: paths.map((p) => ({
@@ -104,7 +157,6 @@ module.exports = (app) => {
         period: 1000,
       })),
     };
-
     app.subscriptionmanager.subscribe(
       subscription,
       unsubscribes,
@@ -241,6 +293,30 @@ module.exports = (app) => {
   };
 
   plugin.registerWithRouter = (router) => {
+    // The v1 /logs routes are deprecated in favor of the logentries
+    // resources API (/signalk/v2/api/resources/logentries). They stay for
+    // as long as installed plugins call them (behavior freeze), but are
+    // registered at the same access levels the resources API enforces so
+    // both surfaces behave identically: GETs at readonly, writes at
+    // readwrite. On servers without router.access the routes fall back to
+    // the plugin router's admin-only default (safe).
+    const hasAccess = typeof router.access === 'function';
+    const read = hasAccess ? router.access('readonly') : router;
+    const write = hasAccess ? router.access('readwrite') : router;
+
+    const DEPRECATION_LINK = '<https://github.com/meri-imperiumi/signalk-logbook/blob/main/docs/logentries-resource.md>; rel="deprecation"';
+
+    function v1Route(handler) {
+      return (req, res, next) => {
+        // Not user-facing spam: lets operators identify which installed
+        // plugins still call the deprecated surface
+        app.debug(`Deprecated v1 log API: ${req.method} ${req.originalUrl || req.url}`);
+        res.set('Deprecation', 'true');
+        res.set('Link', DEPRECATION_LINK);
+        handler(req, res, next);
+      };
+    }
+
     function handleError(error, res) {
       if (error.code === 'ENOENT') {
         res.sendStatus(404);
@@ -257,14 +333,14 @@ module.exports = (app) => {
       app.debug(error.message);
       res.sendStatus(500);
     }
-    router.get('/logs', (req, res) => {
+    read.get('/logs', v1Route((req, res) => {
       res.contentType('application/json');
       log.listDates()
         .then((dates) => {
           res.send(JSON.stringify(dates));
         }, (e) => handleError(e, res));
-    });
-    router.post('/logs', (req, res) => {
+    }));
+    write.post('/logs', v1Route((req, res) => {
       res.contentType('application/json');
       let stats;
       let author = '';
@@ -314,15 +390,15 @@ module.exports = (app) => {
           setStatus(`Manual log entry: ${req.body.text}`);
           res.sendStatus(201);
         }, (e) => handleError(e, res));
-    });
-    router.get('/logs/:date', (req, res) => {
+    }));
+    read.get('/logs/:date', v1Route((req, res) => {
       res.contentType('application/json');
       log.getDate(req.params.date)
         .then((date) => {
           res.send(JSON.stringify(date));
         }, (e) => handleError(e, res));
-    });
-    router.get('/logs/:date/:entry', (req, res) => {
+    }));
+    read.get('/logs/:date/:entry', v1Route((req, res) => {
       res.contentType('application/json');
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
@@ -332,8 +408,8 @@ module.exports = (app) => {
         .then((entry) => {
           res.send(JSON.stringify(entry));
         }, (e) => handleError(e, res));
-    });
-    router.put('/logs/:date/:entry', (req, res) => {
+    }));
+    write.put('/logs/:date/:entry', v1Route((req, res) => {
       res.contentType('application/json');
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
@@ -353,8 +429,8 @@ module.exports = (app) => {
         .then(() => {
           res.sendStatus(200);
         }, (e) => handleError(e, res));
-    });
-    router.delete('/logs/:date/:entry', (req, res) => {
+    }));
+    write.delete('/logs/:date/:entry', v1Route((req, res) => {
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
         return;
@@ -363,7 +439,7 @@ module.exports = (app) => {
         .then(() => {
           res.sendStatus(204);
         }, (e) => handleError(e, res));
-    });
+    }));
   };
 
   plugin.stop = () => {

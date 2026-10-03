@@ -46,7 +46,8 @@ If there are no entries for a given day, no file gets written.
 Note: unlike Signal K itself, the log entries are written using "human-friendly" units, so degrees, knots, etc. They look something like:
 
 ```yaml
-- datetime: 2014-08-15T19:00:19.546Z
+- id: 1b4e28ba-2fa1-11d2-883f-b9a761bde3fb
+  datetime: 2014-08-15T19:00:19.546Z
   position:
     longitude: 24.7363006
     latitude: 59.7243978
@@ -65,9 +66,14 @@ Note: unlike Signal K itself, the log entries are written using "human-friendly"
   engine:
     hours: 405
   category: navigation
+  origin: manual
   text: Set 1st reef on mainsail
   author: bergie
 ```
+
+Every entry carries a stable UUID `id` (assigned by the plugin, also on entries written through the v1 API or the automatic triggers) and an `origin` field saying how the line came to be (`manual`, `auto`, or `agent`). Entries that carry data with no historical field — unknown Signal K paths, or pathvalues with source metadata — park those verbatim in a `telemetry` array.
+
+These YAML files are the plugin's storage and backup format (restores, migration between installs of this plugin). The interchange format — the one to export, import, and build third-party apps against — is the [logentries resources API](#logentries-resources-api) representation: Signal K paths, SI units, and an open content model.
 
 It is a good idea to set up automatic backups of these files off the vessel, for example to [GitHub](https://github.com) or some other cloud storage service. How to handle this backup is out of the scope of this plugin.
 
@@ -127,7 +133,34 @@ Configuration (plugin settings):
 
 ## API
 
-Other applications can also use the [logbook API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/meri-imperiumi/signalk-logbook/main/schema/openapi.yaml) for retrieving and writing log entries. This can be useful for automations with [Node-Red](https://nodered.org) or [NoFlo](https://noflojs.org) etc.
+### Logentries resources API
+
+Logbook entries are exposed as a [Signal K v2 Resources API](https://github.com/SignalK/signalk-server/blob/master/packages/server-api/src/resourcesapi.ts) resource type, `logentries`, with this plugin acting as the reference Resource Provider. Any other plugin can append, read, edit and delete entries through `app.resourcesApi`, and REST or websocket clients through the standard resources routes — no admin tokens needed, `readonly` tokens can read and `readwrite` tokens can write:
+
+```
+GET    /signalk/v2/api/resources/logentries?from=...&to=...
+GET    /signalk/v2/api/resources/logentries?dates=true
+GET    /signalk/v2/api/resources/logentries/<uuid>
+POST   /signalk/v2/api/resources/logentries
+PUT    /signalk/v2/api/resources/logentries/<uuid>
+DELETE /signalk/v2/api/resources/logentries/<uuid>
+```
+
+Listings must carry a window — `date`, `from`/`to`, or `limit` — plus optional `bbox`, `category`, `origin` and `author` filters; `dates=true` returns a day-calendar summary. Entries are identified by stable UUIDs, carry a telemetry snapshot as Signal K paths in SI units, and support the same-millisecond multiple-values model of Signal K deltas. Writing an entry from another plugin:
+
+```js
+await app.resourcesApi.setResource('logentries', crypto.randomUUID(), {
+  text: 'Genoa furled',
+  origin: 'agent',
+  category: 'navigation',
+});
+```
+
+The machine-readable entry schema is published at [schema/logentries.schema.json](schema/logentries.schema.json) and the full contract — identity rules, telemetry paths, enrichment semantics, permissions — is specified in [docs/logentries-resource.md](docs/logentries-resource.md). Backdated entries are enriched from the vessel's live state buffer (last 15 minutes) or the [History API](https://github.com/SignalK/signalk-history-sqlite) when one is installed, so a line written hours later still gets its position, speeds and weather filled in; send `"enrich": false` to skip lookups when bulk importing data that is already complete.
+
+### Deprecated v1 logbook API
+
+The plugin's private REST routes under `/plugins/signalk-logbook/logs` are deprecated in favor of the resources API above (see the [v1 OpenAPI document](https://editor.swagger.io/?url=https://raw.githubusercontent.com/meri-imperiumi/signalk-logbook/main/schema/openapi.yaml)). They keep working — v1 responses carry `Deprecation` headers and each call is noted in the server debug log — but new capabilities (filtering, the open schema, `readonly`-token access, multi-engine telemetry keys) exist only on the resources API. No removal is currently scheduled.
 
 ## Ideas
 

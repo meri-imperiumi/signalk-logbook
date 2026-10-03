@@ -14,10 +14,10 @@ function getWeather(entry) {
   if (entry.wind) {
     const wind = [];
     if (!Number.isNaN(Number(entry.wind.speed))) {
-      wind.push(`${entry.wind.speed}kt`);
+      wind.push(`${entry.wind.speed}${entry.wind.speedUnit}`);
     }
     if (!Number.isNaN(Number(entry.wind.direction))) {
-      wind.push(`${entry.wind.direction}°`);
+      wind.push(`${entry.wind.direction}${entry.wind.directionUnit}`);
     }
     if (wind.length) {
       weather.push(`Wind ${wind.join(' ')}`);
@@ -39,10 +39,10 @@ function getWeather(entry) {
 
 function getCourse(entry) {
   if (!Number.isNaN(Number(entry.course))) {
-    return `${entry.course}°`;
+    return `${entry.course}${entry.courseUnit}`;
   }
   if (!Number.isNaN(Number(entry.heading))) {
-    return `HDT ${entry.heading}°`;
+    return `HDT ${entry.heading}${entry.headingUnit}`;
   }
   return '';
 }
@@ -98,19 +98,19 @@ function Logbook(props) {
         <tbody>
         {entries.map((entry, index) => (
           <tr className={!entriesForSameDay(entry, entries[index-1], props) && styles["new-day"]}
-              key={entry.datetime} onClick={() => props.editEntry(entry)}>
+              key={entry.id || entry.datetime} onClick={() => props.editEntry(entry)}>
             <td>{formatEntryTime(entry, entries[index-1], props)}</td>
             <td>{getCourse(entry)}</td>
-            <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>
+            <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}${entry.speed.sogUnit}` : ''}</td>
             <td>{getWeather(entry)}</td>
-            <td>{entry.barometer}</td>
+            <td>{entry.barometer !== undefined ? `${entry.barometer}${entry.barometerUnit || ''}` : ''}</td>
             <td>{entry.point ? entry.point.toString() : 'n/a'}</td>
             <td>{entry.position ? entry.position.source || 'GPS' : ''}</td>
-            <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}NM` : ''}</td>
+            <td>{!Number.isNaN(Number(entry.log)) ? `${entry.log}${entry.logUnit}` : ''}</td>
             <td>{entry.engine && (
               entry.engine.engines && Object.keys(entry.engine.engines).length > 1
-                ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}h`).join(', ')
-                : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}h` : ''
+                ? Object.entries(entry.engine.engines).map(([name, e]) => `${name}: ${e.hours}${e.hoursUnit}`).join(', ')
+                : !Number.isNaN(Number(entry.engine.hours)) ? `${entry.engine.hours}${entry.engine.hoursUnit}` : ''
             )}</td>
             <td>{entry.author || 'auto'}<OriginBadge origin={entry.origin} /></td>
             <td>{entry.text}</td>

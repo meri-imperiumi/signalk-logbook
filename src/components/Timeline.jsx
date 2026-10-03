@@ -24,7 +24,7 @@ function Timeline(props) {
     <div>
       <Button color="primary" onClick={props.addEntry}>Add entry</Button>
       {entries.map((entry) => (
-        <Card key={entry.datetime} onClick={() => props.editEntry(entry)}>
+        <Card key={entry.id || entry.datetime} onClick={() => props.editEntry(entry)}>
           <CardHeader>
             <Row>
               <Col xs="3">
