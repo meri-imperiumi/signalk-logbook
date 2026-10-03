@@ -44,7 +44,7 @@ const PATH_TOLERANCES = {
   'environment.wind.directionTrue': MEDIUM_TOLERANCE_MS,
   'environment.outside.pressure': SLOW_TOLERANCE_MS,
   'navigation.log': SLOW_TOLERANCE_MS,
-  'environment.water.seaState': SLOW_TOLERANCE_MS,
+  'environment.water.seaStateValue': SLOW_TOLERANCE_MS,
   'environment.outside.cloudCover': SLOW_TOLERANCE_MS,
   'environment.outside.visibility': SLOW_TOLERANCE_MS,
   'communication.vhf.channel': SLOW_TOLERANCE_MS,
@@ -74,9 +74,9 @@ function pushPathvalue(telemetry, path, value) {
  * falls back to the legacy oktas path.
  */
 function readSnapshotPath(snapshot, path) {
-  if (path === 'environment.water.seaState') {
-    if (snapshot['environment.water.seaState'] !== undefined) {
-      return snapshot['environment.water.seaState'];
+  if (path === 'environment.water.seaStateValue') {
+    if (snapshot['environment.water.seaStateValue'] !== undefined) {
+      return snapshot['environment.water.seaStateValue'];
     }
     const douglas = snapshot['environment.water.swell.state'];
     if (douglas === undefined || douglas === null) {

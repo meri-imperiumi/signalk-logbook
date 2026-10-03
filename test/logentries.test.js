@@ -338,14 +338,16 @@ test('sea state crosses the storage boundary through the WMO Douglas↔Beaufort 
       datetime: '2026-06-11T08:00:00.000Z',
       text: 'Sea state',
       telemetry: [
-        { path: 'environment.water.seaState', value: 5 },
+        { path: 'environment.water.seaStateValue', value: 5 },
       ],
     });
     const stored = await readDayFile(log.dir, '2026-06-11');
     assert.strictEqual(stored[0].observations.seaState, 4, 'Beaufort 5 stores as Douglas 4');
     const read = await provider.getResource(id);
-    assert.strictEqual(read.telemetry[0].path, 'environment.water.seaState');
-    assert.strictEqual(read.telemetry[0].value, 5, 'reads back as Beaufort 5');
+    const value = read.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
+    assert.strictEqual(value.value, 5, 'reads back as Beaufort 5');
+    const label = read.telemetry.find((pv) => pv.path === 'environment.water.seaState');
+    assert.strictEqual(label.value, 'moderate', 'Douglas 4 reads back as the WMO state-of-sea label');
   } finally {
     await rm(log.dir, { recursive: true, force: true });
   }
@@ -495,7 +497,7 @@ test('buffer tier enrichment fills missing paths from the live snapshot', async 
     const position = read.telemetry.find((pv) => pv.path === 'navigation.position');
     assert.deepStrictEqual(position.value, { latitude: 60.1, longitude: 25.1, source: 'GPS' });
     assert.ok(read.telemetry.find((pv) => pv.path === 'navigation.headingTrue' && pv.value === 1.5));
-    const seaState = read.telemetry.find((pv) => pv.path === 'environment.water.seaState');
+    const seaState = read.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
     assert.strictEqual(seaState.value, 3, 'legacy Douglas swell state converted to Beaufort');
     assert.ok(read.telemetry.find((pv) => pv.path === 'propulsion.Port.runTime' && pv.value === 500));
     // Explicit pathvalues always win

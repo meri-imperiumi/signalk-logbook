@@ -20,7 +20,7 @@ function apiEntry(overrides = {}) {
       { path: 'navigation.speedOverGround', value: 2.6751 },
       { path: 'navigation.log', value: 237796.8 },
       { path: 'environment.outside.pressure', value: 101325 },
-      { path: 'environment.water.seaState', value: 5 },
+      { path: 'environment.water.seaStateValue', value: 5 },
       { path: 'environment.outside.cloudCover', value: 0.5 },
       { path: 'communication.vhf.channel', value: '16' },
       { path: 'propulsion.Port.runTime', value: 36000 },
@@ -89,8 +89,15 @@ test('uiEntryToApi rebuilds only the editor-editable pathvalues from the form', 
   const api = uiEntryToApi(ui);
   const position = api.telemetry.find((pv) => pv.path === 'navigation.position');
   assert.deepStrictEqual(position.value, { latitude: 61.5, longitude: 26.5, source: 'Visual' });
-  const seaState = api.telemetry.find((pv) => pv.path === 'environment.water.seaState');
+  const seaState = api.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
   assert.strictEqual(seaState.value, 2, 'Douglas 2 reads back as Beaufort 2');
+  const seaStateLabel = api.telemetry.find((pv) => pv.path === 'environment.water.seaState');
+  assert.strictEqual(seaStateLabel.value, 'smooth', 'Douglas 2 reads back as the state-of-sea label');
+  assert.strictEqual(
+    api.telemetry.filter((pv) => pv.path === 'environment.water.seaState').length,
+    1,
+    'the stale label pathvalue from the read is not kept alongside the rebuilt one',
+  );
   const cloud = api.telemetry.find((pv) => pv.path === 'environment.outside.cloudCover');
   assert.ok(Math.abs(cloud.value - 0.75) < 1e-9, '6 oktas back as the ratio');
   const visibility = api.telemetry.find((pv) => pv.path === 'environment.outside.visibility');
@@ -167,7 +174,7 @@ test('draftToApiEntry resolves datetime from ago and defaults origin to manual',
   }, now);
   const position = withObservations.telemetry.find((pv) => pv.path === 'navigation.position');
   assert.deepStrictEqual(position.value, { latitude: 60.1, longitude: 25.1, source: 'GPS' });
-  const seaState = withObservations.telemetry.find((pv) => pv.path === 'environment.water.seaState');
+  const seaState = withObservations.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
   assert.strictEqual(seaState.value, 3, 'Douglas 3 reads back as Beaufort 3');
   const cloud = withObservations.telemetry.find((pv) => pv.path === 'environment.outside.cloudCover');
   assert.strictEqual(cloud.value, 0.5);

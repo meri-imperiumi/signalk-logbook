@@ -16,9 +16,11 @@
  * on read, so pathvalue-level data survives the round trip.
  *
  * The one non-exact translation is sea state: storage carries the Douglas
- * 0–9 code, the API path `environment.water.seaState` carries the Beaufort
- * scale of the server Weather API. They map through the standard WMO
- * correspondence, approximate in both directions.
+ * 0–9 code, the API path `environment.water.seaStateValue` carries the
+ * numeric Beaufort scale (the ecosystem's numeric path —
+ * `environment.water.seaState` itself carries a descriptive string label,
+ * the nmea0183-signalk convention for AIS meteo). They map through the
+ * standard WMO correspondence, approximate in both directions.
  */
 
 const RAD_TO_DEG = 180 / Math.PI;
@@ -33,6 +35,23 @@ const SECONDS_PER_HOUR = 3600;
 // code (storage).
 const BEAUFORT_TO_DOUGLAS = [0, 1, 2, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9];
 const DOUGLAS_TO_BEAUFORT = [0, 1, 2, 3, 5, 6, 8, 9, 10, 12];
+
+// WMO state-of-sea (Douglas) descriptions, indexed by Douglas code — the
+// string labels carried on the API path `environment.water.seaState`
+// (the nmea0183-signalk convention for AIS meteo), while the numeric
+// Beaufort code rides `environment.water.seaStateValue`.
+const DOUGLAS_SEA_STATE_LABELS = [
+  'calm (glassy)',
+  'calm (rippled)',
+  'smooth',
+  'slight',
+  'moderate',
+  'rough',
+  'very rough',
+  'high',
+  'very high',
+  'phenomenal',
+];
 
 // Storage fields that are translated into telemetry pathvalues on read.
 // Everything else on a stored entry passes through to the API verbatim.
@@ -89,6 +108,25 @@ function douglasToBeaufort(douglas) {
     return null;
   }
   return DOUGLAS_TO_BEAUFORT[code];
+}
+
+function labelOfDouglas(douglas) {
+  const n = toNumber(douglas);
+  if (n === null) {
+    return null;
+  }
+  const code = Math.round(n);
+  return (code >= 0 && code < DOUGLAS_SEA_STATE_LABELS.length)
+    ? DOUGLAS_SEA_STATE_LABELS[code]
+    : null;
+}
+
+function douglasOfLabel(label) {
+  if (typeof label !== 'string') {
+    return null;
+  }
+  const code = DOUGLAS_SEA_STATE_LABELS.indexOf(label);
+  return code >= 0 ? code : null;
 }
 
 /**
@@ -277,12 +315,23 @@ const PATH_SPECS = [
   {
     path: 'environment.water.seaState',
     toStorage: (value) => {
+      const douglas = douglasOfLabel(value);
+      return douglas === null ? null : { observations: { seaState: douglas } };
+    },
+    fromStorage: (entry) => {
+      const label = labelOfDouglas(entry.observations && entry.observations.seaState);
+      return label === null ? [] : [{ path: 'environment.water.seaState', value: label }];
+    },
+  },
+  {
+    path: 'environment.water.seaStateValue',
+    toStorage: (value) => {
       const douglas = beaufortToDouglas(value);
       return douglas === null ? null : { observations: { seaState: douglas } };
     },
     fromStorage: (entry) => {
       const beaufort = douglasToBeaufort(entry.observations && entry.observations.seaState);
-      return beaufort === null ? [] : [{ path: 'environment.water.seaState', value: beaufort }];
+      return beaufort === null ? [] : [{ path: 'environment.water.seaStateValue', value: beaufort }];
     },
   },
   {
@@ -493,10 +542,13 @@ module.exports = {
   SECONDS_PER_HOUR,
   BEAUFORT_TO_DOUGLAS,
   DOUGLAS_TO_BEAUFORT,
+  DOUGLAS_SEA_STATE_LABELS,
   apiToStorage,
   storageToApi,
   beaufortToDouglas,
   douglasToBeaufort,
+  douglasOfLabel,
+  labelOfDouglas,
   validPosition,
   snapStorage,
 };

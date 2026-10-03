@@ -68,7 +68,7 @@ module.exports = (app) => {
     'environment.time.timezoneOffset', // Ship's time, from signalk-ships-time
     'environment.wind.directionTrue',
     'environment.wind.speedOverGround',
-    'environment.water.seaState',
+    'environment.water.seaStateValue',
     'environment.water.swell.state',
     'environment.outside.cloudCover',
     'environment.outside.visibility',

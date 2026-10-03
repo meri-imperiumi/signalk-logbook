@@ -162,7 +162,7 @@ components:
       type: object
       properties:
         seaState:
-          description: Sea state in WMO sea state (Douglas) code; maps through the standard WMO correspondence to the Beaufort scale of the API path environment.water.seaState
+          description: Sea state in WMO sea state (Douglas) code; maps through the standard WMO correspondence to the numeric Beaufort scale of the API path environment.water.seaStateValue
           type: number
           minimum: 0
           maximum: 9
