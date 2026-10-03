@@ -578,6 +578,30 @@ test('parseChartLayers drops live overlays and non-tile v2 charts', () => {
   assert.strictEqual(layers.length, 2);
 });
 
+test('parseChartLayers matches chart types case-insensitively', () => {
+  const layers = charts.parseChartLayers({
+    'odd-casing-tiles': {
+      identifier: 'odd-casing-tiles',
+      name: 'TileLayer in odd casing',
+      type: 'TileLayer',
+      format: 'png',
+      url: '/tiles/{z}/{x}/{y}',
+    },
+    'odd-casing-style': {
+      identifier: 'odd-casing-style',
+      name: 'mapstylejson in odd casing',
+      type: 'MAPSTYLEJSON',
+      url: '/style.json',
+    },
+  });
+  const tiles = layers.find((l) => l.identifier === 'odd-casing-tiles');
+  const style = layers.find((l) => l.identifier === 'odd-casing-style');
+  assert.ok(tiles, 'differently-cased tilelayer kept');
+  assert.strictEqual(tiles.url, '/tiles/{z}/{x}/{y}');
+  assert.ok(style, 'differently-cased mapstyleJSON kept');
+  assert.strictEqual(style.styleUrl, '/style.json');
+});
+
 test('chartLayersWithFallback keeps the default next to v2 charts', () => {
   const ids = charts.chartLayersWithFallback(sampleV2Resource, null)
     .map((l) => l.identifier);
@@ -591,6 +615,9 @@ test('charts wiring: v2 resources with v1 fallback, relative style URLs made abs
   const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
   assert.match(map, /fetch\('\/signalk\/v2\/api\/resources\/charts'\)/);
   assert.match(map, /fetch\('\/signalk\/v1\/api\/resources\/charts'\)/);
+  // An empty v2 body falls back to v1 too: a chart plugin may still register
+  // only in v1, and the v1 list is then the only place its charts show up
+  assert.match(map, /Object\.keys\(resource\)\.length > 0/);
   const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
   assert.match(chartMap, /transformRequest: \(url\) => \(\{ url: absoluteUrl\(url\) \}\)/);
 });

@@ -53,9 +53,16 @@ function Map(props) {
     // Charts come from the v2 Resources API, which lists every chart
     // provider's charts (online styles and plugin tile layers included); v1
     // only lists the providers that still register there. Servers without
-    // the v2 API fall back to v1.
+    // the v2 API fall back to v1, and so does an empty v2 listing: a chart
+    // plugin may still register only in v1, and the v1 list is then the
+    // only place its charts show up.
+    const hasCharts = (resource) => resource && typeof resource === 'object'
+      && Object.keys(resource).length > 0;
     const chartsReady = fetch('/signalk/v2/api/resources/charts')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((resource) => (hasCharts(resource)
+        ? resource
+        : Promise.reject(new Error('v2 lists no charts'))))
       .catch(() => fetch('/signalk/v1/api/resources/charts')
         .then((res) => (res.ok ? res.json() : null)));
     const manifestReady = fetch(CHART_MIRROR_MANIFEST_URL)

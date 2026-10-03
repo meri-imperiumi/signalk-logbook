@@ -55,6 +55,13 @@ function isVectorFormat(format) {
   return Boolean(format) && VECTOR_FORMATS.includes(String(format).toLowerCase());
 }
 
+// The chart's type, compared case-insensitively: the chart-providers plugin
+// emits `tilelayer`/`mapstyleJSON`/`WMS`, but a differently-casing provider
+// shouldn't get its tile charts silently dropped
+function chartType(chart) {
+  return chart && chart.type ? String(chart.type).toLowerCase() : null;
+}
+
 // Is a parsed layer a vector tile chart? Decides which generated style
 // `mapStyle` composes for ChartMap.
 function isVectorLayer(layer) {
@@ -127,7 +134,7 @@ function parseChartLayers(resource) {
       if (!url || isCorridorCache(chart) || isLiveOverlay(chart)) {
         return null;
       }
-      if (chart.type === 'mapstyleJSON') {
+      if (chartType(chart) === 'mapstylejson') {
         return {
           identifier: chart.identifier || key,
           name: chart.name || chart.identifier || key,
@@ -139,7 +146,7 @@ function parseChartLayers(resource) {
           sourceLayers: [],
         };
       }
-      if (chart.type && chart.type !== 'tilelayer') {
+      if (chartType(chart) && chartType(chart) !== 'tilelayer') {
         return null;
       }
       return {
