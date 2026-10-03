@@ -347,8 +347,10 @@ test('sea state crosses the storage boundary through the WMO Douglas↔Beaufort 
     const read = await provider.getResource(id);
     const value = read.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
     assert.strictEqual(value.value, 5, 'reads back as Beaufort 5');
-    const label = read.telemetry.find((pv) => pv.path === 'environment.water.seaState');
-    assert.strictEqual(label.value, 'moderate', 'Douglas 4 reads back as the WMO state-of-sea label');
+    assert.ok(
+      !read.telemetry.some((pv) => pv.path === 'environment.water.seaState'),
+      'the label path is not carried, only the numeric Beaufort code',
+    );
   } finally {
     await rm(log.dir, { recursive: true, force: true });
   }

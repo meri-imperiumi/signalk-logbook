@@ -91,12 +91,10 @@ test('uiEntryToApi rebuilds only the editor-editable pathvalues from the form', 
   assert.deepStrictEqual(position.value, { latitude: 61.5, longitude: 26.5, source: 'Visual' });
   const seaState = api.telemetry.find((pv) => pv.path === 'environment.water.seaStateValue');
   assert.strictEqual(seaState.value, 2, 'Douglas 2 reads back as Beaufort 2');
-  const seaStateLabel = api.telemetry.find((pv) => pv.path === 'environment.water.seaState');
-  assert.strictEqual(seaStateLabel.value, 'smooth', 'Douglas 2 reads back as the state-of-sea label');
   assert.strictEqual(
     api.telemetry.filter((pv) => pv.path === 'environment.water.seaState').length,
-    1,
-    'the stale label pathvalue from the read is not kept alongside the rebuilt one',
+    0,
+    'the label path is not carried, only the numeric Beaufort code',
   );
   const cloud = api.telemetry.find((pv) => pv.path === 'environment.outside.cloudCover');
   assert.ok(Math.abs(cloud.value - 0.75) < 1e-9, '6 oktas back as the ratio');

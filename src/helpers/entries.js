@@ -25,7 +25,6 @@ const UI_ONLY_FIELDS = ['point', 'date', 'ago', 'when', 'timeMode', '_telemetry'
 // back verbatim from `_telemetry`.
 const EDITABLE_PATHS = [
   'navigation.position',
-  'environment.water.seaState',
   'environment.water.seaStateValue',
   'environment.outside.cloudCover',
   'environment.outside.visibility',
