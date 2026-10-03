@@ -177,11 +177,11 @@ function createLogentriesProvider(options) {
     async listResources(query) {
       const q = query || {};
       const hasWindow = q.date || q.from || q.to || q.limit !== undefined;
-      if (!hasWindow && q.dates !== true) {
-        fail('logentries listing requires a window: date, from/to, or limit (or dates=true for the day calendar)');
+      if (!hasWindow && q.dates !== true && q.dates !== 'true') {
+        fail('logentries listing requires one of the parameters date, from, to or limit — an unfiltered listing could be silently truncated. Use dates=true for a day-calendar summary.');
       }
 
-      if (q.dates === true) {
+      if (q.dates === true || q.dates === 'true') {
         const dates = await listDates(q);
         return buildCalendar(dates);
       }

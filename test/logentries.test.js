@@ -152,7 +152,11 @@ test('listings require a window: unfiltered listing is rejected', async () => {
   const { log } = await newLog();
   try {
     const { provider } = newProvider(log);
-    await expectFail(provider.listResources({}), 'EINVAL');
+    await expectFail(provider.listResources({}), 'EINVAL').then((err) => {
+      // Older servers surface the provider's message verbatim; keep it
+      // matching the phrase the server-side validation also uses
+      assert.ok(err.message.match(/date, from, to or limit/));
+    });
     await expectFail(provider.listResources(), 'EINVAL');
   } finally {
     await rm(log.dir, { recursive: true, force: true });
@@ -211,6 +215,16 @@ test('listResources supports date, from/to, category, origin, author, bbox and l
     assert.strictEqual(Object.keys(limited).length, 2);
     assert.strictEqual(Object.values(limited)[0].text, 'two', 'newest N selected, presented ascending');
     assert.strictEqual(Object.values(limited)[1].text, 'three');
+
+    // REST wire forms: the server forwards query values as strings when
+    // they are not JSON-parseable, so limit/dates must work as strings too
+    const stringLimit = await provider.listResources({ limit: '2' });
+    assert.strictEqual(Object.keys(stringLimit).length, 2);
+    const stringDates = await provider.listResources({ dates: 'true' });
+    assert.deepStrictEqual(stringDates, {
+      '2026-06-11': { count: 2 },
+      '2026-06-12': { count: 1 },
+    });
   } finally {
     await rm(log.dir, { recursive: true, force: true });
   }
