@@ -519,3 +519,78 @@ test('map wiring: the selected chart layer is remembered between visits', () => 
   assert.match(map, /findIndex\(\(l\) => l\.identifier === remembered\)/);
   assert.match(map, /rememberChartLayer\(layers\[idx\]\)/);
 });
+
+// A v2 Resources API response: tile templates and styles come as `url`, and
+// live plugin layers (weather radar) declare a `refreshInterval`.
+const sampleV2Resource = {
+  'openseamap-overlay': {
+    identifier: 'openseamap-overlay',
+    name: 'OpenSeaMap Seamark Overlay',
+    type: 'tilelayer',
+    format: 'png',
+    minzoom: 6,
+    maxzoom: 10,
+    url: '/signalk/chart-tiles/openseamap/{z}/{x}/{y}',
+  },
+  'openwaters-online': {
+    identifier: 'openwaters-online',
+    name: 'Open Waters Seamap (online)',
+    type: 'mapstyleJSON',
+    url: '/openwaters-online/style.json',
+  },
+  'weather-radar': {
+    identifier: 'weather-radar',
+    name: 'Weather radar',
+    type: 'tilelayer',
+    format: 'png',
+    refreshInterval: 300000,
+    url: '/plugins/radar/tiles/{z}/{x}/{y}.png',
+  },
+  wms: {
+    identifier: 'wms',
+    name: 'Some WMS',
+    type: 'WMS',
+    url: 'http://example.com/wms',
+  },
+};
+
+test('parseChartLayers reads the v2 `url` of tile charts', () => {
+  const layers = charts.parseChartLayers(sampleV2Resource);
+  const overlay = layers.find((l) => l.identifier === 'openseamap-overlay');
+  assert.ok(overlay, 'v2 tile chart is kept');
+  assert.strictEqual(overlay.url, '/signalk/chart-tiles/openseamap/{z}/{x}/{y}');
+  assert.strictEqual(overlay.format, 'png');
+  assert.ok(!charts.isVectorLayer(overlay));
+});
+
+test('parseChartLayers mounts a mapstyleJSON chart as a whole style', () => {
+  const layers = charts.parseChartLayers(sampleV2Resource);
+  const ow = layers.find((l) => l.identifier === 'openwaters-online');
+  assert.ok(ow, 'mapstyleJSON chart is kept');
+  assert.strictEqual(ow.styleUrl, '/openwaters-online/style.json');
+  assert.strictEqual(charts.mapStyle(ow), '/openwaters-online/style.json');
+});
+
+test('parseChartLayers drops live overlays and non-tile v2 charts', () => {
+  const layers = charts.parseChartLayers(sampleV2Resource);
+  assert.ok(!layers.some((l) => l.identifier === 'weather-radar'), 'live overlay dropped');
+  assert.ok(!layers.some((l) => l.identifier === 'wms'), 'WMS with a url still dropped');
+  assert.strictEqual(layers.length, 2);
+});
+
+test('chartLayersWithFallback keeps the default next to v2 charts', () => {
+  const ids = charts.chartLayersWithFallback(sampleV2Resource, null)
+    .map((l) => l.identifier);
+  assert.strictEqual(ids.length, 3);
+  assert.ok(ids.includes('openseamap-overlay'));
+  assert.ok(ids.includes('openwaters-online'));
+  assert.strictEqual(ids[ids.length - 1], 'osm', 'OSM default stays last');
+});
+
+test('charts wiring: v2 resources with v1 fallback, relative style URLs made absolute', () => {
+  const map = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'Map.jsx'), 'utf8');
+  assert.match(map, /fetch\('\/signalk\/v2\/api\/resources\/charts'\)/);
+  assert.match(map, /fetch\('\/signalk\/v1\/api\/resources\/charts'\)/);
+  const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
+  assert.match(chartMap, /transformRequest: \(url\) => \(\{ url: absoluteUrl\(url\) \}\)/);
+});

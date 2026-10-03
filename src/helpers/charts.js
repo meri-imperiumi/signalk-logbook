@@ -44,6 +44,13 @@ function isCorridorCache(chart) {
     && chart.name.includes(CORRIDOR_CACHE_NAME);
 }
 
+// Live, periodically refreshed charts (weather radar, storm cells) declare a
+// `refreshInterval`. They are overlays for a plotter, not basemaps for the
+// log map, and a radar network can add a dozen of them to the switcher.
+function isLiveOverlay(chart) {
+  return typeof chart.refreshInterval === 'number' && chart.refreshInterval > 0;
+}
+
 function isVectorFormat(format) {
   return Boolean(format) && VECTOR_FORMATS.includes(String(format).toLowerCase());
 }
@@ -54,9 +61,28 @@ function isVectorLayer(layer) {
   return isVectorFormat(layer.format);
 }
 
-// Normalize a SignalK `resources/charts` object into the tile layers we can
-// render. Charts without a `tilemapUrl` (WMS, S-57, plain PDFs…) and the
-// corridor downloader's raw cache charts are dropped.
+// MapLibre tile URLs must be absolute; server-provided tilemapUrls may be
+// relative to the Signal K host the webapp is served from. Built manually
+// instead of via `new URL()`, which percent-encodes the `{z}/{x}/{y}` template
+// tokens MapLibre substitutes.
+function absoluteUrl(url) {
+  if (typeof window === 'undefined' || !window.location) {
+    return url;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//')) {
+    return url;
+  }
+  const base = new URL(window.location.href).origin;
+  return url.startsWith('/') ? base + url : `${base}/${url}`;
+}
+
+// Normalize a SignalK `resources/charts` object into the layers we can
+// render. The v2 Resources API gives a chart's tile template (or, for a
+// `mapstyleJSON` chart, its style) as `url`; v1 gives the tile template as
+// `tilemapUrl`. Tile charts become raster or vector layers; `mapstyleJSON`
+// charts (e.g. Open Waters online) are mounted as a whole style, like the
+// corridor mirror. Other chart types (WMS, S-57, plain PDFs…), live overlays
+// and the corridor downloader's raw cache charts are dropped.
 function parseChartLayers(resource) {
   if (!resource || typeof resource !== 'object') {
     return [];
@@ -64,13 +90,29 @@ function parseChartLayers(resource) {
   return Object.keys(resource)
     .map((key) => {
       const chart = resource[key];
-      if (!chart || !chart.tilemapUrl || isCorridorCache(chart)) {
+      const url = chart && (chart.tilemapUrl || chart.url);
+      if (!url || isCorridorCache(chart) || isLiveOverlay(chart)) {
+        return null;
+      }
+      if (chart.type === 'mapstyleJSON') {
+        return {
+          identifier: chart.identifier || key,
+          name: chart.name || chart.identifier || key,
+          url,
+          styleUrl: absoluteUrl(url),
+          minZoom: typeof chart.minzoom === 'number' ? chart.minzoom : 0,
+          maxZoom: typeof chart.maxzoom === 'number' ? chart.maxzoom : 19,
+          format: null,
+          sourceLayers: [],
+        };
+      }
+      if (chart.type && chart.type !== 'tilelayer') {
         return null;
       }
       return {
         identifier: chart.identifier || key,
         name: chart.name || chart.identifier || key,
-        url: chart.tilemapUrl,
+        url,
         minZoom: typeof chart.minzoom === 'number' ? chart.minzoom : 0,
         maxZoom: typeof chart.maxzoom === 'number' ? chart.maxzoom : 19,
         format: chart.format ? String(chart.format).toLowerCase() : null,
@@ -149,21 +191,6 @@ function chartLayersWithFallback(resource, manifest) {
     base.push(DEFAULT_LAYER);
   }
   return base;
-}
-
-// MapLibre tile URLs must be absolute; server-provided tilemapUrls may be
-// relative to the Signal K host the webapp is served from. Built manually
-// instead of via `new URL()`, which percent-encodes the `{z}/{x}/{y}` template
-// tokens MapLibre substitutes.
-function absoluteUrl(url) {
-  if (typeof window === 'undefined' || !window.location) {
-    return url;
-  }
-  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('//')) {
-    return url;
-  }
-  const base = new URL(window.location.href).origin;
-  return url.startsWith('/') ? base + url : `${base}/${url}`;
 }
 
 // URL for a file shipped next to the built webapp (e.g. MapLibre's worker
@@ -358,4 +385,5 @@ module.exports = {
   rasterStyle,
   vectorStyle,
   assetUrl,
+  absoluteUrl,
 };

@@ -50,8 +50,14 @@ function Map(props) {
     // The corridor downloader's asset manifest carries the mirrored
     // upstream chart style (full symbology) when one has been mirrored;
     // chartLayersWithFallback mounts it over the composed vector styles
-    const chartsReady = fetch('/signalk/v1/api/resources/charts')
-      .then((res) => (res.ok ? res.json() : null));
+    // Charts come from the v2 Resources API, which lists every chart
+    // provider's charts (online styles and plugin tile layers included); v1
+    // only lists the providers that still register there. Servers without
+    // the v2 API fall back to v1.
+    const chartsReady = fetch('/signalk/v2/api/resources/charts')
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .catch(() => fetch('/signalk/v1/api/resources/charts')
+        .then((res) => (res.ok ? res.json() : null)));
     const manifestReady = fetch(CHART_MIRROR_MANIFEST_URL)
       .then((res) => (res.ok ? res.json() : null))
       .catch(() => null);

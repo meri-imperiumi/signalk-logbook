@@ -5,7 +5,7 @@ import React, { useEffect, useRef } from 'react';
 //   .apply(...)`), crashing the map with "e.apply is not a function"
 import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl/dist/maplibre-gl-dev.mjs';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { mapStyle, assetUrl } from '../helpers/charts';
+import { mapStyle, assetUrl, absoluteUrl } from '../helpers/charts';
 import { entryMarkerColor } from '../helpers/markers';
 
 // MapLibre GL container for the log map, rendering every chart layer: raster
@@ -80,6 +80,11 @@ function ChartMap(props) {
       // helpers/charts) carries the full symbology; otherwise a style is
       // generated matching the chart's format
       style: mapStyle(props.layer),
+      // A style served by the Signal K server (a mapstyleJSON chart) may
+      // point at its sprites, glyphs and tiles with host-relative URLs.
+      // MapLibre loads those from its workers, where a relative URL doesn't
+      // resolve against the server, so make them absolute here.
+      transformRequest: (url) => ({ url: absoluteUrl(url) }),
       attributionControl: false,
       // Start zoomed to fit the track instead of MapLibre's world view;
       // MapLibre applies these once the container is measured and the
