@@ -25,6 +25,33 @@ class Log {
     // migration scan and maintained on writes, so id-addressed operations
     // find the right day file without scanning every file.
     this.idIndex = new Map();
+    // Listener invoked after each successful write made through the legacy
+    // write methods (appendEntry, writeEntry, deleteEntry) — the writes
+    // that bypass the resources provider and must emit their own
+    // resources.logentries deltas. Provider writes (upsertEntry,
+    // deleteEntryById) are deltified by the server and never notify.
+    this.changeListener = null;
+  }
+
+  /**
+   * Register a listener called with (entry, change) after each successful
+   * legacy write — `entry` being the stored (or, for 'delete', the removed)
+   * entry in its storage shape, `change` being 'write' or 'delete'. A
+   * throwing listener never fails the write it observes.
+   */
+  setChangeListener(listener) {
+    this.changeListener = listener;
+  }
+
+  _notifyChange(entry, change) {
+    if (!this.changeListener) {
+      return;
+    }
+    try {
+      this.changeListener(entry, change);
+    } catch (err) {
+      // Delta emission or any other listener must never fail the write
+    }
   }
 
   // --- CONCURRENCY CONTROL ---
@@ -185,7 +212,11 @@ class Log {
           }
         }
         this.idIndex.set(id, dateString);
-        return this._writeDateInternal(dateString, updatedDate);
+        return this._writeDateInternal(dateString, updatedDate)
+          .then(() => {
+            this._notifyChange(normalized, 'write');
+            return normalized;
+          });
       }));
   }
 
@@ -211,7 +242,11 @@ class Log {
         };
         d.push(normalized);
         this.idIndex.set(id, date);
-        return this._writeDateInternal(date, d);
+        return this._writeDateInternal(date, d)
+          .then(() => {
+            this._notifyChange(normalized, 'write');
+            return normalized;
+          });
       }));
   }
 
@@ -322,7 +357,11 @@ class Log {
         if (deleted.id && this.idIndex.get(deleted.id) === dateString) {
           this.idIndex.delete(deleted.id);
         }
-        return this._writeDateInternal(dateString, dateData);
+        return this._writeDateInternal(dateString, dateData)
+          .then(() => {
+            this._notifyChange(deleted, 'delete');
+            return deleted;
+          });
       }));
   }
 

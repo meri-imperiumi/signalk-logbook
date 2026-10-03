@@ -5,6 +5,7 @@ const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const { createLogentriesProvider } = require('./provider');
+const { createResourceNotifier } = require('./deltas');
 const openAPI = require('../schema/openapi.json');
 
 function parseJwt(token) {
@@ -88,6 +89,9 @@ module.exports = (app) => {
 
   let log;
   let state = {};
+  // True once the logentries resource provider is registered: only then
+  // can there be resources.logentries subscribers to serve with deltas.
+  let resourcesActive = false;
   const episodes = new Map();
   let notificationConfig = buildConfig({});
   // Deltas are processed strictly one at a time via this chain. Without
@@ -129,6 +133,7 @@ module.exports = (app) => {
         providerId: plugin.id,
       });
       app.registerResourceProvider({ type: 'logentries', methods });
+      resourcesActive = true;
     } catch (err) {
       app.error(`Failed to register logentries resource provider: ${err.message}`);
     }
@@ -136,6 +141,11 @@ module.exports = (app) => {
 
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
+    // Internal writes (triggers, hourly entries, notifications, v1 routes)
+    // bypass the resource provider, so they emit their own
+    // resources.logentries deltas; the provider's own writes are deltified
+    // by the server.
+    log.setChangeListener(createResourceNotifier(app, plugin.id, () => resourcesActive));
     const options = app.readPluginOptions();
     notificationConfig = buildConfig((options && options.configuration) || {});
     episodes.clear();

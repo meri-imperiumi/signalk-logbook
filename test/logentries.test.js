@@ -9,6 +9,7 @@ const { randomUUID } = require('node:crypto');
 const { parse, stringify } = require('yaml');
 const Log = require('../plugin/Log');
 const { createLogentriesProvider, isUuid } = require('../plugin/provider');
+const { createResourceNotifier } = require('../plugin/deltas');
 
 function newLog() {
   return mkdtemp(join(tmpdir(), 'logbook-provider-')).then((dir) => ({ dir, log: new Log(dir) }));
@@ -841,6 +842,55 @@ test('the resources API and the v1 API share the same storage and see each other
     assert.ok(dates.includes('2026-06-11') || dates.length === 0);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('internal writes emit resources deltas; provider writes leave that to the server', async () => {
+  const { log } = await newLog();
+  try {
+    // Wired like plugin/index.js does: the listener gates on provider
+    // registration, so only internal writes ever emit.
+    const deltaCalls = [];
+    let resourcesActive = false;
+    const app = {
+      handleMessage: (source, delta, version) => deltaCalls.push({ delta, version }),
+    };
+    log.setChangeListener(createResourceNotifier(app, 'signalk-logbook', () => resourcesActive));
+
+    // A trigger-style internal write before provider registration: no delta
+    await log.appendEntry('2026-06-11', {
+      datetime: '2026-06-11T08:00:00.000Z',
+      text: 'Pre-registration',
+      category: 'navigation',
+    });
+    assert.strictEqual(deltaCalls.length, 0, 'no deltas before the provider registers');
+
+    resourcesActive = true;
+    const stored = await log.appendEntry('2026-06-11', {
+      datetime: '2026-06-11T09:00:00.000Z',
+      text: 'Anchored',
+      end: true,
+      category: 'navigation',
+    });
+    assert.strictEqual(deltaCalls.length, 1);
+    assert.strictEqual(deltaCalls[0].version, 2);
+    const value = deltaCalls[0].delta.updates[0].values[0];
+    assert.strictEqual(value.path, `resources.logentries.${stored.id}`);
+    assert.strictEqual(value.value.text, 'Anchored');
+
+    // The provider path is deltified by the server — the plugin must not
+    // emit a second delta for it
+    const { provider } = newProvider(log);
+    const id = randomUUID();
+    await provider.setResource(id, {
+      datetime: '2026-06-11T10:00:00.000Z',
+      text: 'Via the resources API',
+    });
+    assert.strictEqual(deltaCalls.length, 1, 'no duplicate delta for provider writes');
+    await provider.deleteResource(id);
+    assert.strictEqual(deltaCalls.length, 1, 'no duplicate delta for provider deletes');
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
   }
 });
 
