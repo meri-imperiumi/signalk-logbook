@@ -11,9 +11,11 @@
  *
  * Open content model: unknown top-level fields and unknown telemetry
  * paths are preserved verbatim. Known-path pathvalues that carry extra
- * members beyond `path`/`value` (e.g. `$source`, `timestamp`) are parked
- * in the storage `telemetry` array and shadow the field-derived pathvalue
- * on read, so pathvalue-level data survives the round trip.
+ * members beyond `path`/`value` (e.g. `$source`, `timestamp`) — or whose
+ * value has no representable storage form, such as an out-of-range
+ * angle or observation — are parked in the storage `telemetry` array and
+ * shadow the field-derived pathvalue on read, so the pathvalue survives
+ * the round trip instead of failing validation for the whole entry.
  *
  * The one non-exact translation is sea state: storage carries the Douglas
  * 0–9 code, the API path `environment.water.seaStateValue` carries the
@@ -180,7 +182,16 @@ function snapStorage(si, toNautical, fromNautical) {
 const PATH_SPECS = [
   {
     path: 'navigation.position',
-    toStorage: (value) => (validPosition(value) ? { position: { ...value } } : null),
+    toStorage: (value) => {
+      if (!validPosition(value)) {
+        return null;
+      }
+      const { latitude, longitude } = value;
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return null;
+      }
+      return { position: { ...value } };
+    },
     fromStorage: (entry) => (validPosition(entry.position)
       ? [{ path: 'navigation.position', value: { ...entry.position } }]
       : []),
@@ -189,8 +200,16 @@ const PATH_SPECS = [
     path: 'navigation.headingTrue',
     toStorage: (value) => {
       const rad = toNumber(value);
+      if (rad === null) {
+        return null;
+      }
       const heading = snapStorage(rad, (r) => r * RAD_TO_DEG, (d) => d * DEG_TO_RAD);
-      return rad === null ? null : { heading };
+      // Out of the storage range: the pathvalue parks verbatim instead of
+      // failing validation for the whole entry.
+      if (heading < 0 || heading > 360) {
+        return null;
+      }
+      return { heading };
     },
     fromStorage: (entry) => {
       const deg = toNumber(entry.heading);
@@ -201,8 +220,14 @@ const PATH_SPECS = [
     path: 'navigation.courseOverGroundTrue',
     toStorage: (value) => {
       const rad = toNumber(value);
+      if (rad === null) {
+        return null;
+      }
       const course = snapStorage(rad, (r) => r * RAD_TO_DEG, (d) => d * DEG_TO_RAD);
-      return rad === null ? null : { course };
+      if (course < 0 || course > 360) {
+        return null;
+      }
+      return { course };
     },
     fromStorage: (entry) => {
       const deg = toNumber(entry.course);
@@ -213,8 +238,14 @@ const PATH_SPECS = [
     path: 'navigation.speedOverGround',
     toStorage: (value) => {
       const ms = toNumber(value);
+      if (ms === null) {
+        return null;
+      }
       const sog = snapStorage(ms, (m) => m * KT_PER_MS, (k) => k * MS_PER_KT);
-      return ms === null ? null : { speed: { sog } };
+      if (sog < 0) {
+        return null;
+      }
+      return { speed: { sog } };
     },
     fromStorage: (entry) => {
       const kt = toNumber(entry.speed && entry.speed.sog);
@@ -225,8 +256,14 @@ const PATH_SPECS = [
     path: 'navigation.speedThroughWater',
     toStorage: (value) => {
       const ms = toNumber(value);
+      if (ms === null) {
+        return null;
+      }
       const stw = snapStorage(ms, (m) => m * KT_PER_MS, (k) => k * MS_PER_KT);
-      return ms === null ? null : { speed: { stw } };
+      if (stw < 0) {
+        return null;
+      }
+      return { speed: { stw } };
     },
     fromStorage: (entry) => {
       const kt = toNumber(entry.speed && entry.speed.stw);
@@ -237,8 +274,14 @@ const PATH_SPECS = [
     path: 'navigation.log',
     toStorage: (value) => {
       const meters = toNumber(value);
+      if (meters === null) {
+        return null;
+      }
       const nm = snapStorage(meters, (m) => m / METERS_PER_NM, (v) => v * METERS_PER_NM);
-      return meters === null ? null : { log: nm };
+      if (nm < 0) {
+        return null;
+      }
+      return { log: nm };
     },
     fromStorage: (entry) => {
       const nm = toNumber(entry.log);
@@ -251,9 +294,13 @@ const PATH_SPECS = [
       if (!isPlainObject(value) || !validPosition(value.position)) {
         return null;
       }
+      const { latitude, longitude } = value.position;
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return null;
+      }
       const waypoint = {
-        latitude: value.position.latitude,
-        longitude: value.position.longitude,
+        latitude,
+        longitude,
       };
       if (typeof value.href === 'string') {
         waypoint.href = value.href;
@@ -292,8 +339,14 @@ const PATH_SPECS = [
     path: 'environment.wind.speedOverGround',
     toStorage: (value) => {
       const ms = toNumber(value);
+      if (ms === null) {
+        return null;
+      }
       const speed = snapStorage(ms, (m) => m * KT_PER_MS, (k) => k * MS_PER_KT);
-      return ms === null ? null : { wind: { speed } };
+      if (speed < 0) {
+        return null;
+      }
+      return { wind: { speed } };
     },
     fromStorage: (entry) => {
       const kt = toNumber(entry.wind && entry.wind.speed);
@@ -304,8 +357,14 @@ const PATH_SPECS = [
     path: 'environment.wind.directionTrue',
     toStorage: (value) => {
       const rad = toNumber(value);
+      if (rad === null) {
+        return null;
+      }
       const direction = snapStorage(rad, (r) => r * RAD_TO_DEG, (d) => d * DEG_TO_RAD);
-      return rad === null ? null : { wind: { direction } };
+      if (direction < 0 || direction > 360) {
+        return null;
+      }
+      return { wind: { direction } };
     },
     fromStorage: (entry) => {
       const deg = toNumber(entry.wind && entry.wind.direction);
@@ -352,7 +411,10 @@ const PATH_SPECS = [
     path: 'environment.outside.visibility',
     toStorage: (value) => {
       const code = toNumber(value);
-      return code === null ? null : { observations: { visibility: code } };
+      if (code === null || code < 0 || code > 9) {
+        return null;
+      }
+      return { observations: { visibility: code } };
     },
     fromStorage: (entry) => {
       const code = toNumber(entry.observations && entry.observations.visibility);
@@ -361,7 +423,9 @@ const PATH_SPECS = [
   },
   {
     path: 'communication.vhf.channel',
-    toStorage: (value) => (typeof value === 'string' && value.length > 0 ? { vhf: value } : null),
+    toStorage: (value) => (typeof value === 'string' && value.length >= 1 && value.length <= 3
+      ? { vhf: value }
+      : null),
     fromStorage: (entry) => (typeof entry.vhf === 'string' && entry.vhf.length > 0
       ? [{ path: 'communication.vhf.channel', value: entry.vhf }]
       : []),
@@ -429,7 +493,7 @@ function apiToStorage(apiEntry) {
     const propulsionMatch = path.match(PROPULSION_PATTERN);
     if (propulsionMatch) {
       const seconds = toNumber(value);
-      if (seconds !== null) {
+      if (seconds !== null && seconds >= 0) {
         engines[propulsionMatch[1]] = {
           hours: snapStorage(seconds, (s) => s / SECONDS_PER_HOUR, (h) => h * SECONDS_PER_HOUR),
         };

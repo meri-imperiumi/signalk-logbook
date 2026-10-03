@@ -3,14 +3,18 @@
  * Part 1). Maps the ResourceProviderMethods onto the Log storage:
  *
  * - Resource ids are UUIDs; `setResource` is a create-or-replace upsert on
- *   the id. `datetime` defaults to now on create and is preserved on
- *   replace; a payload `id` must equal the resource id.
+ *   the id. Fields the payload omits are preserved on replace and defaulted
+ *   on create: `datetime` (now), `origin` ('agent'), `author` (''), and
+ *   `telemetry` (enrichment fills the paths it captures). A supplied
+ *   `telemetry` array — even empty — is taken as sent on either, so a
+ *   replace can remove paths without enrichment refilling them.
  * - Listings must carry a window (`date`, `from`/`to`, or `limit`) so every
  *   response is complete by construction — no silent truncation.
  * - Reads add the entry-level `$source` (provider plugin id); entry-level
  *   `$source` and the `enrich` control field are stripped on write.
  * - `timestamp` is set on every write (create and replace alike).
- * - Entries created through this API default to `origin: 'agent'`.
+ * - Entries created through this API default to `origin: 'agent'`; a
+ *   replace preserves the stored origin.
  */
 const { apiToStorage, storageToApi, validPosition } = require('./telemetry');
 const { enrichEntry, BUFFER_TIER_MINUTES } = require('./enrichment');
@@ -272,6 +276,16 @@ function createLogentriesProvider(options) {
       if (typeof value.text !== 'string') {
         fail('text is required');
       }
+      // Create-or-replace: the stored entry decides which. A field the
+      // payload omits keeps its stored value on a replace and gets its
+      // create default only when there is nothing stored.
+      const existing = await log.getEntryById(id).catch((err) => {
+        if (err.code === 'ENOENT') {
+          return null;
+        }
+        throw err;
+      });
+
       let datetime;
       if (value.datetime !== undefined) {
         const parsed = new Date(value.datetime);
@@ -279,17 +293,10 @@ function createLogentriesProvider(options) {
           fail('datetime must be an RFC 3339 datetime');
         }
         datetime = parsed.toISOString();
+      } else if (existing) {
+        datetime = new Date(existing.datetime).toISOString();
       } else {
-        // The provider cannot distinguish POST from PUT (both arrive as
-        // setResource): when the id already exists, preserve the stored
-        // datetime; otherwise default to now.
-        const existing = await log.getEntryById(id).catch((err) => {
-          if (err.code === 'ENOENT') {
-            return null;
-          }
-          throw err;
-        });
-        datetime = existing ? new Date(existing.datetime).toISOString() : new Date().toISOString();
+        datetime = new Date().toISOString();
       }
 
       const now = new Date();
@@ -297,34 +304,61 @@ function createLogentriesProvider(options) {
         ...value,
         id,
         datetime,
-        author: typeof value.author === 'string' ? value.author : '',
-        origin: value.origin === undefined ? 'agent' : value.origin,
         timestamp: now.toISOString(),
       };
-
-      // Enrichment: buffer tier for now-ish entries, history tier for
-      // older backdated ones. Read-only, never fails the write.
-      const atMs = Date.parse(datetime);
-      const snapshot = bufferLookup && atMs >= now.getTime() - BUFFER_TIER_MINUTES * 60 * 1000
-        ? bufferLookup(atMs, now.getTime())
-        : null;
-      let historyApi = null;
-      if (app && typeof app.getHistoryApi === 'function') {
-        try {
-          // getHistoryApi may return a promise (newer servers) or the
-          // api object directly (older ones); await covers both.
-          historyApi = (await app.getHistoryApi()) || null;
-        } catch (err) {
-          historyApi = null;
+      if (value.origin !== undefined) {
+        apiEntry.origin = value.origin;
+      } else if (existing && existing.origin !== undefined) {
+        // An API edit must not turn a manual line into an agent one
+        apiEntry.origin = existing.origin;
+      } else {
+        apiEntry.origin = 'agent';
+      }
+      if (value.author !== undefined) {
+        apiEntry.author = value.author;
+      } else if (existing && existing.author !== undefined) {
+        apiEntry.author = existing.author;
+      } else {
+        apiEntry.author = '';
+      }
+      if (value.telemetry === undefined && existing) {
+        // Preserve the stored snapshot: the payload says nothing about it
+        const stored = storageToApi(existing);
+        if (stored.telemetry !== undefined) {
+          apiEntry.telemetry = stored.telemetry;
         }
       }
-      const enriched = await enrichEntry(apiEntry, {
-        now: now.getTime(),
-        snapshot,
-        enginePaths: enginePaths ? enginePaths() : [],
-        historyApi,
-        historyTimeoutMs,
-      });
+
+      // Enrichment: a create fills the paths its telemetry array omits
+      // (unless `enrich: false` — the bulk path); a replace is taken as
+      // sent so that removing a path is one PUT, unless it explicitly
+      // asks for fills with `enrich: true`. Read-only, never fails the
+      // write.
+      const shouldEnrich = existing ? value.enrich === true : value.enrich !== false;
+      let enriched = apiEntry;
+      if (shouldEnrich) {
+        const atMs = Date.parse(datetime);
+        const snapshot = bufferLookup && atMs >= now.getTime() - BUFFER_TIER_MINUTES * 60 * 1000
+          ? bufferLookup(atMs, now.getTime())
+          : null;
+        let historyApi = null;
+        if (app && typeof app.getHistoryApi === 'function') {
+          try {
+            // getHistoryApi may return a promise (newer servers) or the
+            // api object directly (older ones); await covers both.
+            historyApi = (await app.getHistoryApi()) || null;
+          } catch (err) {
+            historyApi = null;
+          }
+        }
+        enriched = await enrichEntry(apiEntry, {
+          now: now.getTime(),
+          snapshot,
+          enginePaths: enginePaths ? enginePaths() : [],
+          historyApi,
+          historyTimeoutMs,
+        });
+      }
 
       const storageEntry = apiToStorage(enriched);
       await log.upsertEntry(id, storageEntry);

@@ -18,6 +18,10 @@
 - Write validation follows an open content model: unknown entry fields are preserved instead of rejected, `origin`/`category` accept values beyond the recommended vocabulary, and the VHF channel field accepts alpha-suffixed and private channels (`16A`, `M1`)
 - The "Select the display time zone" plugin setting no longer offers the full IANA zone list; setups still holding an IANA zone display entries in UTC until reconfigured
 
+### Fixed
+- Resources API writes no longer reject an entire entry because one telemetry pathvalue falls outside the storage schema's ranges (heading outside 0–2π, negative speeds/log/engine time, positions outside the WGS84 bounds, visibility above 9, VHF channels beyond three characters): such pathvalues are now parked verbatim in the entry's `telemetry` array exactly like unknown paths — including values inserted by enrichment — so the entry stores and reads back with the value as sent (meri-imperiumi/signalk-logbook#105)
+- Resources API replaces no longer alter data the payload omits: `origin` keeps its stored value instead of resetting to the `agent` create default (an edit could silently turn a `manual` line into an `agent` one), as do `author` and `telemetry`; a supplied `telemetry` array — even empty — is taken as sent, so removing a captured path is one PUT instead of being silently refilled by enrichment. Enrichment is now a create-time convenience; a replace only enriches when it explicitly carries `enrich: true` (meri-imperiumi/signalk-logbook#105)
+
 ## [0.13.2] - 2026-09-28
 ### Added
 - Ship's time changes are logged automatically: when the vessel's timezone offset (`environment.time.timezoneOffset`, as published by signalk-ships-time) changes, an entry like "Changed ship's time to UTC+13" or "Changed ship's time to UTC-9:30" is written

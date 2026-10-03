@@ -618,6 +618,141 @@ test('enrich: false is the bulk path: no history lookups are issued', async () =
   }
 });
 
+test('out-of-range pathvalues park verbatim instead of rejecting the write', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider } = newProvider(log);
+    const id = randomUUID();
+    await provider.setResource(id, {
+      datetime: '2026-06-11T08:00:00.000Z',
+      text: 'Odd readings',
+      telemetry: [
+        { path: 'navigation.headingTrue', value: -0.01 },
+        { path: 'navigation.speedOverGround', value: -1 },
+        { path: 'navigation.position', value: { latitude: 95, longitude: 25 } },
+        { path: 'navigation.course.nextPoint', value: { position: { latitude: 1, longitude: 200 } } },
+        { path: 'environment.outside.visibility', value: 12 },
+        { path: 'environment.water.seaStateValue', value: 13 },
+        { path: 'environment.wind.speedOverGround', value: -2 },
+        { path: 'communication.vhf.channel', value: '16AB' },
+        { path: 'propulsion.Port.runTime', value: -100 },
+        { path: 'navigation.log', value: 1000 },
+      ],
+    });
+    const read = await provider.getResource(id);
+    assert.strictEqual(read.text, 'Odd readings', 'the entry is stored, not rejected');
+    [
+      'navigation.headingTrue',
+      'navigation.speedOverGround',
+      'navigation.position',
+      'navigation.course.nextPoint',
+      'environment.outside.visibility',
+      'environment.water.seaStateValue',
+      'environment.wind.speedOverGround',
+      'communication.vhf.channel',
+      'propulsion.Port.runTime',
+    ].forEach((path) => {
+      assert.ok(read.telemetry.find((pv) => pv.path === path), `${path} parked verbatim`);
+    });
+    assert.strictEqual(
+      read.telemetry.find((pv) => pv.path === 'navigation.headingTrue').value,
+      -0.01,
+      'parked values read back as sent',
+    );
+    // The in-range pathvalue still maps to its storage field
+    const mappedLog = read.telemetry.find((pv) => pv.path === 'navigation.log');
+    assert.ok(Math.abs(mappedLog.value - 1000) < 1e-9, 'in-range log mapped');
+    const stored = await readDayFile(log.dir, '2026-06-11');
+    assert.ok(Math.abs(stored[0].log - 1000 / 1852) < 1e-12);
+    assert.strictEqual(stored[0].heading, undefined, 'out-of-range heading has no storage field');
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
+test('enrichment values out of the storage range park instead of failing the write', async () => {
+  const { log } = await newLog();
+  try {
+    const snapshot = {
+      'navigation.headingTrue': 6.2832, // beyond 2π — sensor noise
+      'navigation.speedOverGround': 3.0,
+    };
+    const { provider } = newProvider(log, {
+      bufferLookup: () => snapshot,
+    });
+    const id = randomUUID();
+    await provider.setResource(id, {
+      text: 'Heading noise',
+      datetime: new Date().toISOString(),
+    });
+    const read = await provider.getResource(id);
+    assert.strictEqual(read.text, 'Heading noise');
+    const heading = read.telemetry.find((pv) => pv.path === 'navigation.headingTrue');
+    assert.ok(heading, 'out-of-range enriched heading parked');
+    assert.strictEqual(heading.value, 6.2832);
+    assert.ok(read.telemetry.find((pv) => pv.path === 'navigation.speedOverGround' && pv.value === 3));
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
+test('replace preserves omitted origin, author and telemetry', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider } = newProvider(log);
+    const id = randomUUID();
+    await provider.setResource(id, {
+      datetime: '2026-06-11T08:00:00.000Z',
+      text: 'Tack',
+      author: 'Johan',
+      origin: 'manual',
+      telemetry: [{ path: 'navigation.position', value: { latitude: 60.1, longitude: 25.1 } }],
+    });
+    await provider.setResource(id, { text: 'Tack, second series' });
+    const read = await provider.getResource(id);
+    assert.strictEqual(read.origin, 'manual', 'an edit must not turn a manual line into an agent one');
+    assert.strictEqual(read.author, 'Johan');
+    assert.ok(read.telemetry.find((pv) => pv.path === 'navigation.position'), 'telemetry preserved');
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
+test('replace with telemetry: [] removes paths and enrichment does not refill them', async () => {
+  const { log } = await newLog();
+  try {
+    let bufferCalls = 0;
+    const snapshot = {
+      'navigation.position': { latitude: 60.1, longitude: 25.1 },
+      'navigation.headingTrue': 1.5,
+    };
+    const { provider } = newProvider(log, {
+      bufferLookup: () => {
+        bufferCalls += 1;
+        return snapshot;
+      },
+    });
+    const id = randomUUID();
+    await provider.setResource(id, {
+      text: 'Departed',
+      datetime: new Date().toISOString(),
+      origin: 'manual',
+    });
+    assert.strictEqual(bufferCalls, 1, 'create enriched from the buffer');
+    await provider.setResource(id, { text: 'Departed', telemetry: [] });
+    assert.strictEqual(bufferCalls, 1, 'the replace issued no lookups');
+    const read = await provider.getResource(id);
+    assert.strictEqual(read.telemetry, undefined, 'removed paths stay removed');
+    assert.strictEqual(read.origin, 'manual');
+    // …unless the replace explicitly asks for fills
+    await provider.setResource(id, { text: 'Departed', telemetry: [], enrich: true });
+    const refilled = await provider.getResource(id);
+    assert.ok(refilled.telemetry.find((pv) => pv.path === 'navigation.headingTrue'));
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
 test('migration stamps ids, backs up day files, builds the index and is idempotent', async () => {
   const { dir, log } = await newLog();
   try {
