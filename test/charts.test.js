@@ -594,3 +594,35 @@ test('charts wiring: v2 resources with v1 fallback, relative style URLs made abs
   const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
   assert.match(chartMap, /transformRequest: \(url\) => \(\{ url: absoluteUrl\(url\) \}\)/);
 });
+
+test('absoluteStyle makes host-relative style URLs absolute', () => {
+  const originalWindow = global.window;
+  global.window = { location: { href: 'http://boat.local:3000/admin/' } };
+  try {
+    const style = charts.absoluteStyle({
+      version: 8,
+      sprite: [{ id: 'base', url: '/px/sprites/base' }, { id: 'abs', url: 'https://cdn.example/s' }],
+      glyphs: '/px/fonts/{fontstack}/{range}.pbf',
+      sources: {
+        seamap: { type: 'vector', url: '/px/seamap/tiles.json' },
+        osm: { type: 'vector', tiles: ['/px/osm/{z}/{x}/{y}'] },
+      },
+      layers: [],
+    });
+    assert.deepStrictEqual(style.sprite, [
+      { id: 'base', url: 'http://boat.local:3000/px/sprites/base' },
+      { id: 'abs', url: 'https://cdn.example/s' },
+    ]);
+    assert.strictEqual(style.glyphs, 'http://boat.local:3000/px/fonts/{fontstack}/{range}.pbf');
+    assert.strictEqual(style.sources.seamap.url, 'http://boat.local:3000/px/seamap/tiles.json');
+    assert.deepStrictEqual(style.sources.osm.tiles, ['http://boat.local:3000/px/osm/{z}/{x}/{y}']);
+    assert.strictEqual(charts.absoluteStyle(null), null);
+  } finally {
+    global.window = originalWindow;
+  }
+});
+
+test('style wiring: style URLs go through setStyle with transformStyle', () => {
+  const chartMap = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'ChartMap.jsx'), 'utf8');
+  assert.match(chartMap, /transformStyle: \(previous, next\) => absoluteStyle\(next\)/);
+});

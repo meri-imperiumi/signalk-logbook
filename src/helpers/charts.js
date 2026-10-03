@@ -76,6 +76,39 @@ function absoluteUrl(url) {
   return url.startsWith('/') ? base + url : `${base}/${url}`;
 }
 
+// A style served by the Signal K server (a mapstyleJSON chart) may reference
+// its sprite, glyphs and sources with host-relative URLs. MapLibre refuses a
+// relative sprite URL outright and can't resolve relative ones from its
+// workers, so ChartMap passes such a style through this before committing
+// it. Absolute URLs are left alone.
+function absoluteStyle(style) {
+  if (!style || typeof style !== 'object') {
+    return style;
+  }
+  const out = { ...style };
+  if (typeof out.sprite === 'string') {
+    out.sprite = absoluteUrl(out.sprite);
+  } else if (Array.isArray(out.sprite)) {
+    out.sprite = out.sprite.map((sprite) => ({ ...sprite, url: absoluteUrl(sprite.url) }));
+  }
+  if (typeof out.glyphs === 'string') {
+    out.glyphs = absoluteUrl(out.glyphs);
+  }
+  if (out.sources && typeof out.sources === 'object') {
+    out.sources = Object.fromEntries(Object.entries(out.sources).map(([id, source]) => {
+      const next = { ...source };
+      if (typeof next.url === 'string') {
+        next.url = absoluteUrl(next.url);
+      }
+      if (Array.isArray(next.tiles)) {
+        next.tiles = next.tiles.map(absoluteUrl);
+      }
+      return [id, next];
+    }));
+  }
+  return out;
+}
+
 // Normalize a SignalK `resources/charts` object into the layers we can
 // render. The v2 Resources API gives a chart's tile template (or, for a
 // `mapstyleJSON` chart, its style) as `url`; v1 gives the tile template as
@@ -386,4 +419,5 @@ module.exports = {
   vectorStyle,
   assetUrl,
   absoluteUrl,
+  absoluteStyle,
 };

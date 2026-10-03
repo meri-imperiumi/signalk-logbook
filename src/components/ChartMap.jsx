@@ -5,7 +5,9 @@ import React, { useEffect, useRef } from 'react';
 //   .apply(...)`), crashing the map with "e.apply is not a function"
 import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl/dist/maplibre-gl-dev.mjs';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { mapStyle, assetUrl, absoluteUrl } from '../helpers/charts';
+import {
+  mapStyle, assetUrl, absoluteUrl, absoluteStyle,
+} from '../helpers/charts';
 import { entryMarkerColor } from '../helpers/markers';
 
 // MapLibre GL container for the log map, rendering every chart layer: raster
@@ -79,11 +81,12 @@ function ChartMap(props) {
       // A mirrored upstream style (corridor downloader manifest, see
       // helpers/charts) carries the full symbology; otherwise a style is
       // generated matching the chart's format
-      style: mapStyle(props.layer),
-      // A style served by the Signal K server (a mapstyleJSON chart) may
-      // point at its sprites, glyphs and tiles with host-relative URLs.
-      // MapLibre loads those from its workers, where a relative URL doesn't
-      // resolve against the server, so make them absolute here.
+      // A style URL (mirror or mapstyleJSON chart) is set below through
+      // setStyle, so its relative URLs can be made absolute first
+      style: props.layer.styleUrl ? undefined : mapStyle(props.layer),
+      // Requests the style only reaches indirectly (tiles listed inside a
+      // source's TileJSON) can still be host-relative: resolve them against
+      // the Signal K server, not MapLibre's worker
       transformRequest: (url) => ({ url: absoluteUrl(url) }),
       attributionControl: false,
       // Start zoomed to fit the track instead of MapLibre's world view;
@@ -97,6 +100,11 @@ function ChartMap(props) {
       ...(bounds ? { bounds, fitBoundsOptions: FIT_OPTIONS } : {}),
     });
     mapRef.current = map;
+    if (props.layer.styleUrl) {
+      map.setStyle(mapStyle(props.layer), {
+        transformStyle: (previous, next) => absoluteStyle(next),
+      });
+    }
 
     map.on('load', () => {
       map.addSource('track', {
