@@ -293,6 +293,30 @@ module.exports = (app) => {
   };
 
   plugin.registerWithRouter = (router) => {
+    // The v1 /logs routes are deprecated in favor of the logentries
+    // resources API (/signalk/v2/api/resources/logentries). They stay for
+    // as long as installed plugins call them (behavior freeze), but are
+    // registered at the same access levels the resources API enforces so
+    // both surfaces behave identically: GETs at readonly, writes at
+    // readwrite. On servers without router.access the routes fall back to
+    // the plugin router's admin-only default (safe).
+    const hasAccess = typeof router.access === 'function';
+    const read = hasAccess ? router.access('readonly') : router;
+    const write = hasAccess ? router.access('readwrite') : router;
+
+    const DEPRECATION_LINK = '<https://github.com/meri-imperiumi/signalk-logbook/blob/main/docs/logentries-resource.md>; rel="deprecation"';
+
+    function v1Route(handler) {
+      return (req, res, next) => {
+        // Not user-facing spam: lets operators identify which installed
+        // plugins still call the deprecated surface
+        app.debug(`Deprecated v1 log API: ${req.method} ${req.originalUrl || req.url}`);
+        res.set('Deprecation', 'true');
+        res.set('Link', DEPRECATION_LINK);
+        handler(req, res, next);
+      };
+    }
+
     function handleError(error, res) {
       if (error.code === 'ENOENT') {
         res.sendStatus(404);
@@ -309,14 +333,14 @@ module.exports = (app) => {
       app.debug(error.message);
       res.sendStatus(500);
     }
-    router.get('/logs', (req, res) => {
+    read.get('/logs', v1Route((req, res) => {
       res.contentType('application/json');
       log.listDates()
         .then((dates) => {
           res.send(JSON.stringify(dates));
         }, (e) => handleError(e, res));
-    });
-    router.post('/logs', (req, res) => {
+    }));
+    write.post('/logs', v1Route((req, res) => {
       res.contentType('application/json');
       let stats;
       let author = '';
@@ -366,15 +390,15 @@ module.exports = (app) => {
           setStatus(`Manual log entry: ${req.body.text}`);
           res.sendStatus(201);
         }, (e) => handleError(e, res));
-    });
-    router.get('/logs/:date', (req, res) => {
+    }));
+    read.get('/logs/:date', v1Route((req, res) => {
       res.contentType('application/json');
       log.getDate(req.params.date)
         .then((date) => {
           res.send(JSON.stringify(date));
         }, (e) => handleError(e, res));
-    });
-    router.get('/logs/:date/:entry', (req, res) => {
+    }));
+    read.get('/logs/:date/:entry', v1Route((req, res) => {
       res.contentType('application/json');
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
@@ -384,8 +408,8 @@ module.exports = (app) => {
         .then((entry) => {
           res.send(JSON.stringify(entry));
         }, (e) => handleError(e, res));
-    });
-    router.put('/logs/:date/:entry', (req, res) => {
+    }));
+    write.put('/logs/:date/:entry', v1Route((req, res) => {
       res.contentType('application/json');
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
@@ -405,8 +429,8 @@ module.exports = (app) => {
         .then(() => {
           res.sendStatus(200);
         }, (e) => handleError(e, res));
-    });
-    router.delete('/logs/:date/:entry', (req, res) => {
+    }));
+    write.delete('/logs/:date/:entry', v1Route((req, res) => {
       if (req.params.entry.substr(0, 10) !== req.params.date) {
         res.sendStatus(404);
         return;
@@ -415,7 +439,7 @@ module.exports = (app) => {
         .then(() => {
           res.sendStatus(204);
         }, (e) => handleError(e, res));
-    });
+    }));
   };
 
   plugin.stop = () => {

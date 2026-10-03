@@ -8,6 +8,7 @@ import {
   TabContent,
   TabPane,
 } from 'reactstrap';
+import { DateTime } from 'luxon';
 import Metadata from './Metadata.jsx';
 import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
@@ -16,6 +17,7 @@ import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
 import { displayZone, showFromKey, zoneLabel } from '../helpers/timezone';
+import { apiToUiEntry, uiEntryToApi, draftToApiEntry } from '../helpers/entries';
 
 const categories = [
   'navigation',
@@ -23,6 +25,10 @@ const categories = [
   'radio',
   'maintenance',
 ];
+
+// Entries are read and written through the Signal K v2 Resources API
+// (logentries resource type, provided by this plugin)
+const LOGENTRIES_URL = '/signalk/v2/api/resources/logentries';
 
 function AppPanel(props) {
   const [data, setData] = useState({
@@ -61,20 +67,24 @@ function AppPanel(props) {
       setNeedsUpdate(true);
     }, 5 * 60000);
 
-    fetch('/plugins/signalk-logbook/logs')
+    // One ranged listing instead of a day-file sweep: the window follows
+    // the display timezone, entries come back ascending by datetime
+    const showFrom = showFromKey(new Date(), displayTimeZone, daysToShow);
+    const fromIso = DateTime.fromFormat(showFrom, 'yyyy-MM-dd', {
+      zone: displayTimeZone,
+    }).toUTC().toISO();
+    fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(new Date().toISOString())}`)
       .then((res) => res.json())
-      .then((days) => {
-        const showFrom = showFromKey(new Date(), displayTimeZone, daysToShow);
-        const toShow = days.filter((d) => d >= showFrom);
-        Promise.all(toShow.map((day) => fetch(`/plugins/signalk-logbook/logs/${day}`)
-          .then((r) => r.json())))
-          .then((dayEntries) => {
-            const entries = [].concat.apply([], dayEntries); // eslint-disable-line prefer-spread
-            setData({
-              entries,
-            });
-            setNeedsUpdate(false);
-          });
+      .then((resources) => {
+        const entries = Object.values(resources).map(apiToUiEntry);
+        setData({
+          entries,
+        });
+        setNeedsUpdate(false);
+      })
+      .catch(() => {
+        setData({ entries: [] });
+        setNeedsUpdate(false);
       });
     return () => {
       clearInterval(interval);
@@ -174,19 +184,15 @@ function AppPanel(props) {
   }
 
   function saveEntry(entry) {
-    const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
-    // Sanitize
-    const savingEntry = {
-      ...entry,
-    };
-    delete savingEntry.point;
-    delete savingEntry.date;
-    fetch(`/plugins/signalk-logbook/logs/${dateString}/${entry.datetime}`, {
+    // Edits are plain PUTs on the entry's stable resource id — content or
+    // datetime alike; the provider preserves the stored datetime when the
+    // payload omits it
+    fetch(`${LOGENTRIES_URL}/${entry.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(savingEntry),
+      body: JSON.stringify(uiEntryToApi(entry)),
     })
       .then(() => {
         const updatedEntries = [...data.entries];
@@ -207,16 +213,12 @@ function AppPanel(props) {
   }
 
   function saveAddEntry(entry) {
-    // Sanitize
-    const savingEntry = {
-      ...entry,
-    };
-    fetch('/plugins/signalk-logbook/logs', {
+    fetch(LOGENTRIES_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(savingEntry),
+      body: JSON.stringify(draftToApiEntry(entry)),
     })
       .then(() => {
         setAddEntry(null);
@@ -225,8 +227,7 @@ function AppPanel(props) {
   }
 
   function deleteEntry(entry) {
-    const dateString = new Date(entry.datetime).toISOString().substr(0, 10);
-    fetch(`/plugins/signalk-logbook/logs/${dateString}/${entry.datetime}`, {
+    fetch(`${LOGENTRIES_URL}/${entry.id}`, {
       method: 'DELETE',
     })
       .then(() => {

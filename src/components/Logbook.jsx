@@ -98,7 +98,7 @@ function Logbook(props) {
         <tbody>
         {entries.map((entry, index) => (
           <tr className={!entriesForSameDay(entry, entries[index-1], props) && styles["new-day"]}
-              key={entry.datetime} onClick={() => props.editEntry(entry)}>
+              key={entry.id || entry.datetime} onClick={() => props.editEntry(entry)}>
             <td>{formatEntryTime(entry, entries[index-1], props)}</td>
             <td>{getCourse(entry)}</td>
             <td>{entry.speed && !Number.isNaN(Number(entry.speed.sog)) ? `${entry.speed.sog}kt` : ''}</td>

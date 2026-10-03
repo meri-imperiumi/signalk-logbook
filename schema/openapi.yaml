@@ -11,8 +11,12 @@ paths:
     get:
       tags:
       - entries
+      deprecated: true
       summary: List logs
-      description: Receive a list of days containing logbook entries
+      description: |
+        Receive a list of days containing logbook entries.
+
+        Deprecated: use `GET /signalk/v2/api/resources/logentries?dates=true` instead.
       responses:
         '200':
           description: List of days
@@ -23,8 +27,12 @@ paths:
     post:
       tags:
       - entries
+      deprecated: true
       summary: Create new log entry
-      description: Create a new log entry for either now, up to 15 minutes ago, or an explicit date-time
+      description: |
+        Create a new log entry for either now, up to 15 minutes ago, or an explicit date-time.
+
+        Deprecated: use `POST /signalk/v2/api/resources/logentries` instead.
       requestBody:
         content:
           application/json:
@@ -37,8 +45,12 @@ paths:
     get:
       tags:
         - entries
+      deprecated: true
       summary: List entries for a day
-      description: Receive a list of log entries in a given day
+      description: |
+        Receive a list of log entries in a given day.
+
+        Deprecated: use `GET /signalk/v2/api/resources/logentries?date=<day>` instead.
       parameters:
       - name: date
         in: path
@@ -57,8 +69,12 @@ paths:
     get:
       tags:
         - entries
+      deprecated: true
       summary: Read individual entry
-      description: Receive the contents of an individual entry
+      description: |
+        Receive the contents of an individual entry.
+
+        Deprecated: use `GET /signalk/v2/api/resources/logentries/<id>` instead.
       parameters:
       - name: date
         in: path
@@ -95,8 +111,12 @@ paths:
         schema:
           type: string
           format: date-time
+      deprecated: true
       summary: Update individual entry
-      description: Update the data in an entry
+      description: |
+        Update the data in an entry.
+
+        Deprecated: use `PUT /signalk/v2/api/resources/logentries/<id>` instead — one upsert on the stable entry id, no two-call move
       requestBody:
         content:
           application/json:
@@ -121,8 +141,12 @@ paths:
         schema:
           type: string
           format: date-time
+      deprecated: true
       summary: Delete individual entry
-      description: Delete an entry
+      description: |
+        Delete an entry.
+
+        Deprecated: use `DELETE /signalk/v2/api/resources/logentries/<id>` instead.
       responses:
         '204':
           description: Succesful operation
