@@ -41,18 +41,6 @@ function formatTimestamp(date, zone) {
   return `${dt.toFormat('yyyy-MM-dd HH:mm:ss')}${zone === 'UTC' ? 'Z' : ''}`;
 }
 
-// Earliest UTC day key to load when showing `days` days of entries
-// ending today in `zone`. The log day files are keyed by UTC dates
-// (storage remains UTC); the window itself follows the display timezone.
-function showFromKey(now, zone, days) {
-  return DateTime.fromJSDate(now)
-    .setZone(zone)
-    .minus({ days: days - 1 })
-    .startOf('day')
-    .toUTC()
-    .toISODate();
-}
-
 // Human-readable designation for a resolved display zone, matching how
 // ship's time changes are worded in the log: 'UTC', 'UTC+13', 'UTC-9:30'
 function zoneLabel(zone) {
@@ -68,6 +56,5 @@ module.exports = {
   offsetToZone,
   displayZone,
   formatTimestamp,
-  showFromKey,
   zoneLabel,
 };

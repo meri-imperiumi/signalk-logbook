@@ -4,7 +4,6 @@ const {
   offsetToZone,
   displayZone,
   formatTimestamp,
-  showFromKey,
   zoneLabel,
 } = require('../src/helpers/timezone');
 
@@ -49,27 +48,6 @@ test('formatTimestamp renders ship time without a timezone specifier', () => {
     formatTimestamp(new Date('2026-09-28T14:30:05.000Z'), '-09:30'),
     '2026-09-28 05:00:05',
   );
-});
-
-test('showFromKey limits the shown days in the display timezone', () => {
-  // 2026-09-28 23:00 ship's time (UTC+13): the last 7 days start on
-  // 2026-09-22 ship time, whose UTC day is 2026-09-21
-  assert.strictEqual(
-    showFromKey(new Date('2026-09-28T10:00:00.000Z'), '+13:00', 7),
-    '2026-09-21',
-  );
-});
-
-test('showFromKey limits the shown days in UTC', () => {
-  assert.strictEqual(
-    showFromKey(new Date('2026-09-28T10:00:00.000Z'), 'UTC', 7),
-    '2026-09-22',
-  );
-});
-
-test('showFromKey maps the first shown day to a UTC day key', () => {
-  // Storage days are UTC keys, so the limit must be expressed in UTC
-  assert.match(showFromKey(new Date(), '+13:00', 1), /^\d{4}-\d{2}-\d{2}$/);
 });
 
 test('zoneLabel renders UTC', () => {

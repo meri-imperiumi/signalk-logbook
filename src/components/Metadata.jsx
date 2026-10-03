@@ -10,6 +10,7 @@ import ordinal from 'ordinal';
 import CrewEditor from './CrewEditor.jsx';
 import FilterEditor from './FilterEditor.jsx';
 import SailEditor from './SailEditor.jsx';
+import { filterLabel } from '../helpers/range';
 import styles from './styles.module.css';
 
 function fetchJson(url) {
@@ -165,7 +166,7 @@ function Metadata(props) {
     })
       .then(() => {
         setEditFilter(false);
-        props.setDaysToShow(filter.daysToShow);
+        props.setFilter(filter);
         // And then reload logs
         props.setNeedsUpdate(true);
       });
@@ -200,7 +201,7 @@ function Metadata(props) {
       /> : null }
     { editFilter ? <FilterEditor
       cancel={() => setEditFilter(false)}
-      daysToShow={props.daysToShow}
+      filter={props.filter}
       save={saveFilter}
         /> : null }
     { editSails ? <SailEditor
@@ -233,7 +234,7 @@ function Metadata(props) {
         <ListInlineItem
           onClick={() => setEditFilter(true)}
         >
-          Last {props.daysToShow} days
+          {filterLabel(props.filter)}
         </ListInlineItem>
       </List>
     </Col>

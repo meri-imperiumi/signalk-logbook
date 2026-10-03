@@ -8,7 +8,6 @@ import {
   TabContent,
   TabPane,
 } from 'reactstrap';
-import { DateTime } from 'luxon';
 import Metadata from './Metadata.jsx';
 import Timeline from './Timeline.jsx';
 import Logbook from './Logbook.jsx';
@@ -16,7 +15,8 @@ import Map from './Map.jsx';
 import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
-import { displayZone, showFromKey, zoneLabel } from '../helpers/timezone';
+import { displayZone, zoneLabel } from '../helpers/timezone';
+import { DEFAULT_FILTER, normalizeFilter, filterWindow } from '../helpers/range';
 import { apiToUiEntry, uiEntryToApi, draftToApiEntry } from '../helpers/entries';
 import { loadUnitPreferences, applyDisplayUnits } from '../helpers/units';
 
@@ -38,7 +38,7 @@ function AppPanel(props) {
   const [activeTab, setActiveTab] = useState(
     () => tabFromHash(window.location.hash), // Maybe timeline on mobile, book on desktop?
   );
-  const [daysToShow, setDaysToShow] = useState(7);
+  const [filter, setFilter] = useState({ ...DEFAULT_FILTER });
   const [editEntry, setEditEntry] = useState(null);
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
@@ -74,11 +74,8 @@ function AppPanel(props) {
 
     // One ranged listing instead of a day-file sweep: the window follows
     // the display timezone, entries come back ascending by datetime
-    const showFrom = showFromKey(new Date(), displayTimeZone, daysToShow);
-    const fromIso = DateTime.fromFormat(showFrom, 'yyyy-MM-dd', {
-      zone: displayTimeZone,
-    }).toUTC().toISO();
-    fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(new Date().toISOString())}`)
+    const window = filterWindow(filter, new Date(), displayTimeZone);
+    fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`)
       .then((res) => res.json())
       .then((resources) => {
         const entries = Object.values(resources)
@@ -96,7 +93,7 @@ function AppPanel(props) {
     return () => {
       clearInterval(interval);
     };
-  }, [daysToShow, needsUpdate, loginStatus, displayTimeZone, unitPrefs]);
+  }, [filter, needsUpdate, loginStatus, displayTimeZone, unitPrefs]);
   // TODO: Depend on chosen time window to reload as needed
 
   // Unit preferences load once; entries render nautically until they
@@ -154,8 +151,8 @@ function AppPanel(props) {
     fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0')
       .then((r) => r.json())
       .then((v) => {
-        if (v && v.filter && v.filter.daysToShow) {
-          setDaysToShow(v.filter.daysToShow);
+        if (v && v.filter) {
+          setFilter(normalizeFilter(v.filter));
         }
       });
   }, [loginStatus]);
@@ -258,9 +255,9 @@ function AppPanel(props) {
       <Metadata
         adminUI={props.adminUI}
         loginStatus={props.loginStatus}
-        daysToShow={daysToShow}
+        filter={filter}
         displayTimeZone={zoneLabel(displayTimeZone)}
-        setDaysToShow={setDaysToShow}
+        setFilter={setFilter}
         setNeedsUpdate={setNeedsUpdate}
       />
       <Row>
