@@ -231,6 +231,40 @@ test('listResources supports date, from/to, category, origin, author, bbox and l
   }
 });
 
+test('bbox crossing the antimeridian matches entries on both sides of 180°', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider } = newProvider(log);
+    await provider.setResource(randomUUID(), {
+      datetime: '2026-06-11T08:00:00.000Z',
+      text: 'east',
+      telemetry: [{ path: 'navigation.position', value: { latitude: -14.0, longitude: 179.0 } }],
+    });
+    await provider.setResource(randomUUID(), {
+      datetime: '2026-06-11T09:00:00.000Z',
+      text: 'west',
+      telemetry: [{ path: 'navigation.position', value: { latitude: -15.0, longitude: -178.0 } }],
+    });
+    await provider.setResource(randomUUID(), {
+      datetime: '2026-06-11T10:00:00.000Z',
+      text: 'far',
+      telemetry: [{ path: 'navigation.position', value: { latitude: -14.0, longitude: 150.0 } }],
+    });
+
+    // A west edge east of the east edge declares a seam-crossing box:
+    // match either side of 180°, but not the rest of the world
+    const seamBox = await provider.listResources({ from: '2026-06-11T00:00:00.000Z', to: '2026-06-12T00:00:00.000Z', bbox: '170,-17,-170,-13' });
+    const seamTexts = Object.values(seamBox).map((e) => e.text).sort();
+    assert.deepStrictEqual(seamTexts, ['east', 'west'], 'both sides of the seam, nothing else');
+
+    // A regular box still works unchanged
+    const regular = await provider.listResources({ from: '2026-06-11T00:00:00.000Z', to: '2026-06-12T00:00:00.000Z', bbox: '-180,-17,-170,-13' });
+    assert.deepStrictEqual(Object.values(regular).map((e) => e.text), ['west']);
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
 test('dates=true returns the day-calendar summary', async () => {
   const { log } = await newLog();
   try {

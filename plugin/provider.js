@@ -43,12 +43,23 @@ function parseBbox(raw) {
   if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) {
     fail('bbox must be lon,lat,lon,lat');
   }
+  // A box whose west edge is east of its east edge crosses the
+  // antimeridian (e.g. 170..-170): keep the edges as given so the
+  // containment test can match either side of the seam
   return {
-    lonMin: Math.min(parts[0], parts[2]),
-    lonMax: Math.max(parts[0], parts[2]),
+    lonMin: parts[0],
+    lonMax: parts[2],
     latMin: Math.min(parts[1], parts[3]),
     latMax: Math.max(parts[1], parts[3]),
   };
+}
+
+function lonInBbox(lon, bbox) {
+  if (bbox.lonMin <= bbox.lonMax) {
+    return lon >= bbox.lonMin && lon <= bbox.lonMax;
+  }
+  // Antimeridian-crossing box: match west of lonMax...east of lonMin
+  return lon <= bbox.lonMax || lon >= bbox.lonMin;
 }
 
 function positionInBbox(entry, bbox) {
@@ -68,8 +79,7 @@ function positionInBbox(entry, bbox) {
   }
   return candidates.some((value) => value.latitude >= bbox.latMin
     && value.latitude <= bbox.latMax
-    && value.longitude >= bbox.lonMin
-    && value.longitude <= bbox.lonMax);
+    && lonInBbox(value.longitude, bbox));
 }
 
 function datesInRange(fromIso, toIso) {
