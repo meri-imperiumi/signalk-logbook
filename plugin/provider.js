@@ -157,15 +157,43 @@ function createLogentriesProvider(options) {
     return dates;
   }
 
+  // Day file vanished or is unreadable: skip it, listings never fail
+  // for a single bad day.
+  const readDate = (date) => log.getDate(date).catch(() => []);
+
   async function collectEntries(dates) {
-    const readDate = (date) => log.getDate(date)
-      // Day file vanished or is unreadable: skip it, listings never fail
-      // for a single bad day.
-      .catch(() => []);
-    const collected = await dates.reduce(
-      (prev, date) => prev.then((acc) => readDate(date).then((dateData) => acc.concat(dateData))),
-      Promise.resolve([]),
-    );
+    // Day reads are independent (per-date write queues in Log), so run
+    // them concurrently: listing latency is the slowest day file, not
+    // the sum of them all. Promise.all preserves the date order.
+    const collected = await Promise.all(dates.map(readDate));
+    return collected.flat();
+  }
+
+  /**
+   * Collect matching entries newest-day-first, stopping once `limit`
+   * matches have been read — the cheap path for `limit` listings, which
+   * otherwise pay for a full collect to pick the newest N. Whole days are
+   * the stop granularity: same-datetime entries always share a day file
+   * (the datetime picks the file), so stopping between days and re-using
+   * the descending sort + slice below resolves boundary ties exactly as
+   * a full collect would.
+   */
+  async function collectNewestFirst(dates, limit, matches) {
+    const collected = [];
+    for (let i = dates.length - 1; i >= 0; i -= 1) {
+      // Sequential by design: whether the next day is read at all depends
+      // on how many matches the newer days yielded
+      // eslint-disable-next-line no-await-in-loop
+      const dateData = await readDate(dates[i]);
+      dateData.forEach((entry) => {
+        if (matches(entry)) {
+          collected.push(entry);
+        }
+      });
+      if (collected.length >= limit) {
+        break;
+      }
+    }
     return collected;
   }
 
@@ -173,11 +201,7 @@ function createLogentriesProvider(options) {
     const readCount = (date) => log.getDate(date)
       .then((dateData) => [date, dateData.length])
       .catch(() => null);
-    const counted = await dates.reduce(
-      (prev, date) => prev.then((acc) => readCount(date)
-        .then((pair) => (pair ? acc.concat([pair]) : acc))),
-      Promise.resolve([]),
-    );
+    const counted = (await Promise.all(dates.map(readCount))).filter((pair) => pair !== null);
     const calendar = {};
     counted.forEach(([date, count]) => {
       if (count > 0) {
@@ -214,22 +238,28 @@ function createLogentriesProvider(options) {
       }
 
       const dates = await listDates(q);
-      let entries = await collectEntries(dates);
 
-      if (q.from) {
-        const from = new Date(q.from).getTime();
-        entries = entries.filter((entry) => entry.datetime.getTime() >= from);
+      // One predicate for every per-entry filter, shared by the full
+      // collect and the limit walk below
+      const fromMs = q.from ? new Date(q.from).getTime() : undefined;
+      const toMs = q.to ? new Date(q.to).getTime() : undefined;
+      const matches = (entry) => (fromMs === undefined || entry.datetime.getTime() >= fromMs)
+        && (toMs === undefined || entry.datetime.getTime() <= toMs)
+        && entryMatches(entry, normalized)
+        // An entry without an id can only exist while the startup id
+        // migration is still to rewrite its day file (or after a hand
+        // edit); it is not addressable as a resource yet, so skip it
+        // rather than emit a broken key
+        && isUuid(entry.id);
+
+      let entries;
+      if (limit !== undefined) {
+        // Newest N: walk days newest-first and stop early instead of
+        // collecting the whole window just to slice it
+        entries = await collectNewestFirst(dates, limit, matches);
+      } else {
+        entries = (await collectEntries(dates)).filter(matches);
       }
-      if (q.to) {
-        const to = new Date(q.to).getTime();
-        entries = entries.filter((entry) => entry.datetime.getTime() <= to);
-      }
-      entries = entries.filter((entry) => entryMatches(entry, normalized));
-      // An entry without an id can only exist while the startup id
-      // migration is still to rewrite its day file (or after a hand edit);
-      // it is not addressable as a resource yet, so skip it rather than
-      // emit a broken key
-      entries = entries.filter((entry) => isUuid(entry.id));
 
       // limit selects the N newest matches, presented ascending
       if (limit !== undefined) {

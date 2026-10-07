@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- Resource listings read day files concurrently instead of strictly one-by-one, which helps when disk I/O dominates the listing (first listing after boot, slower storage). On repeat listings the per-file cost is dominated by the synchronous YAML parse and schema validation, which concurrency cannot parallelize — see the `limit` change below for what does
+- `limit` listings (`?limit=N`, or the same via `app.resourcesApi`) no longer read and parse every day file in the log just to pick the newest N matches: the provider walks dates newest-first and stops reading once a day boundary yields enough matches. On a 930-day real-world logbook (15 MB) this takes `?limit=1` from ~5.4 s (930 day files read) to ~2 ms (1 day file read), and `?limit=10` to 7 ms; selection results are unchanged, including same-datetime tie-breaking
 
 ## [0.14.2] - 2026-10-07
 ### Changed

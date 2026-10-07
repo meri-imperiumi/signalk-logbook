@@ -231,6 +231,127 @@ test('listResources supports date, from/to, category, origin, author, bbox and l
   }
 });
 
+/**
+ * A Log wrapper that records which day files listings read, so tests can
+ * assert the limit walk (and the parallel collect) touch only the days
+ * they need.
+ */
+function countingLog(log) {
+  const reads = [];
+  const wrapper = Object.create(log);
+  wrapper.getDate = (date) => {
+    reads.push(date);
+    return log.getDate(date);
+  };
+  return { wrapper, reads };
+}
+
+test('limit listings walk dates newest-first and stop reading once satisfied', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider: writer } = newProvider(log);
+    await writer.setResource(randomUUID(), { datetime: '2026-06-10T08:00:00.000Z', text: 'old' });
+    await writer.setResource(randomUUID(), { datetime: '2026-06-11T08:00:00.000Z', text: 'mid' });
+    await writer.setResource(randomUUID(), { datetime: '2026-06-12T08:00:00.000Z', text: 'new' });
+
+    const { wrapper, reads } = countingLog(log);
+    const { provider } = newProvider(wrapper);
+
+    // The single newest entry lives in the newest day file: reading any
+    // older day would be waste
+    const one = await provider.listResources({ limit: 1 });
+    assert.deepStrictEqual(reads, ['2026-06-12'], 'only the newest day is read');
+    assert.deepStrictEqual(Object.values(one).map((e) => e.text), ['new']);
+
+    reads.length = 0;
+    const two = await provider.listResources({ limit: 2 });
+    assert.deepStrictEqual(reads, ['2026-06-12', '2026-06-11'], 'stops after the second day');
+    assert.deepStrictEqual(Object.values(two).map((e) => e.text), ['mid', 'new']);
+
+    // The walk must keep going past days whose entries do not match the
+    // filters until the limit is satisfied
+    await writer.setResource(randomUUID(), {
+      datetime: '2026-06-10T09:00:00.000Z', text: 'engine', category: 'engine',
+    });
+    reads.length = 0;
+    const filtered = await provider.listResources({ limit: 1, category: 'engine' });
+    assert.deepStrictEqual(reads, ['2026-06-12', '2026-06-11', '2026-06-10'], 'reads past non-matching days');
+    assert.deepStrictEqual(Object.values(filtered).map((e) => e.text), ['engine']);
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
+test('limit walk respects from/to and matches full-collect tie selection', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider } = newProvider(log);
+    await provider.setResource(randomUUID(), {
+      datetime: '2026-06-10T08:00:00.000Z', text: 'old',
+    });
+    // Same-datetime pair on the newest day: the day file orders them by
+    // id, and a slice landing inside the tie must keep the lower ids
+    const idX = randomUUID();
+    const idY = randomUUID();
+    const [tieFirst] = [idX, idY].sort();
+    const tieTexts = tieFirst === idX ? ['X', 'Y'] : ['Y', 'X'];
+    await provider.setResource(idY, { datetime: '2026-06-11T08:00:00.000Z', text: 'Y' });
+    await provider.setResource(idX, { datetime: '2026-06-11T08:00:00.000Z', text: 'X' });
+    await provider.setResource(randomUUID(), { datetime: '2026-06-11T09:00:00.000Z', text: 'Z' });
+
+    const { wrapper, reads } = countingLog(log);
+    const counting = newProvider(wrapper).provider;
+
+    // The newest day alone satisfies limit=3, older days are never read
+    const three = await counting.listResources({ limit: 3 });
+    assert.deepStrictEqual(reads, ['2026-06-11']);
+    assert.deepStrictEqual(Object.values(three).map((e) => e.text), [tieTexts[0], tieTexts[1], 'Z']);
+    assert.strictEqual(Object.keys(three)[0], tieFirst, 'tie presented in id order');
+
+    // limit=2 slices inside the same-datetime tie: identical to a full
+    // collect's sort+slice, which keeps the file-order (lower-id) entry
+    reads.length = 0;
+    const two = await counting.listResources({ limit: 2 });
+    assert.deepStrictEqual(reads, ['2026-06-11']);
+    const zId = Object.keys(three)[2];
+    assert.deepStrictEqual(Object.keys(two), [tieFirst, zId]);
+    assert.deepStrictEqual(Object.values(two).map((e) => e.text), [tieTexts[0], 'Z']);
+
+    // A from/to window keeps the walk inside the window: the newest day
+    // outside it must not be read, and the match stops it early
+    reads.length = 0;
+    const windowed = await counting.listResources({
+      from: '2026-06-09T00:00:00.000Z', to: '2026-06-10T23:59:59.999Z', limit: 1,
+    });
+    assert.deepStrictEqual(reads, ['2026-06-10'], 'never reads days outside the window');
+    assert.deepStrictEqual(Object.values(windowed).map((e) => e.text), ['old']);
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
+test('listings skip an unreadable day file (parallel collect)', async () => {
+  const { log } = await newLog();
+  try {
+    const { provider } = newProvider(log);
+    await provider.setResource(randomUUID(), {
+      datetime: '2026-06-11T08:00:00.000Z', text: 'good',
+    });
+    // Raw garbage: YAML parse fails inside Log, the listing skips the day
+    await writeFile(join(log.dir, '2026-06-10.yml'), '\t- [unclosed', 'utf-8');
+
+    const ranged = await provider.listResources({
+      from: '2026-06-10T00:00:00.000Z', to: '2026-06-11T23:59:59.999Z',
+    });
+    assert.deepStrictEqual(Object.values(ranged).map((e) => e.text), ['good']);
+
+    const calendar = await provider.listResources({ dates: true, from: '2026-06-10T00:00:00.000Z', to: '2026-06-11T23:59:59.999Z' });
+    assert.deepStrictEqual(calendar, { '2026-06-11': { count: 1 } }, 'calendar skips the bad day too');
+  } finally {
+    await rm(log.dir, { recursive: true, force: true });
+  }
+});
+
 test('bbox crossing the antimeridian matches entries on both sides of 180°', async () => {
   const { log } = await newLog();
   try {
