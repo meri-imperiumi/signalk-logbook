@@ -7,6 +7,7 @@ import {
   NavLink,
   TabContent,
   TabPane,
+  Alert,
 } from 'reactstrap';
 import Metadata from './Metadata.jsx';
 import Timeline from './Timeline.jsx';
@@ -16,7 +17,12 @@ import EntryEditor from './EntryEditor.jsx';
 import EntryViewer from './EntryViewer.jsx';
 import { tabFromHash, hashForTab } from '../helpers/tabs';
 import { displayZone, zoneLabel } from '../helpers/timezone';
-import { DEFAULT_FILTER, normalizeFilter, filterWindow } from '../helpers/range';
+import {
+  DEFAULT_FILTER,
+  normalizeFilter,
+  isNewStyleFilter,
+  filterWindow,
+} from '../helpers/range';
 import { apiToUiEntry, uiEntryToApi, draftToApiEntry } from '../helpers/entries';
 import { loadUnitPreferences, applyDisplayUnits } from '../helpers/units';
 
@@ -31,10 +37,37 @@ const categories = [
 // (logentries resource type, provided by this plugin)
 const LOGENTRIES_URL = '/signalk/v2/api/resources/logentries';
 
+// Notice under the tab bar for the outcome of the latest entries listing:
+// a failure (with any previously loaded entries kept) or a range that
+// legitimately holds no entries. The happy case — loaded with content —
+// returns null and so takes no space between the tabs and the list
+function LoadNotice(props) {
+  if (props.loadState === 'error') {
+    return (
+      <Alert color="warning">
+        Loading log entries failed{props.entryCount ? ' — showing the previously loaded entries' : ''}.
+      </Alert>
+    );
+  }
+  if (props.loadState === 'loaded' && !props.entryCount) {
+    return (
+      <Alert color="info">
+        No log entries in the selected date range
+      </Alert>
+    );
+  }
+  return null;
+}
+
 function AppPanel(props) {
   const [data, setData] = useState({
     entries: [],
   });
+  // Outcome of the latest entries listing: 'loading' until the first
+  // fetch resolves, then 'loaded' or 'error'. Drives the empty-range and
+  // failure notices; stays put while a refetch is in flight so the list
+  // does not flicker
+  const [loadState, setLoadState] = useState('loading');
   const [activeTab, setActiveTab] = useState(
     () => tabFromHash(window.location.hash), // Maybe timeline on mobile, book on desktop?
   );
@@ -80,7 +113,12 @@ function AppPanel(props) {
     // the display timezone, entries come back ascending by datetime
     const window = filterWindow(filter, new Date(), displayTimeZone);
     fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Log listing failed with ${res.status}`);
+        }
+        return res.json();
+      })
       .then((resources) => {
         const entries = Object.values(resources)
           .map(apiToUiEntry)
@@ -88,10 +126,14 @@ function AppPanel(props) {
         setData({
           entries,
         });
+        setLoadState('loaded');
         setNeedsUpdate(false);
       })
       .catch(() => {
-        setData({ entries: [] });
+        // A failed refresh keeps the previously loaded entries instead of
+        // blanking the logbook; the notice tells the user, and a later
+        // filter, time zone or login change retriggers the load
+        setLoadState('error');
         setNeedsUpdate(false);
       });
     return () => {
@@ -151,14 +193,30 @@ function AppPanel(props) {
     };
   }, []);
 
+  // The persisted filter migrates on first load: a filter saved by the
+  // pre-quick-range webapp ({ daysToShow: N }) is converted to the matching
+  // quick range for the session and written back, so the legacy shape does
+  // not linger in applicationData
   useEffect(() => {
     fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0')
       .then((r) => r.json())
       .then((v) => {
-        if (v && v.filter) {
-          setFilter(normalizeFilter(v.filter));
+        if (!v || !v.filter) {
+          return;
         }
-      });
+        const normalized = normalizeFilter(v.filter);
+        setFilter(normalized);
+        if (!isNewStyleFilter(v.filter)) {
+          fetch('/signalk/v1/applicationData/user/signalk-logbook/1.0', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ filter: normalized }),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, [loginStatus]);
 
   useEffect(() => {
@@ -331,6 +389,7 @@ function AppPanel(props) {
               </NavLink>
             </NavItem>
           </Nav>
+          <LoadNotice loadState={loadState} entryCount={data.entries.length} />
           <TabContent activeTab={activeTab}>
             <TabPane tabId="timeline">
               { activeTab === 'timeline' ? <Timeline entries={data.entries} displayTimeZone={displayTimeZone} editEntry={setEditEntry} addEntry={() => setAddEntry({ ago: 0, category: 'navigation' })} /> : null }

@@ -4,6 +4,7 @@ const {
   QUICK_RANGES,
   DEFAULT_FILTER,
   isCustomFilter,
+  isNewStyleFilter,
   normalizeFilter,
   filterLabel,
   filterWindow,
@@ -29,6 +30,23 @@ test('normalizeFilter keeps custom ranges', () => {
     normalizeFilter({ from: '2026-04-01', to: '2026-04-20' }),
     { from: '2026-04-01', to: '2026-04-20' },
   );
+});
+
+test('isNewStyleFilter recognizes the persisted new-style shapes', () => {
+  assert.strictEqual(isNewStyleFilter({ preset: '7d' }), true);
+  assert.strictEqual(isNewStyleFilter({ preset: '6m' }), true);
+  assert.strictEqual(isNewStyleFilter({ from: '2026-04-01', to: '2026-04-20' }), true);
+});
+
+test('isNewStyleFilter rejects legacy and junk filters', () => {
+  assert.strictEqual(isNewStyleFilter({ daysToShow: 7 }), false);
+  assert.strictEqual(isNewStyleFilter({ days: '7' }), false);
+  assert.strictEqual(isNewStyleFilter(7), false);
+  assert.strictEqual(isNewStyleFilter('7d'), false);
+  assert.strictEqual(isNewStyleFilter({ preset: 'nope' }), false);
+  assert.strictEqual(isNewStyleFilter({ from: '2026-04-01' }), false);
+  assert.strictEqual(isNewStyleFilter({}), false);
+  assert.strictEqual(isNewStyleFilter(null), false);
 });
 
 test('normalizeFilter maps legacy daysToShow onto a quick range', () => {
@@ -106,9 +124,14 @@ test('filterWindow bounds custom ranges to whole local days', () => {
   assert.strictEqual(window.to, '2026-04-03T18:29:59.999Z');
 });
 
-test('filterWindow rejects invalid custom dates', () => {
-  assert.strictEqual(
-    filterWindow({ from: 'not-a-date', to: '2026-04-03' }, new Date(), 'UTC'),
-    null,
+test('filterWindow falls back to the default window on invalid custom dates', () => {
+  const now = new Date('2026-09-28T10:00:00.000Z');
+  assert.deepStrictEqual(
+    filterWindow({ from: 'not-a-date', to: '2026-04-03' }, now, 'UTC'),
+    filterWindow(DEFAULT_FILTER, now, 'UTC'),
+  );
+  assert.deepStrictEqual(
+    filterWindow({ from: '2026-04-20', to: '2026-04-01' }, now, 'UTC'),
+    filterWindow(DEFAULT_FILTER, now, 'UTC'),
   );
 });

@@ -1,6 +1,10 @@
 # Changelog
 ## [Unreleased]
+### Added
+- The webapp says so instead of silently rendering a bare list: when the selected date range holds no entries a notice reads "No log entries in the selected date range", and when loading fails a warning notice reads "Loading log entries failed" — noting whether the previously loaded entries are still shown — so an empty or stale list is never mistaken for an empty logbook
 ### Fixed
+- The webapp converts a legacy date filter to the new quick-range shape on first load and writes the converted filter back to applicationData, so a filter saved by the pre-quick-range webapp (a `daysToShow` day count) no longer lingers in the old shape forever
+- The webapp no longer blanks the entry list when a load fails: a failed or non-OK listing keeps the previously loaded entries instead of replacing them with an empty list, a stored filter with unparseable or inverted custom dates falls back to the default quick-range window instead of producing a query that cannot succeed, and an error response body is no longer parsed as if it were entries
 - Entries created from the webapp by a logged-in user are again stored with their username as `author`, and editing an authorless entry (one displaying as "auto") adopts it to the editing user — both behaviors the deprecated v1 routes implemented from the authentication token, lost when the webapp moved to the v2 resources API where the write payload is the only channel for who is writing. Creates stamp the logged-in user's name; edits keep the stored author unless the entry has none, so editing someone else's line never claims authorship; with security disabled there is no user and entries stay authorless as before
 - Creating an entry from the webapp no longer stores duplicates when the Save button gets tapped twice on a slow connection: the button is disabled (label changes to Saving…) for as long as the save request is in flight, and a failed request now keeps the editor open with the button re-enabled instead of silently doing nothing, so the retry edits the draft rather than stacking a second entry
 

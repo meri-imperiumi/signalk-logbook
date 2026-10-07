@@ -28,6 +28,16 @@ function isCustomFilter(filter) {
   return Boolean(filter && filter.from && filter.to);
 }
 
+// True when the filter is already in one of the two persisted new-style
+// shapes. Used on load to tell a legacy daysToShow-era filter apart, so
+// the converted quick range can be written back to applicationData
+function isNewStyleFilter(filter) {
+  if (!filter || typeof filter !== 'object') {
+    return false;
+  }
+  return Boolean((filter.preset && presetKeyValid(filter.preset)) || isCustomFilter(filter));
+}
+
 // Map a legacy day count onto the quick range it falls into
 function daysToPreset(days) {
   if (days <= 2) {
@@ -87,19 +97,21 @@ function filterLabel(filter) {
 // UTC ISO bounds for the entries query, following the display timezone:
 // quick ranges start at local midnight the day the window opens and run
 // to the end of the current local day; custom spans cover whole local
-// days from start of `from` to end of `to`
+// days from start of `from` to end of `to`. Always resolves to a usable
+// window: a stored filter with unparseable or inverted custom dates (a
+// corrupt or half-written save) falls back to the default quick range
+// rather than yielding a query that cannot succeed
 function filterWindow(filter, now, zone) {
   const nowDt = DateTime.fromJSDate(now).setZone(zone);
   if (isCustomFilter(filter)) {
     const from = DateTime.fromISO(filter.from, { zone }).startOf('day');
     const to = DateTime.fromISO(filter.to, { zone }).endOf('day');
-    if (!from.isValid || !to.isValid) {
-      return null;
+    if (from.isValid && to.isValid && from <= to) {
+      return {
+        from: from.toUTC().toISO(),
+        to: to.toUTC().toISO(),
+      };
     }
-    return {
-      from: from.toUTC().toISO(),
-      to: to.toUTC().toISO(),
-    };
   }
   const preset = QUICK_RANGES.find((range) => range.key === filter.preset)
     || QUICK_RANGES.find((range) => range.key === DEFAULT_FILTER.preset);
@@ -118,6 +130,7 @@ module.exports = {
   QUICK_RANGES,
   DEFAULT_FILTER,
   isCustomFilter,
+  isNewStyleFilter,
   normalizeFilter,
   filterLabel,
   filterWindow,
