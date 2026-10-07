@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [0.14.1] - 2026-10-07
 ### Added
 - The webapp says so instead of silently rendering a bare list: when the selected date range holds no entries a notice reads "No log entries in the selected date range", and when loading fails a warning notice reads "Loading log entries failed" — noting whether the previously loaded entries are still shown — so an empty or stale list is never mistaken for an empty logbook
 ### Fixed
