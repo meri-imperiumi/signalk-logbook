@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [0.14.2] - 2026-10-07
 ### Changed
 - Startup no longer rescans every day file when there is nothing left to migrate: completed storage migrations are recorded in a `.migration.json` state file in the plugin data directory, holding the current migration version plus the entry id → day index. A start that finds the file up to date loads the index from it and is serving immediately — not a single day file is parsed — which on a large logbook removes minutes of YAML parsing from every boot on a Raspberry Pi. When the file records an older version (first start after an upgrade, or a future migration), is missing, or is newer than the running plugin supports (a downgrade), every pending migration runs in ascending order over the whole storage with the progress shown in the plugin status, and only a fully completed chain writes the state file — an interrupted startup re-runs the chain instead of trusting a half-migrated storage. Writes keep the persisted index current from then on (serialized, best-effort: a lost update costs one rescan), and deleting the file forces a full migration re-run at the next start. The resources API registers only once migrations allow it — immediately on an up-to-date storage, so opening the webapp right after server startup no longer gets 404s from `/signalk/v2/api/resources/logentries` while the old every-boot scan was still running
 ### Fixed
