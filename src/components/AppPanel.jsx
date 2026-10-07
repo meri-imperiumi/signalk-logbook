@@ -76,6 +76,12 @@ function AppPanel(props) {
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
+  // Set once the persisted filter has been read from applicationData (or
+  // proven absent). The first listing must wait for it: run against the
+  // default quick range instead, a stored wider window means the initial
+  // fetch completes empty and flashes the "no entries" notice even though
+  // the user's chosen range does hold entries
+  const [filterReady, setFilterReady] = useState(false);
   // True while a save request is in flight: the entry editor disables its
   // Save button so a double-tap cannot fire a second request (each create
   // POST mints a fresh server-side id, so the second tap stores a duplicate)
@@ -96,7 +102,7 @@ function AppPanel(props) {
   const displayTimeZone = displayZone(timezone, timezoneOffset);
 
   useEffect(() => {
-    if (!needsUpdate) {
+    if (!needsUpdate || !filterReady) {
       return undefined;
     }
     if (loginStatus === 'notLoggedIn') {
@@ -109,10 +115,19 @@ function AppPanel(props) {
       setNeedsUpdate(true);
     }, 5 * 60000);
 
+    // Startup re-runs this effect as the persisted filter, time zone and
+    // unit preferences stream in, and the periodic refresh can overlap a
+    // slow listing. Each run supersedes the previous fetch, so abort it:
+    // a stale response must never resolve after a newer one and overwrite
+    // its entries (or its empty-range verdict) with outdated data
+    const controller = new AbortController();
+
     // One ranged listing instead of a day-file sweep: the window follows
     // the display timezone, entries come back ascending by datetime
     const window = filterWindow(filter, new Date(), displayTimeZone);
-    fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`)
+    fetch(`${LOGENTRIES_URL}?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Log listing failed with ${res.status}`);
@@ -130,6 +145,10 @@ function AppPanel(props) {
         setNeedsUpdate(false);
       })
       .catch(() => {
+        if (controller.signal.aborted) {
+          // Superseded by a newer listing; that one decides the outcome
+          return;
+        }
         // A failed refresh keeps the previously loaded entries instead of
         // blanking the logbook; the notice tells the user, and a later
         // filter, time zone or login change retriggers the load
@@ -137,9 +156,10 @@ function AppPanel(props) {
         setNeedsUpdate(false);
       });
     return () => {
+      controller.abort();
       clearInterval(interval);
     };
-  }, [filter, needsUpdate, loginStatus, displayTimeZone, unitPrefs]);
+  }, [filter, needsUpdate, loginStatus, displayTimeZone, unitPrefs, filterReady]);
   // TODO: Depend on chosen time window to reload as needed
 
   // Unit preferences load once; entries render nautically until they
@@ -216,7 +236,10 @@ function AppPanel(props) {
           }).catch(() => {});
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      // The listing may start either way: with the stored filter applied,
+      // or on the default range when nothing (usable) is persisted
+      .finally(() => setFilterReady(true));
   }, [loginStatus]);
 
   useEffect(() => {
