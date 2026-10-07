@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Fixed
+- Creating an entry from the webapp no longer stores duplicates when the Save button gets tapped twice on a slow connection: the button is disabled (label changes to Saving…) for as long as the save request is in flight, and a failed request now keeps the editor open with the button re-enabled instead of silently doing nothing, so the retry edits the draft rather than stacking a second entry
 
 ## [0.14.0] - 2026-10-05
 ### Added

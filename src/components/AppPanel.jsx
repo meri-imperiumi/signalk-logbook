@@ -43,6 +43,10 @@ function AppPanel(props) {
   const [viewEntry, setViewEntry] = useState(null);
   const [addEntry, setAddEntry] = useState(null);
   const [needsUpdate, setNeedsUpdate] = useState(true);
+  // True while a save request is in flight: the entry editor disables its
+  // Save button so a double-tap cannot fire a second request (each create
+  // POST mints a fresh server-side id, so the second tap stores a duplicate)
+  const [saving, setSaving] = useState(false);
   // The user's unit preferences (per-user preset override → server-wide
   // active preset), driving how telemetry renders. Null = server has no
   // unitpreferences API; rendering then falls back to nautical units.
@@ -194,6 +198,10 @@ function AppPanel(props) {
   }
 
   function saveEntry(entry) {
+    if (saving) {
+      return;
+    }
+    setSaving(true);
     // Edits are plain PUTs on the entry's stable resource id — content or
     // datetime alike; the provider preserves the stored datetime when the
     // payload omits it
@@ -219,10 +227,18 @@ function AppPanel(props) {
           // Update viewEntry
           setViewEntry(entry);
         }
-      });
+      })
+      .catch(() => {
+        // Failed edit: keep the editor open so the user can retry
+      })
+      .finally(() => setSaving(false));
   }
 
   function saveAddEntry(entry) {
+    if (saving) {
+      return;
+    }
+    setSaving(true);
     fetch(LOGENTRIES_URL, {
       method: 'POST',
       headers: {
@@ -233,7 +249,11 @@ function AppPanel(props) {
       .then(() => {
         setAddEntry(null);
         setNeedsUpdate(true);
-      });
+      })
+      .catch(() => {
+        // Failed create: keep the editor open so the user can retry
+      })
+      .finally(() => setSaving(false));
   }
 
   function deleteEntry(entry) {
@@ -266,6 +286,7 @@ function AppPanel(props) {
           cancel={() => setEditEntry(null)}
           save={saveEntry}
           delete={deleteEntry}
+          saving={saving}
           categories={categories}
           displayTimeZone={displayTimeZone}
           /> : null }
@@ -281,6 +302,7 @@ function AppPanel(props) {
           isNew={true}
           cancel={() => setAddEntry(null)}
           save={saveAddEntry}
+          saving={saving}
           categories={categories}
           displayTimeZone={displayTimeZone}
           /> : null }

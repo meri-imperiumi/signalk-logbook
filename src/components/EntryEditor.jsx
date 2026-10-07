@@ -363,8 +363,8 @@ function EntryEditor(props) {
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button color="primary" onClick={save}>
-          Save
+        <Button color="primary" onClick={save} disabled={props.saving}>
+          {props.saving ? 'Saving…' : 'Save'}
         </Button>{' '}
         <Button color="secondary" onClick={props.cancel}>
           Cancel
