@@ -72,7 +72,15 @@ function editablePathvalues(uiEntry) {
 // payload's telemetry comes from the entry's original SI pathvalues —
 // preserving full precision — overlaid with the fields the editor can
 // change. Display-only converted fields are never written back.
-function uiEntryToApi(uiEntry) {
+//
+// `adoptAuthor` (the logged-in username) adopts an authorless entry on
+// edit: entries written without an author display as "auto", and the
+// v1 routes this UI replaces set the stored author to the editing user
+// on exactly that condition (`if (author && !entry.author)`). Entries
+// that already carry an author keep it — editing someone else's line
+// must not claim authorship — and with no logged-in user nothing is
+// invented.
+function uiEntryToApi(uiEntry, adoptAuthor) {
   const api = {};
   Object.keys(uiEntry).forEach((key) => {
     if (UI_ONLY_FIELDS.includes(key) || DISPLAY_ONLY_FIELDS.includes(key)) {
@@ -91,14 +99,20 @@ function uiEntryToApi(uiEntry) {
   if (telemetry.length > 0) {
     api.telemetry = telemetry;
   }
+  if (!api.author && adoptAuthor) {
+    api.author = adoptAuthor;
+  }
   return api;
 }
 
 // Convert a new-entry draft (the EntryEditor save payload) into an API
 // entry for POST: an omitted datetime is resolved from the draft's
-// `ago` (minutes back from now, 0 = now), and the origin is manual —
-// the resources API defaults to 'agent', which is for other writers.
-function draftToApiEntry(draft, now) {
+// `ago` (minutes back from now, 0 = now), the origin is manual —
+// the resources API defaults to 'agent', which is for other writers —
+// and the logged-in username is stamped as author. The resources API
+// carries no request context, so without this the entry would store
+// authorless where the v1 routes filled in the authenticated user.
+function draftToApiEntry(draft, now, author) {
   const apiEntry = uiEntryToApi(draft);
   if (!apiEntry.datetime) {
     const agoMinutes = Number.isFinite(Number(draft.ago)) ? Number(draft.ago) : 0;
@@ -106,6 +120,9 @@ function draftToApiEntry(draft, now) {
   }
   if (apiEntry.origin === undefined) {
     apiEntry.origin = 'manual';
+  }
+  if (apiEntry.author === undefined && author) {
+    apiEntry.author = author;
   }
   return apiEntry;
 }

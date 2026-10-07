@@ -1,6 +1,7 @@
 # Changelog
 ## [Unreleased]
 ### Fixed
+- Entries created from the webapp by a logged-in user are again stored with their username as `author`, and editing an authorless entry (one displaying as "auto") adopts it to the editing user — both behaviors the deprecated v1 routes implemented from the authentication token, lost when the webapp moved to the v2 resources API where the write payload is the only channel for who is writing. Creates stamp the logged-in user's name; edits keep the stored author unless the entry has none, so editing someone else's line never claims authorship; with security disabled there is no user and entries stay authorless as before
 - Creating an entry from the webapp no longer stores duplicates when the Save button gets tapped twice on a slow connection: the button is disabled (label changes to Saving…) for as long as the save request is in flight, and a failed request now keeps the editor open with the button re-enabled instead of silently doing nothing, so the retry edits the draft rather than stacking a second entry
 
 ## [0.14.0] - 2026-10-05

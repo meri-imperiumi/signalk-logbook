@@ -143,6 +143,21 @@ test('uiEntryToApi round-trips a display-converted entry without unit leakage', 
   assert.strictEqual(heading.value, 3.3161);
 });
 
+test('uiEntryToApi adopts authorless entries to the editing user', () => {
+  // An entry stored without an author (displaying as "auto") has no
+  // author key on the UI shape at all
+  const authorless = apiToUiEntry(apiEntry({ author: undefined }));
+  assert.strictEqual(authorless.author, undefined);
+  const adopted = uiEntryToApi(authorless, 'skipper');
+  assert.strictEqual(adopted.author, 'skipper');
+  // An entry that already carries an author keeps it — editing someone
+  // else's line must not claim authorship
+  const owned = apiToUiEntry(apiEntry({ author: 'crew' }));
+  assert.strictEqual(uiEntryToApi(owned, 'skipper').author, 'crew');
+  // With no logged-in user (security disabled) nothing is invented
+  assert.strictEqual(uiEntryToApi(authorless, undefined).author, undefined);
+});
+
 test('draftToApiEntry resolves datetime from ago and defaults origin to manual', () => {
   const now = new Date('2026-06-11T12:00:00.000Z');
   const draft = {
@@ -163,6 +178,16 @@ test('draftToApiEntry resolves datetime from ago and defaults origin to manual',
   // An explicit origin from the draft is kept
   const agent = draftToApiEntry({ text: 'x', ago: 0, origin: 'agent' }, now);
   assert.strictEqual(agent.origin, 'agent');
+  // The logged-in user is stamped as author, like the v1 routes did from
+  // the JWT — the resources API has no request context of its own
+  const authored = draftToApiEntry({ text: 'x', ago: 0 }, now, 'skipper');
+  assert.strictEqual(authored.author, 'skipper');
+  // An author already on the draft wins over the logged-in user
+  const preAuthored = draftToApiEntry({ text: 'x', ago: 0, author: 'crew' }, now, 'skipper');
+  assert.strictEqual(preAuthored.author, 'crew');
+  // No logged-in user (security disabled): no author is invented
+  const anonymous = draftToApiEntry({ text: 'x', ago: 0 }, now, undefined);
+  assert.strictEqual(anonymous.author, undefined);
   // Form-captured observations and position become telemetry pathvalues
   const withObservations = draftToApiEntry({
     text: 'Anchored',

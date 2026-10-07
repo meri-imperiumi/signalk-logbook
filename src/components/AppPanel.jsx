@@ -204,13 +204,14 @@ function AppPanel(props) {
     setSaving(true);
     // Edits are plain PUTs on the entry's stable resource id — content or
     // datetime alike; the provider preserves the stored datetime when the
-    // payload omits it
+    // payload omits it. The logged-in username adopts authorless entries
+    // (the ones displaying as "auto"), like the v1 routes did
     fetch(`${LOGENTRIES_URL}/${entry.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(uiEntryToApi(entry)),
+      body: JSON.stringify(uiEntryToApi(entry, props.loginStatus.username)),
     })
       .then(() => {
         const updatedEntries = [...data.entries];
@@ -244,7 +245,10 @@ function AppPanel(props) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(draftToApiEntry(entry)),
+      // The resources API has no request context, so the entry's author
+      // must ride in the payload — the username of the logged-in user,
+      // exactly what the deprecated v1 routes took from the JWT
+      body: JSON.stringify(draftToApiEntry(entry, undefined, props.loginStatus.username)),
     })
       .then(() => {
         setAddEntry(null);
