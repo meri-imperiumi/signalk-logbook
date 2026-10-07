@@ -225,6 +225,11 @@ function createLogentriesProvider(options) {
         entries = entries.filter((entry) => entry.datetime.getTime() <= to);
       }
       entries = entries.filter((entry) => entryMatches(entry, normalized));
+      // An entry without an id can only exist while the startup id
+      // migration is still to rewrite its day file (or after a hand edit);
+      // it is not addressable as a resource yet, so skip it rather than
+      // emit a broken key
+      entries = entries.filter((entry) => isUuid(entry.id));
 
       // limit selects the N newest matches, presented ascending
       if (limit !== undefined) {

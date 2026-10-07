@@ -81,6 +81,9 @@ test('rapid duplicate deltas produce only a single log entry', async () => {
   // eslint-disable-next-line global-require
   const plugin = require('../plugin/index')(app);
   plugin.start();
+  // Migration (and its state file write) is async; await it so nothing is
+  // still writing when the temp dir is removed
+  await plugin.ready;
   try {
     const cb = app.getDeltaCallback();
     const date = new Date().toISOString().substr(0, 10);

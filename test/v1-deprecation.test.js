@@ -74,6 +74,9 @@ async function withStartedPlugin(run) {
   const plugin = createPlugin(app);
   plugin.start();
   try {
+    // Migration runs asynchronously; await it so the state file write is
+    // not still in flight when the temp dir is removed
+    await plugin.ready;
     await run(plugin, debugLines);
   } finally {
     plugin.stop();

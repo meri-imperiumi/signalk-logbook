@@ -150,14 +150,25 @@ module.exports = (app) => {
     notificationConfig = buildConfig((options && options.configuration) || {});
     episodes.clear();
 
-    // Stamp ids on pre-existing entries and build the id → date index
-    // before the resource provider registers.
-    log.migrate()
-      .catch((err) => {
-        app.error(`Logbook id migration failed: ${err.message}`);
-      })
+    // Storage migrations gate the start of the logbook: with an up-to-date
+    // .migration.json state file the check is one small read and the
+    // resource provider registers immediately, so the webapp never sees a
+    // 404 for the resources API. Only a storage with pending migrations
+    // (first start after an upgrade, a new migration version, a deleted
+    // state file) delays registration — with progress reported in the
+    // plugin status — because entries are not id-addressable resources
+    // until their migration has run. Exposed as plugin.ready so hosts and
+    // tests can await the startup; it never rejects.
+    plugin.ready = log.migrate({
+      onProgress: setStatus,
+    })
       .then(() => {
         registerLogentriesProvider();
+        setStatus('Waiting for updates');
+      })
+      .catch((err) => {
+        app.error(`Logbook migration failed: ${err.message}`);
+        app.setPluginError(`Logbook migration failed: ${err.message}`);
       });
 
     const subscription = {
@@ -298,8 +309,6 @@ module.exports = (app) => {
       };
     });
     sendCrewNames(app, plugin);
-
-    setStatus('Waiting for updates');
   };
 
   plugin.registerWithRouter = (router) => {

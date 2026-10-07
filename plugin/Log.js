@@ -6,6 +6,7 @@ const {
   mkdir,
   copyFile,
   access,
+  rename,
 } = require('fs/promises');
 const { join, basename } = require('path');
 const { randomUUID } = require('crypto');
@@ -15,16 +16,48 @@ const openAPI = require('../schema/openapi.json');
 
 const DATE_PATTERN = /^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/;
 const MIGRATION_BACKUP_DIR = 'id-migration-backup';
+// Startup state file: records which storage migrations have completed and
+// carries the id → day index, so an up-to-date storage starts without
+// parsing a single day file. Deliberately not a day file shape — a hidden
+// dotfile whose name matches neither the `YYYY-MM-DD.yml` listing pattern
+// nor the date validation — so storage scans and date-addressed operations
+// can never mistake it for log data.
+const MIGRATION_STATE_FILE = '.migration.json';
+
+/**
+ * Versioned startup migrations, run in ascending order over the whole
+ * storage whenever `.migration.json` records an older version. Append new
+ * migrations at the end with the next version number — never edit or
+ * reorder existing entries — and keep every migration idempotent: the
+ * state file is written only after the whole pending chain succeeds, so an
+ * interrupted startup re-runs the chain from the recorded version.
+ */
+const MIGRATIONS = [
+  {
+    version: 1,
+    description: 'stamping entry ids',
+    run: (log) => log._migrateEntryIds(),
+  },
+];
+const CURRENT_MIGRATION_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 
 class Log {
   constructor(dir) {
     this.dir = dir;
     this.validator = null;
     this.queues = new Map(); // Tracks active promises per date to prevent race conditions
-    // In-memory index of entry id → date string. Built by the startup
-    // migration scan and maintained on writes, so id-addressed operations
-    // find the right day file without scanning every file.
+    // In-memory index of entry id → date string. Loaded from the persisted
+    // migration state (or built by the migration scan when one runs) and
+    // maintained on writes, so id-addressed operations find the right day
+    // file without scanning every file.
     this.idIndex = new Map();
+    // True once the storage is known to be at the current migration
+    // version — either loaded from `.migration.json` or after the pending
+    // chain completed. Only then may the state file be (re-)written, so a
+    // partial index can never pass for a fully migrated storage.
+    this.migrationCompleted = false;
+    // Serializes the state file writes fired from the write paths
+    this.stateSaveChain = Promise.resolve();
     // Listener invoked after each successful write made through the legacy
     // write methods (appendEntry, writeEntry, deleteEntry) — the writes
     // that bypass the resources provider and must emit their own
@@ -212,6 +245,7 @@ class Log {
           }
         }
         this.idIndex.set(id, dateString);
+        this._saveMigrationState();
         return this._writeDateInternal(dateString, updatedDate)
           .then(() => {
             this._notifyChange(normalized, 'write');
@@ -242,6 +276,7 @@ class Log {
         };
         d.push(normalized);
         this.idIndex.set(id, date);
+        this._saveMigrationState();
         return this._writeDateInternal(date, d)
           .then(() => {
             this._notifyChange(normalized, 'write');
@@ -300,6 +335,7 @@ class Log {
       }))
       .then(() => {
         this.idIndex.set(id, newDate);
+        this._saveMigrationState();
       });
 
     if (!oldDate || oldDate === newDate) {
@@ -338,6 +374,7 @@ class Log {
       .then(() => {
         if (this.idIndex.get(id) === date) {
           this.idIndex.delete(id);
+          this._saveMigrationState();
         }
       });
   }
@@ -356,6 +393,7 @@ class Log {
         const [deleted] = dateData.splice(entryIdx, 1);
         if (deleted.id && this.idIndex.get(deleted.id) === dateString) {
           this.idIndex.delete(deleted.id);
+          this._saveMigrationState();
         }
         return this._writeDateInternal(dateString, dateData)
           .then(() => {
@@ -391,14 +429,76 @@ class Log {
   }
 
   /**
-   * One-time startup migration for pre-id entries: stamps a fresh UUID id
-   * on every entry, backs up day files before rewriting them in place,
-   * builds the in-memory id → date index and deduplicates entries that an
+   * Bring the storage up to the current migration version, then report it
+   * ready. Reads `.migration.json` from the data directory: when it
+   * records the current version and index, the id index is loaded from it
+   * and the promise resolves without a single day file being read — the
+   * fast path every startup of an unchanged plugin takes. Otherwise (file
+   * missing, older version, or a newer one — a downgrade) every pending
+   * migration runs in ascending order over all day files, with progress
+   * reported through `options.onProgress`. The state file is written only
+   * after the whole chain succeeds, so an interrupted startup leaves it
+   * unwritten and the next start re-runs the chain from the recorded
+   * version — migrations are idempotent, making that re-run safe. There
+   * are no partial migrations: a storage is either at the recorded version
+   * or the whole pending chain is replayed.
+   *
+   * Afterwards the state file doubles as the persisted id → date index;
+   * every later index mutation re-persists it (serialized, best-effort),
+   * keeping boots fast. Deleting the file forces a full migration re-run
+   * at the next start.
+   */
+  migrate(options) {
+    const { onProgress } = options || {};
+    return readFile(join(this.dir, MIGRATION_STATE_FILE), 'utf-8')
+      .then((content) => JSON.parse(content))
+      .catch(() => null)
+      .then((saved) => {
+        const storedVersion = saved
+          && typeof saved.version === 'number'
+          && Number.isInteger(saved.version)
+          && saved.version >= 1
+          && saved.version <= CURRENT_MIGRATION_VERSION
+          && saved.index
+          && typeof saved.index === 'object'
+          ? saved.version : 0;
+        if (storedVersion === CURRENT_MIGRATION_VERSION) {
+          // Fast path: nothing to migrate, and the id index is already on
+          // disk — no day file is even parsed
+          this.idIndex = new Map(Object.entries(saved.index)
+            .filter(([id, date]) => typeof id === 'string' && id.length > 0
+              && typeof date === 'string' && date.match(DATE_PATTERN) !== null));
+          this.migrationCompleted = true;
+          return undefined;
+        }
+        const pending = MIGRATIONS.filter((migration) => migration.version > storedVersion);
+        return pending.reduce(
+          (prev, migration) => prev.then(() => {
+            if (onProgress) {
+              onProgress(`Migrating logbook: ${migration.description}…`);
+            }
+            return migration.run(this);
+          }),
+          Promise.resolve(),
+        )
+          .then(() => {
+            this.migrationCompleted = true;
+            // Written once, after everything: the marker must never
+            // describe a half-migrated storage
+            return this._saveMigrationState();
+          });
+      });
+  }
+
+  /**
+   * Migration v1 for pre-id entries: stamps a fresh UUID id on every
+   * entry, backs up day files before rewriting them in place, builds the
+   * in-memory id → date index and deduplicates entries that an
    * interrupted cross-day move left in two files (the earliest copy wins).
    * Idempotent: entries already carrying an id are kept, and once all
    * entries are stamped a re-run changes nothing.
    */
-  migrate() {
+  _migrateEntryIds() {
     const seen = new Set();
     return this.listDates()
       .then((dates) => dates.sort())
@@ -408,8 +508,38 @@ class Log {
       ));
   }
 
+  /**
+   * Persist `.migration.json`: the current migration version plus the id
+   * index, so the next startup takes the fast path. Writes are serialized
+   * through a chain and land via rename (a torn file from a power cut
+   * would parse as missing and cost one re-scan); failures are swallowed —
+   * they cost at most a full migration re-run on the next start.
+   */
+  _saveMigrationState() {
+    if (!this.migrationCompleted) {
+      // Only a completed migration (or a loaded current-version state
+      // file) may write the state file — otherwise a partial index could
+      // pass for a fully migrated storage
+      return Promise.resolve();
+    }
+    const saved = {
+      version: CURRENT_MIGRATION_VERSION,
+      index: Object.fromEntries(this.idIndex),
+    };
+    const path = join(this.dir, MIGRATION_STATE_FILE);
+    const tmpPath = `${path}.tmp`;
+    this.stateSaveChain = this.stateSaveChain
+      .then(() => writeFile(tmpPath, JSON.stringify(saved), 'utf-8')
+        .then(() => rename(tmpPath, path)))
+      .catch(() => {});
+    return this.stateSaveChain;
+  }
+
   _migrateDate(date, seen) {
-    return this._getDateInternal(date)
+    // Under the date's write queue: writes landing while a migration is
+    // running (triggers and v1 routes are live throughout) are ordered
+    // against the rewrite instead of being clobbered by it
+    return this._enqueue(date, () => this._getDateInternal(date)
       // Unreadable or invalid day file: leave it untouched rather than
       // rewriting it from a partially understood state.
       .catch(() => null)
@@ -439,7 +569,7 @@ class Log {
           return null;
         }
         return this._backupAndRewrite(date, kept);
-      });
+      }));
   }
 
   _backupAndRewrite(date, kept) {
@@ -449,7 +579,9 @@ class Log {
       .catch(() => {})
       .then(() => access(backupPath))
       .catch(() => copyFile(this.getPath(date), backupPath))
-      .then(() => this.writeDate(date, kept));
+      // Direct internal write: the migration task already runs under the
+      // date's write queue, and writeDate would queue behind itself
+      .then(() => this._writeDateInternal(date, kept));
   }
 
   prepareValidator() {
@@ -489,5 +621,9 @@ class Log {
       }));
   }
 }
+
+// The version a storage must record in .migration.json for the fast
+// startup path; exposed for tests and diagnostics
+Log.MIGRATION_VERSION = CURRENT_MIGRATION_VERSION;
 
 module.exports = Log;

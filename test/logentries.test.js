@@ -808,22 +808,45 @@ test('migration stamps ids, backs up day files, builds the index and is idempote
     // Index works
     const entry = await log.getEntryById(day1[1].id);
     assert.strictEqual(entry.text, 'two');
-    // Idempotent re-run: ids kept, nothing else changes
+    // Idempotent re-run: ids kept, nothing else changes. The state file
+    // now records the completed migration, so this re-run takes the fast
+    // path and does not even read the day files
     await log.migrate();
     const day1Again = await readDayFile(dir, '2026-06-11');
     assert.deepStrictEqual(day1Again, day1);
-    // Deduplication: an entry duplicated across day files keeps a single copy
+    // Deduplication: an entry duplicated across day files keeps a single
+    // copy. Dropped the state file to force the scan — as a migration
+    // version bump or a manually deleted state file would
     const dup = { id: day1[0].id, datetime: '2026-06-12T10:00:00.000Z', text: 'one' };
     await writeDayFile(dir, '2026-06-12', [
       { datetime: '2026-06-12T08:00:00.000Z', text: 'three' },
       dup,
     ]);
+    await rm(join(dir, '.migration.json'));
     const log2 = new Log(dir);
     await log2.migrate();
     const day1After = await readDayFile(dir, '2026-06-11');
     const day2After = await readDayFile(dir, '2026-06-12');
     assert.strictEqual(day1After[0].id, day1[0].id, 'earliest copy kept');
     assert.ok(!day2After.some((e) => e.id === day1[0].id), 'duplicate removed from the later file');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('listings skip entries without ids: they are not addressable resources yet', async () => {
+  const { dir, log } = await newLog();
+  try {
+    // No migration has run, so the first entry carries no id (the shape
+    // day files have before the startup scan stamps them)
+    await writeDayFile(dir, '2026-06-11', [
+      { datetime: '2026-06-11T08:00:00.000Z', text: 'pre-migration' },
+      { id: randomUUID(), datetime: '2026-06-11T09:00:00.000Z', text: 'addressable' },
+    ]);
+    const { provider } = newProvider(log);
+    const listed = await provider.listResources({ date: '2026-06-11' });
+    assert.strictEqual(Object.keys(listed).length, 1);
+    assert.strictEqual(listed[Object.keys(listed)[0]].text, 'addressable');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

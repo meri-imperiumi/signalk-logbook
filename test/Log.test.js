@@ -7,6 +7,7 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { stringify, parse } = require('yaml');
 const Log = require('../plugin/Log');
+const { isUuid } = require('../plugin/provider');
 
 test('legacy writes notify the change listener with the stored entry', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
@@ -220,6 +221,150 @@ test('writeEntry creates a new day file when none exists', async () => {
     const after = parse(await readFile(join(dir, '2026-06-12.yml'), 'utf-8'));
     assert.strictEqual(after.length, 1);
     assert.strictEqual(after[0].text, 'Departed');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+const STATE_FILE = '.migration.json';
+
+async function readState(dir) {
+  return JSON.parse(await readFile(join(dir, STATE_FILE), 'utf-8'));
+}
+
+test('migration state file: completed storage boots on the fast path without touching day files', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const dayFile = join(dir, '2026-06-11.yml');
+    const preMigration = [{ datetime: '2026-06-11T08:00:00.000Z', text: 'one' }];
+    await writeFile(dayFile, stringify(preMigration), 'utf-8');
+
+    const log = new Log(dir);
+    const progress = [];
+    await log.migrate({ onProgress: (message) => progress.push(message) });
+    assert.ok(progress.length > 0, 'pending migrations report progress');
+    const day = parse(await readFile(dayFile, 'utf-8'));
+    assert.ok(isUuid(day[0].id), 'scan stamped the id');
+    const saved = await readState(dir);
+    assert.strictEqual(saved.version, Log.MIGRATION_VERSION);
+    assert.strictEqual(saved.index[day[0].id], '2026-06-11', 'state file carries the id index');
+
+    // Hand-edit the day file afterwards (adding an id-less entry): the
+    // fast path must serve ids from the state file without a rescan and
+    // without rewriting any day file
+    await writeFile(dayFile, stringify([
+      ...preMigration.map((e) => ({ ...e, id: day[0].id })),
+      { datetime: '2026-06-11T09:00:00.000Z', text: 'hand-added' },
+    ]), 'utf-8');
+    const log2 = new Log(dir);
+    const progress2 = [];
+    await log2.migrate({ onProgress: (message) => progress2.push(message) });
+    assert.strictEqual(progress2.length, 0, 'up-to-date storage runs no migration');
+    const dayAgain = parse(await readFile(dayFile, 'utf-8'));
+    assert.ok(!dayAgain[1].id, 'fast path left day files untouched');
+    const fetched = await log2.getEntryById(day[0].id);
+    assert.strictEqual(fetched.text, 'one');
+    // The state file is not confusable with log data
+    assert.deepStrictEqual(await log2.listDates(), ['2026-06-11']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('writes keep the state file index current, but only for a migrated storage', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const log = new Log(dir);
+    // No migration has completed: writes must not create a state file, so
+    // a partial index can never pass for a fully migrated storage
+    await log.appendEntry('2026-06-11', {
+      datetime: '2026-06-11T08:00:00.000Z', text: 'before migration',
+    });
+    await assert.rejects(readState(dir), { code: 'ENOENT' });
+
+    await log.migrate();
+    const appended = await log.appendEntry('2026-06-12', {
+      datetime: '2026-06-12T08:00:00.000Z', text: 'after migration',
+    });
+    await log._saveMigrationState();
+    const saved = await readState(dir);
+    assert.strictEqual(saved.index[appended.id], '2026-06-12');
+
+    // The next boot finds the entry written after the migration
+    const log2 = new Log(dir);
+    await log2.migrate();
+    const fetched = await log2.getEntryById(appended.id);
+    assert.strictEqual(fetched.text, 'after migration');
+
+    // Deleting it updates the persisted index too
+    await log2.deleteEntryById(appended.id);
+    await log2._saveMigrationState();
+    const savedAfterDelete = await readState(dir);
+    assert.strictEqual(savedAfterDelete.index[appended.id], undefined);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('an out-of-date state file version reruns the whole migration', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    const dayFile = join(dir, '2026-06-11.yml');
+    await writeFile(dayFile, stringify([
+      { datetime: '2026-06-11T08:00:00.000Z', text: 'one' },
+    ]), 'utf-8');
+    // A marker from an older plugin generation…
+    await writeFile(join(dir, STATE_FILE), JSON.stringify({
+      version: Math.max(0, Log.MIGRATION_VERSION - 1),
+      index: {},
+    }), 'utf-8');
+    const log = new Log(dir);
+    const progress = [];
+    await log.migrate({ onProgress: (message) => progress.push(message) });
+    let day = parse(await readFile(dayFile, 'utf-8'));
+    assert.ok(isUuid(day[0].id), 'older version reran the migration');
+    assert.ok(progress.length > 0, 'progress reported for pending migrations');
+    const saved = await readState(dir);
+    assert.strictEqual(saved.version, Log.MIGRATION_VERSION, 'state file updated to current version');
+
+    // …and one from a newer generation (downgraded plugin): never trusted,
+    // the storage is brought back to the versions this plugin knows
+    await writeFile(dayFile, stringify([
+      { datetime: '2026-06-11T08:00:00.000Z', text: 'one' },
+    ]), 'utf-8');
+    await writeFile(join(dir, STATE_FILE), JSON.stringify({
+      version: Log.MIGRATION_VERSION + 10,
+      index: {},
+    }), 'utf-8');
+    const log2 = new Log(dir);
+    await log2.migrate();
+    day = parse(await readFile(dayFile, 'utf-8'));
+    assert.ok(isUuid(day[0].id), 'newer-version marker reran the migration');
+    const savedAfter = await readState(dir);
+    assert.strictEqual(savedAfter.version, Log.MIGRATION_VERSION);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a failed migration writes no state file, so the next start retries', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'logbook-test-'));
+  try {
+    await writeFile(join(dir, '2026-06-11.yml'), stringify([
+      { datetime: '2026-06-11T08:00:00.000Z', text: 'one' },
+    ]), 'utf-8');
+    const log = new Log(dir);
+    const original = log._migrateEntryIds;
+    log._migrateEntryIds = () => Promise.reject(new Error('disk went to sea'));
+    await assert.rejects(log.migrate(), /disk went to sea/);
+    await assert.rejects(readState(dir), { code: 'ENOENT' }, 'no marker after a failed chain');
+    // Next start: the migration runs again and completes
+    log._migrateEntryIds = original;
+    await log.migrate();
+    const day = parse(await readFile(join(dir, '2026-06-11.yml'), 'utf-8'));
+    assert.ok(isUuid(day[0].id));
+    const saved = await readState(dir);
+    assert.strictEqual(saved.version, Log.MIGRATION_VERSION);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
