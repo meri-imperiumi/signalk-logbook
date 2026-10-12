@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- The bundled `where` geographic library moves from 0.4.2 to 1.0.2: it no longer pulls in `isomorphic-fetch`, using the platform's native `fetch` instead, and pretty-printed coordinates (`Point.toString()`, shown in the entry list and entry details) now zero-pad minutes and seconds, e.g. `60°05′04″N` instead of `60°5′4″N`
 
 ## [0.14.3] - 2026-10-08
 ### Changed
