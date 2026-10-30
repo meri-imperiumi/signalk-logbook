@@ -12,14 +12,20 @@
 
 const { DateTime } = require('luxon');
 
-// Convert a (-)hhmm offset into a zero-padded fixed-offset zone string
-// understood by both luxon and Intl: 1300 → '+13:00', -930 → '-09:30'
+// Convert a (-)hhmm offset into a zero-padded Luxon fixed-offset zone:
+// 1300 → 'UTC+13:00', -930 → 'UTC-09:30'
 function offsetToZone(hhmm) {
+  if (!Number.isInteger(hhmm)) {
+    return null;
+  }
   const sign = hhmm < 0 ? '-' : '+';
   const abs = Math.abs(hhmm);
+  if (abs > 1300 || abs % 100 >= 60) {
+    return null;
+  }
   const hours = String(Math.floor(abs / 100)).padStart(2, '0');
   const minutes = String(abs % 100).padStart(2, '0');
-  return `${sign}${hours}:${minutes}`;
+  return `UTC${sign}${hours}:${minutes}`;
 }
 
 // Resolve the displayTimeZone setting into a concrete zone string.
@@ -28,7 +34,7 @@ function offsetToZone(hhmm) {
 // back to UTC.
 function displayZone(setting, timezoneOffset) {
   if (setting === 'ship' && Number.isFinite(timezoneOffset)) {
-    return offsetToZone(timezoneOffset);
+    return offsetToZone(timezoneOffset) || 'UTC';
   }
   return 'UTC';
 }
@@ -47,8 +53,9 @@ function zoneLabel(zone) {
   if (!zone || zone === 'UTC') {
     return 'UTC';
   }
-  const sign = zone.startsWith('-') ? '-' : '+';
-  const [hours, minutes] = zone.replace(/^[+-]/, '').split(':');
+  const offset = zone.replace(/^UTC/, '');
+  const sign = offset.startsWith('-') ? '-' : '+';
+  const [hours, minutes] = offset.replace(/^[+-]/, '').split(':');
   return `UTC${sign}${parseInt(hours, 10)}${minutes === '00' ? '' : `:${minutes}`}`;
 }
 
