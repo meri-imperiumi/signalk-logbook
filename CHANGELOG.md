@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+
+## [0.14.4] - 2026-11-06
 ### Fixed
 - The log map no longer draws tracks that cross the antimeridian as lines wrapping around the planet: Signal K longitudes are always wrapped to ±180°, so a vessel sailing past 180° produced track segments like 179.9°E → 179.9°W spanning nearly the whole globe, with the map zoomed out to the entire world as a side effect. Track points (and entry markers) now unwrap into continuous longitude space — 179.9°E continues as 180.1°E — which MapLibre renders across the date line on its world copies, and the camera fits the actual track again. A single broken longitude no longer derails the unwrapping of the rest of the track
 ### Changed
