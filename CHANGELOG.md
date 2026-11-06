@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Fixed
+- The log map no longer draws tracks that cross the antimeridian as lines wrapping around the planet: Signal K longitudes are always wrapped to ±180°, so a vessel sailing past 180° produced track segments like 179.9°E → 179.9°W spanning nearly the whole globe, with the map zoomed out to the entire world as a side effect. Track points (and entry markers) now unwrap into continuous longitude space — 179.9°E continues as 180.1°E — which MapLibre renders across the date line on its world copies, and the camera fits the actual track again. A single broken longitude no longer derails the unwrapping of the rest of the track
 ### Changed
 - The bundled `where` geographic library moves from 0.4.2 to 1.0.2: it no longer pulls in `isomorphic-fetch`, using the platform's native `fetch` instead, and pretty-printed coordinates (`Point.toString()`, shown in the entry list and entry details) now zero-pad minutes and seconds, e.g. `60°05′04″N` instead of `60°5′4″N`
 

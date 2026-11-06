@@ -5,6 +5,7 @@ import {
   DEFAULT_LAYER,
   CHART_MIRROR_MANIFEST_URL,
 } from '../helpers/charts';
+import { unwrapTrackPoints } from '../helpers/geo';
 import ChartMap from './ChartMap';
 
 // localStorage key for the chart layer the user last picked, so revisits
@@ -35,10 +36,13 @@ function Map(props) {
     point: new Point(entry.position.latitude, entry.position.longitude),
     date: new Date(entry.datetime),
   }));
-  const [points, setPoints] = useState(entries.map((e) => ({
+  // Longitudes unwrap across the antimeridian (see helpers/geo) so a
+  // track crossing 180° draws over the date line instead of wrapping the
+  // planet, and the map fits the actual track rather than the world
+  const [points, setPoints] = useState(unwrapTrackPoints(entries.map((e) => ({
     lat: e.position.latitude,
     lon: e.position.longitude,
-  })));
+  }))));
   // Tile layers come from SignalK's configured charts; `null` until the
   // list resolves (fetching the corridor provider's manifest and the chart
   // resources can take a while), then the list with the OpenStreetMap default
@@ -132,7 +136,7 @@ function Map(props) {
             lon: point.lon,
           });
         });
-        setPoints(pts);
+        setPoints(unwrapTrackPoints(pts));
       })
       .catch(() => {});
   }, [props.entries]);

@@ -8,6 +8,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import {
   mapStyle, assetUrl, absoluteUrl, absoluteStyle,
 } from '../helpers/charts';
+import { unwrapLongitude } from '../helpers/geo';
 import { entryMarkerColor } from '../helpers/markers';
 
 // MapLibre GL container for the log map, rendering every chart layer: raster
@@ -47,13 +48,27 @@ function boundsOf(points) {
   ];
 }
 
-function drawMarkers(map, markersRef, entries, viewEntry) {
+// Longitude for an entry marker: shifted by whole revolutions to sit on
+// the world copy the unwrapped track (see helpers/geo) occupies, so an
+// entry recorded before crossing the antimeridian keeps rendering beside
+// the track instead of a planet away. Without track points there is no
+// copy to pick and the raw value stands.
+function markerLongitude(entry, points) {
+  const lons = points.map((p) => Number(p.lon)).filter(Number.isFinite);
+  if (!lons.length) {
+    return entry.position.longitude;
+  }
+  const reference = (Math.min(...lons) + Math.max(...lons)) / 2;
+  return unwrapLongitude(entry.position.longitude, reference);
+}
+
+function drawMarkers(map, markersRef, entries, points, viewEntry) {
   markersRef.current = entries.map((entry) => {
     const marker = new Marker({
       color: entryMarkerColor(entry.category),
       scale: 0.7,
     })
-      .setLngLat([entry.position.longitude, entry.position.latitude])
+      .setLngLat([markerLongitude(entry, points), entry.position.latitude])
       .addTo(map);
     marker.getElement().addEventListener('click', (event) => {
       event.stopPropagation();
@@ -124,7 +139,13 @@ function ChartMap(props) {
           'line-width': 1.5,
         },
       });
-      drawMarkers(map, markersRef, latestRef.current.entries, latestRef.current.viewEntry);
+      drawMarkers(
+        map,
+        markersRef,
+        latestRef.current.entries,
+        latestRef.current.points,
+        latestRef.current.viewEntry,
+      );
       // The constructor bounds can be computed against a container that
       // MapLibre hadn't measured yet; re-fit once fully loaded
       const loadedBounds = boundsOf(latestRef.current.points);
@@ -167,7 +188,7 @@ function ChartMap(props) {
       return;
     }
     markersRef.current.forEach((marker) => marker.remove());
-    drawMarkers(map, markersRef, props.entries, props.viewEntry);
+    drawMarkers(map, markersRef, props.entries, props.points, props.viewEntry);
   }, [props.entries]);
 
   return (
