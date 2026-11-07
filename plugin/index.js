@@ -5,6 +5,7 @@ const { newEntryFromBody } = require('./newEntry');
 const { processTriggers, processHourly } = require('./triggers');
 const { processNotification, sweepNotifications, buildConfig } = require('./notifications');
 const { createLogentriesProvider } = require('./provider');
+const { createPlotterExtensionProvider } = require('./plotterExtension');
 const { createResourceNotifier } = require('./deltas');
 const openAPI = require('../schema/openapi.json');
 
@@ -92,6 +93,13 @@ module.exports = (app) => {
   // True once the logentries resource provider is registered: only then
   // can there be resources.logentries subscribers to serve with deltas.
   let resourcesActive = false;
+  // True between plugin.start and plugin.stop: gates plotter extension
+  // discovery, so a stopped plugin's button vanishes from the plotter.
+  let running = false;
+  // The plotterExtensions provider registers at most once per plugin
+  // instance — a restart (stop+start on a config save) must not
+  // double-register.
+  let plotterProviderRegistered = false;
   const episodes = new Map();
   let notificationConfig = buildConfig({});
   // Deltas are processed strictly one at a time via this chain. Without
@@ -139,6 +147,31 @@ module.exports = (app) => {
     }
   }
 
+  /**
+   * Register the read-only `plotterExtensions` provider that puts the
+   * new-entry button and window into chart plotters such as
+   * Freeboard-SK. Like the logentries provider it is skipped on servers
+   * without the resource provider registry; registration happens after
+   * migrations so it comes up with the rest of the resources surface.
+   */
+  function registerPlotterExtensionProvider() {
+    if (plotterProviderRegistered) {
+      return;
+    }
+    if (typeof app.registerResourceProvider !== 'function') {
+      app.debug('Server has no resource provider registry; chart plotter extension not registered');
+      return;
+    }
+    app.registerResourceProvider({
+      type: 'plotterExtensions',
+      methods: createPlotterExtensionProvider({
+        providerId: plugin.id,
+        isRunning: () => running,
+      }),
+    });
+    plotterProviderRegistered = true;
+  }
+
   plugin.start = () => {
     log = new Log(app.getDataDirPath());
     // Internal writes (triggers, hourly entries, notifications, v1 routes)
@@ -164,6 +197,7 @@ module.exports = (app) => {
     })
       .then(() => {
         registerLogentriesProvider();
+        registerPlotterExtensionProvider();
         setStatus('Waiting for updates');
       })
       .catch((err) => {
@@ -309,6 +343,7 @@ module.exports = (app) => {
       };
     });
     sendCrewNames(app, plugin);
+    running = true;
   };
 
   plugin.registerWithRouter = (router) => {
@@ -462,6 +497,7 @@ module.exports = (app) => {
   };
 
   plugin.stop = () => {
+    running = false;
     unsubscribes.forEach((f) => f());
     unsubscribes = [];
     clearInterval(interval);
@@ -535,3 +571,5 @@ module.exports = (app) => {
 
   return plugin;
 };
+
+module.exports.PLOTTER_EXTENSION = require('./plotterExtension').PLOTTER_EXTENSION;

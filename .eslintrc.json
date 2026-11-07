@@ -12,8 +12,21 @@
   "parserOptions": {
     "ecmaFeatures": {
       "jsx": true
-    }
+    },
+    // airbnb-base 15 pins 2018; the plotterext pages and their tests
+    // speak modern ESM (dynamic import, top-level await)
+    "ecmaVersion": 2022
   },
+  "overrides": [
+    {
+      // Node ESM dynamic import needs the explicit extension; the
+      // airbnb import/extensions default is for bundler resolution
+      "files": ["test/plotterext.test.js"],
+      "rules": {
+        "import/extensions": "off"
+      }
+    }
+  ],
   "rules": {
     "import/no-extraneous-dependencies": [
       "error",

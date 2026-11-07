@@ -1,0 +1,298 @@
+/* New-entry window of the chart plotter extension, sized for a small
+   window over the chart. Same colour system as the webapp; night mode
+   follows the host. */
+:root {
+  --bg-base: #080a0c;
+  --bg-panel: #111414;
+  --bg-panel-muted: #0a0c0c;
+  --color-green: #8dfcbb;
+  --color-teal: #66c6db;
+  --color-orange: #fca847;
+  --color-red: #ff5e5e;
+  --color-grey: #666666;
+  --theme-color-rgb: 102, 198, 219;
+  --text-main: #ffffff;
+  --text-muted: #a0a0b5;
+}
+
+:root[data-mode="night"] {
+  --color-green: #4a7555;
+  --color-teal: #33616b;
+  --color-orange: #8a5318;
+  --color-red: #8f3333;
+  --color-grey: #333333;
+  --theme-color-rgb: 51, 97, 107;
+  --text-main: #c4c4c4;
+  --text-muted: #666677;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0.75rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  position: relative;
+  padding: 0.75rem;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.3);
+  background: var(--bg-panel);
+}
+
+/* 2px corner brackets on the mounting edges of the panel */
+.card::before,
+.card::after {
+  content: "";
+  position: absolute;
+  width: 0.9rem;
+  height: 0.9rem;
+  pointer-events: none;
+}
+
+.card::before {
+  top: -2px;
+  left: -2px;
+  border-top: 2px solid var(--color-teal);
+  border-left: 2px solid var(--color-teal);
+}
+
+.card::after {
+  bottom: -2px;
+  right: -2px;
+  border-bottom: 2px solid var(--color-teal);
+  border-right: 2px solid var(--color-teal);
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-teal);
+}
+
+/* --- Fields --------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-top: 0.7rem;
+}
+
+.field.subfield {
+  margin-top: 0.4rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-teal);
+}
+
+textarea,
+input,
+select {
+  appearance: none;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.5rem;
+  font:
+    500 1rem ui-monospace,
+    "Fira Code",
+    monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--color-grey);
+  border-radius: 0;
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+select {
+  background-image: none;
+  padding-right: 1.5rem;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  outline: none;
+  border-bottom-color: var(--color-teal);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Range inputs keep native thumbs, re-coloured for the theme */
+input[type="range"] {
+  padding: 0;
+  border-bottom: 0;
+  accent-color: var(--color-teal);
+  min-height: 2.5rem;
+}
+
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+.with-readout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.with-readout input {
+  flex: 1;
+}
+
+output {
+  flex: none;
+  min-width: 2.5rem;
+  text-align: right;
+  font-family: ui-monospace, "Fira Code", monospace;
+  color: var(--text-main);
+}
+
+/* --- Choice buttons -------------------------------------------------- */
+
+.choices {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.choices[data-columns="4"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.choices[data-columns="5"] {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.choices button {
+  min-height: 2.75rem;
+  padding: 0 0.25rem;
+  font:
+    600 0.8rem ui-monospace,
+    "Fira Code",
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--color-grey);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.choices button[aria-checked="true"] {
+  color: var(--bg-base);
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+.choices button:focus-visible {
+  outline: 1px solid var(--color-teal);
+  outline-offset: 1px;
+}
+
+/* --- Collapsible groups ---------------------------------------------- */
+
+.group {
+  margin-top: 0.7rem;
+  padding: 0.5rem 0.6rem 0.6rem;
+  border: 1px solid rgba(var(--theme-color-rgb), 0.3);
+  background: var(--bg-panel-muted);
+}
+
+.group summary {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-teal);
+  cursor: pointer;
+  min-height: 2rem;
+  line-height: 2rem;
+  list-style: none;
+}
+
+.group summary::-webkit-details-marker {
+  display: none;
+}
+
+.group summary::before {
+  content: "[+] ";
+  font-family: ui-monospace, "Fira Code", monospace;
+}
+
+.group[open] summary::before {
+  content: "[-] ";
+}
+
+/* --- Save & status ---------------------------------------------------- */
+
+#save {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.9rem;
+  font:
+    700 0.9rem ui-monospace,
+    "Fira Code",
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-teal);
+  background: transparent;
+  border: 1px solid var(--color-teal);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+#save:hover,
+#save:active {
+  color: var(--bg-base);
+  background: var(--color-teal);
+}
+
+#save:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.message {
+  min-height: 1.2em;
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  font-family: ui-monospace, "Fira Code", monospace;
+  color: var(--text-muted);
+}
+
+.message.error {
+  color: var(--color-red);
+}
+
+.message.ok {
+  color: var(--color-green);
+}
+
+[hidden] {
+  display: none;
+}

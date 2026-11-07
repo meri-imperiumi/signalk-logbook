@@ -1,5 +1,7 @@
 # Changelog
 ## [Unreleased]
+### Added
+- A chart plotter extension puts a "Log entry" button on the map toolbar of plotter apps that support the Signal K `plotterExtensions` resource type (Freeboard-SK and friends): tapping it opens a small window with the new-entry form — remarks, when it happened (now, minutes back or a specific time), category with the radio and navigation-specific fields (VHF channel, sea state, cloud coverage, visibility, manual position with fix type) — the same data the Logbook webapp's entry editor captures, in a shortcut for writing a line from the chart without switching apps. The window submits through the `logentries` resources API on the user's own session, so access control and telemetry enrichment (position, speeds, wind, engine hours on "now" entries) work exactly as for webapp entries, and it follows the host's night mode where the plotter supports it. The manifest is served as a read-only `plotterExtensions` resource provider alongside the `logentries` one, gated on the plugin running and registered only on servers with the resource provider registry; the form pages are plain vanilla ES modules under `public/plotterext/`, built from `public_src/plotterext/` and talking to the host over the vendored MIT-licensed signalk-plotterext-bus. This is deliberately not a replacement for the full webapp UI — browsing, editing and deleting entries stay in the Logbook webapp
 
 ## [0.14.4] - 2026-11-06
 ### Fixed

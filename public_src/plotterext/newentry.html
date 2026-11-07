@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="day">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logbook — new entry</title>
+    <link rel="stylesheet" href="./newentry.css" />
+    <script type="module" src="./newentry.js"></script>
+  </head>
+  <body>
+    <section class="card">
+      <h1>New log entry</h1>
+
+      <label class="field">
+        <span class="label">Remarks</span>
+        <textarea id="text" rows="3" placeholder="Tell what happened"></textarea>
+      </label>
+
+      <div class="field">
+        <span class="label" id="when-label">This happened</span>
+        <div class="choices" id="when" role="radiogroup" aria-labelledby="when-label"></div>
+        <label class="field subfield" id="datetime-field" hidden>
+          <span class="label">Date and time</span>
+          <input id="datetime" type="datetime-local" />
+        </label>
+      </div>
+
+      <div class="field">
+        <span class="label" id="category-label">Category</span>
+        <div class="choices" id="category" role="radiogroup" aria-labelledby="category-label"></div>
+      </div>
+
+      <label class="field" id="vhf-field" hidden>
+        <span class="label">VHF channel</span>
+        <input id="vhf" type="text" maxlength="3" placeholder="16" />
+      </label>
+
+      <details class="group" id="observations-group">
+        <summary>Observations</summary>
+        <label class="field">
+          <span class="label">Sea state</span>
+          <select id="sea-state"></select>
+        </label>
+        <label class="field">
+          <span class="label">Cloud coverage</span>
+          <span class="with-readout">
+            <input id="cloud-coverage" type="range" min="-1" max="8" step="1" aria-label="Cloud coverage in oktas" />
+            <output id="cloud-readout" for="cloud-coverage">n/a</output>
+          </span>
+        </label>
+        <label class="field">
+          <span class="label">Visibility</span>
+          <select id="visibility"></select>
+        </label>
+      </details>
+
+      <details class="group" id="position-group">
+        <summary>Position</summary>
+        <label class="field">
+          <span class="label">Latitude</span>
+          <input id="latitude" type="number" placeholder="52.51117" max="90" min="-90" step="0.00001" />
+        </label>
+        <label class="field">
+          <span class="label">Longitude</span>
+          <input id="longitude" type="number" placeholder="13.19329" max="180" min="-180" step="0.00001" />
+        </label>
+        <label class="field">
+          <span class="label">Fix type</span>
+          <select id="fix-type"></select>
+        </label>
+      </details>
+
+      <button id="save" type="button">Save entry</button>
+      <p class="message" id="message" role="status"></p>
+    </section>
+  </body>
+</html>

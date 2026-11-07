@@ -85,6 +85,16 @@ module.exports = {
             return Promise.resolve('[name][ext]');
           },
         },
+        // Chart plotter extension pages (new-entry window for
+        // Freeboard-SK and friends): plain ES modules served as-is, no
+        // bundling. Marked pre-minimized so the production minimizer
+        // leaves the ESM alone; the vendored plotterext-bus is generated
+        // from signalk-plotterext-bus, see the vendor:plotterext script.
+        {
+          from: 'public_src/plotterext',
+          to: 'plotterext',
+          info: { minimized: true },
+        },
         // MapLibre's tile-parsing workers load as module workers from these
         // files (the worker imports the shared chunk by relative URL), so they
         // must sit next to each other under vendor/ in the built webapp.
