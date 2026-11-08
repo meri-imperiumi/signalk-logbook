@@ -135,8 +135,19 @@ function resolveDatetime(form, now) {
  * @returns {object|null}
  */
 function buildPosition(form) {
-  const latitude = Number(form.latitude);
-  const longitude = Number(form.longitude);
+  // Blank fields are no position: Number('') coerces to 0 and would pass
+  // the range check, stamping entries at 0°N 0°E — and the position
+  // pathvalue's presence suppresses the provider's live-GPS enrichment,
+  // so the boat would stay at null island instead of its actual fix.
+  // Whitespace is trimmed the same way; an explicitly typed 0 still is
+  // a position, same as the webapp editor.
+  const latitudeText = typeof form.latitude === 'string' ? form.latitude.trim() : '';
+  const longitudeText = typeof form.longitude === 'string' ? form.longitude.trim() : '';
+  if (latitudeText === '' || longitudeText === '') {
+    return null;
+  }
+  const latitude = Number(latitudeText);
+  const longitude = Number(longitudeText);
   const valid = Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
     && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
   if (!valid) {

@@ -263,6 +263,37 @@ test('a manual position keeps its fix type and drops invalid values', async () =
     longitude: '25',
   });
   assert.strictEqual(outOfRange.telemetry, undefined);
+
+  // Empty or half-filled fields are no position: Number('') coerces to
+  // zero and would pass the range check, stamping the entry at 0°N 0°E
+  // and suppressing live-position enrichment
+  const untouched = buildEntryPayload({ text: 'x', category: 'navigation' });
+  assert.strictEqual(untouched.telemetry, undefined);
+  const blank = buildEntryPayload({
+    text: 'x',
+    category: 'navigation',
+    latitude: '',
+    longitude: '',
+  });
+  assert.strictEqual(blank.telemetry, undefined);
+  const halfFilled = buildEntryPayload({
+    text: 'x',
+    category: 'navigation',
+    latitude: '60.12345',
+    longitude: '   ',
+  });
+  assert.strictEqual(halfFilled.telemetry, undefined);
+
+  // An explicitly typed zero still is a position
+  const zeroPoint = buildEntryPayload({
+    text: 'x',
+    category: 'navigation',
+    latitude: '0',
+    longitude: '0',
+  });
+  assert.deepStrictEqual(zeroPoint.telemetry, [
+    { path: 'navigation.position', value: { latitude: 0, longitude: 0 } },
+  ]);
 });
 
 test('an unknown category falls back to navigation', async () => {

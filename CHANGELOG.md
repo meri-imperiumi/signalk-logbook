@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Fixed
+- The plotter extension's new-entry window no longer sends a position when none was entered: empty latitude/longitude fields coerced to zero (`Number('') === 0`) and passed the range check, stamping every entry without a manual fix at 0°N 0°E — and since a `navigation.position` pathvalue in the payload suppresses the provider's live-GPS enrichment, entries sat at null island instead of the vessel's actual position. Blank or whitespace-only fields (or only one of the two filled) are now treated as no position; an explicitly typed 0 still records a position, matching the webapp entry editor
+- The plotter extension's cloud coverage slider opens at "no observation": without a `value` attribute the browser rendered the range input at the midpoint of -1…8 (3.5 oktas), showing a selection that was never made and snapping the first touch from the wrong position — the form state was already "no observation", so only the display was wrong
 
 ## [0.15.0] - 2026-11-08
 ### Added
