@@ -94,6 +94,21 @@ function filterLabel(filter) {
   return preset.label;
 }
 
+function resolveZone(zone, now) {
+  const requestedNow = DateTime.fromJSDate(now).setZone(zone);
+  if (requestedNow.isValid) {
+    return { nowDt: requestedNow, zone };
+  }
+  if (/^[+-](?:0\d|1[0-4]):[0-5]\d$/.test(zone)) {
+    const fixedZone = `UTC${zone}`;
+    const fixedNow = DateTime.fromJSDate(now).setZone(fixedZone);
+    if (fixedNow.isValid) {
+      return { nowDt: fixedNow, zone: fixedZone };
+    }
+  }
+  return { nowDt: DateTime.fromJSDate(now).toUTC(), zone: 'UTC' };
+}
+
 // UTC ISO bounds for the entries query, following the display timezone:
 // quick ranges start at local midnight the day the window opens and run
 // to the end of the current local day; custom spans cover whole local
@@ -102,10 +117,10 @@ function filterLabel(filter) {
 // corrupt or half-written save) falls back to the default quick range
 // rather than yielding a query that cannot succeed
 function filterWindow(filter, now, zone) {
-  const nowDt = DateTime.fromJSDate(now).setZone(zone);
+  const { nowDt, zone: resolvedZone } = resolveZone(zone, now);
   if (isCustomFilter(filter)) {
-    const from = DateTime.fromISO(filter.from, { zone }).startOf('day');
-    const to = DateTime.fromISO(filter.to, { zone }).endOf('day');
+    const from = DateTime.fromISO(filter.from, { zone: resolvedZone }).startOf('day');
+    const to = DateTime.fromISO(filter.to, { zone: resolvedZone }).endOf('day');
     if (from.isValid && to.isValid && from <= to) {
       return {
         from: from.toUTC().toISO(),

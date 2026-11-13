@@ -135,3 +135,11 @@ test('filterWindow falls back to the default window on invalid custom dates', ()
     filterWindow(DEFAULT_FILTER, now, 'UTC'),
   );
 });
+
+test('filterWindow falls back to UTC instead of returning null bounds for an invalid zone', () => {
+  const now = new Date('2026-09-28T10:00:00.000Z');
+  assert.deepStrictEqual(
+    filterWindow({ preset: '7d' }, now, '-144:00'),
+    filterWindow({ preset: '7d' }, now, 'UTC'),
+  );
+});
